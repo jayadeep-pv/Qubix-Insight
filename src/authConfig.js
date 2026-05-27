@@ -24,7 +24,7 @@ export const msalConfig = {
 // Scopes requested on every token acquisition.
 // The backend reads the tid claim to resolve the tenant.
 export const loginRequest = {
-  scopes: [apiScope].filter(Boolean)
+  scopes: apiScope ? [apiScope] : []
 };
 
 export const msalInstance = new PublicClientApplication(msalConfig);
