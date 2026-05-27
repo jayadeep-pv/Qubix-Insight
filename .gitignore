@@ -97,3 +97,6 @@ rcf/
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*
 TestResult.xml
+
+# VS cache
+*.lscache
