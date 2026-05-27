@@ -371,8 +371,11 @@ public class UploadAndStartComparison
         int expiryMinutes)
     {
         var delegationKey = await serviceClient.GetUserDelegationKeyAsync(
-            DateTimeOffset.UtcNow.AddMinutes(-5),
-            DateTimeOffset.UtcNow.AddMinutes(expiryMinutes));
+            new Azure.Storage.Blobs.Models.BlobGetUserDelegationKeyOptions(
+                DateTimeOffset.UtcNow.AddMinutes(expiryMinutes))
+            {
+                StartsOn = DateTimeOffset.UtcNow.AddMinutes(-5)
+            });
 
         var sasBuilder = new BlobSasBuilder
         {
