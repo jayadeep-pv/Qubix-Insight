@@ -1,30 +1,41 @@
 import { PublicClientApplication } from "@azure/msal-browser";
 
-const clientId = process.env.REACT_APP_CLIENT_ID;
-const apiScope = process.env.REACT_APP_API_SCOPE;
-const authorityTenantId = process.env.REACT_APP_AUTHORITY_TENANT_ID || "common";
+let _instance = null;
 
-if (!clientId) console.warn("[Auth] REACT_APP_CLIENT_ID is not set");
-if (!apiScope) console.warn("[Auth] REACT_APP_API_SCOPE is not set");
-
-export const msalConfig = {
-  auth: {
-    clientId: clientId,
-    // "common" allows users from ANY Azure AD tenant to sign in.
-    // Set REACT_APP_AUTHORITY_TENANT_ID to lock to a specific tenant.
-    authority: `https://login.microsoftonline.com/${authorityTenantId}`,
-    redirectUri: window.location.origin,
+// Proxy delegates to the real instance once initAuth() has been called.
+// All existing imports (msalInstance.getActiveAccount() etc.) keep working.
+export const msalInstance = new Proxy({}, {
+  get(_target, prop) {
+    if (!_instance) throw new Error(`[Auth] MSAL not initialised — cannot call msalInstance.${String(prop)}`);
+    const val = _instance[prop];
+    return typeof val === "function" ? val.bind(_instance) : val;
   },
-  cache: {
-    cacheLocation: "localStorage",
-    storeAuthStateInCookie: false,
+  set(_target, prop, value) {
+    if (!_instance) throw new Error("[Auth] MSAL not initialised");
+    _instance[prop] = value;
+    return true;
   },
-};
+});
 
-// Scopes requested on every token acquisition.
-// The backend reads the tid claim to resolve the tenant.
-export const loginRequest = {
-  scopes: apiScope ? [apiScope] : []
-};
+// Mutable object — initAuth() updates scopes in place so existing imports stay valid.
+export const loginRequest = { scopes: [] };
 
-export const msalInstance = new PublicClientApplication(msalConfig);
+// Called once from index.tsx after config.json is loaded.
+export async function initAuth(config) {
+  _instance = new PublicClientApplication({
+    auth: {
+      clientId: config.clientId,
+      authority: `https://login.microsoftonline.com/${config.authorityTenantId}`,
+      redirectUri: window.location.origin,
+    },
+    cache: {
+      cacheLocation: "localStorage",
+      storeAuthStateInCookie: false,
+    },
+  });
+
+  loginRequest.scopes = [config.apiScope];
+
+  await _instance.initialize();
+  return _instance;
+}

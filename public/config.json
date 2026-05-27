@@ -1,0 +1,6 @@
+{
+  "clientId": "REPLACE_WITH_WEB_APP_CLIENT_ID",
+  "apiScope": "REPLACE_WITH_API_SCOPE",
+  "authorityTenantId": "REPLACE_WITH_TENANT_ID",
+  "apiBase": "https://func-ilogix-qubixinsight-prod-uks.azurewebsites.net/api"
+}

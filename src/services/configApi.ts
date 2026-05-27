@@ -2,14 +2,11 @@ import axios from "axios";
 import { InteractionRequiredAuthError } from "@azure/msal-browser";
 import { ComparisonTemplate } from "../types/ComparisonTemplate";
 import { msalInstance, loginRequest } from "../authConfig";
+import { getAppConfig } from "../appConfig";
 
-const API_BASE = "http://localhost:7071";
-
-// Single axios instance — tenant is resolved server-side from the Bearer token.
-// No X-Tenant-Key header needed or sent.
-const apiClient = axios.create({
-  baseURL: API_BASE,
-});
+// Single axios instance — baseURL set lazily from runtime config.
+// Tenant is resolved server-side from the Bearer token.
+const apiClient = axios.create();
 
 // One redirect at a time — prevents a cascade when multiple concurrent requests all get 401.
 let _loginRedirectInFlight = false;
@@ -17,6 +14,9 @@ let _loginRedirectInFlight = false;
 // Attach the MSAL Bearer token to every request.
 // Prefer getActiveAccount(); fall back to getAllAccounts()[0].
 apiClient.interceptors.request.use(async (config) => {
+  // Set baseURL from runtime config on every request
+  config.baseURL = getAppConfig().apiBase;
+
   const account = msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0];
   if (!account) {
     console.warn("[Auth] No MSAL account found — request sent without token");
