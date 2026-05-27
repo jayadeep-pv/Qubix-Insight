@@ -1,6 +1,6 @@
 {
-  "clientId": "REPLACE_WITH_WEB_APP_CLIENT_ID",
-  "apiScope": "REPLACE_WITH_API_SCOPE",
-  "authorityTenantId": "REPLACE_WITH_TENANT_ID",
+  "clientId": "c9e00263-aebc-4d59-ad9e-7e6b00d4fc89",
+  "apiScope": "api://ba5f6329-ac7b-49d6-a9df-a05e9c84f422/qubixinsightapi.access",
+  "authorityTenantId": "91fe9c77-dbd7-40f2-8b38-2f4cb8f7d48d",
   "apiBase": "https://func-ilogix-qubixinsight-prod-uks.azurewebsites.net/api"
 }
