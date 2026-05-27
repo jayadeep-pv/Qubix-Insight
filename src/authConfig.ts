@@ -31,7 +31,6 @@ export async function initAuth(config: AppConfig): Promise<PublicClientApplicati
     },
     cache: {
       cacheLocation: "localStorage",
-      storeAuthStateInCookie: false,
     },
   });
 
