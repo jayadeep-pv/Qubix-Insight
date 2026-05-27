@@ -1,0 +1,329 @@
+/* =========================
+   PAGE LAYOUT
+========================= */
+
+.page {
+  max-width: 1400px;
+  margin: auto;
+  padding: 48px 40px 40px;
+}
+
+/* Back navigation wrapper — used on all pages above the page title */
+.page-back-nav {
+  margin-bottom: 14px;
+}
+
+/* =========================
+   PAGE HEADER
+========================= */
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+/* =========================
+   BUTTONS
+========================= */
+
+.btn-primary {
+  background: #FA4616;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.btn-primary:hover {
+  background: #e23f12;
+}
+
+.btn-secondary {
+  background: white;
+  border: 1px solid #ccc;
+  padding: 10px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #FA4616;
+  cursor: pointer;
+}
+
+/* =========================
+   TABLE
+========================= */
+
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 20px;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.table thead {
+  background: #f8f9fb;
+}
+
+.table th {
+  text-align: left;
+  padding: 16px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #555;
+  border-bottom: 1px solid #eee;
+}
+
+.table td {
+  padding: 16px 18px;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 14px;
+}
+
+.table tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+.table tbody tr:hover {
+  background: #f4f7fb;
+  transition: background 0.15s ease;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* =========================
+   STATUS PILL
+========================= */
+
+.status {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status.active {
+  background: #e6f6ea;
+  color: #2f7d32;
+}
+
+.status.inactive {
+  background: #fdecea;
+  color: #b71c1c;
+}
+
+/* =========================
+   USAGE MODE BADGES
+========================= */
+
+.usage-badges {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.usage-badge {
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.usage-badge-compare {
+  background: #FAECE7;
+  color: #993C1D;
+}
+
+.usage-badge-scoring {
+  background: #EDE9FE;
+  color: #5B21B6;
+}
+
+.usage-badge-summarise {
+  background: #E6F1FB;
+  color: #185FA5;
+}
+
+/* =========================
+   ICON BUTTONS
+========================= */
+
+.btn-icon {
+  border: none;
+  background: none;
+  font-size: 16px;
+  cursor: pointer;
+  margin-left: 10px;
+  opacity: 0.75;
+  transition: all 0.15s ease;
+}
+
+.btn-icon:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.btn-icon.delete {
+  color: #e53935;
+}
+
+.btn-icon.deactivate {
+  color: #e53935;
+}
+
+/* =========================
+   FORM
+========================= */
+
+.form-group {
+  margin-bottom: 18px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.form-input {  
+  max-width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+textarea.form-input {
+  height: 120px;
+  resize: vertical;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.checkbox-row input {
+  width: 16px;
+  height: 16px;
+}
+
+.form-footer {
+  margin-top: 25px;
+  display: flex;
+  gap: 10px;
+}
+
+/* =========================
+   META TEXT
+========================= */
+
+.meta {
+  font-size: 12px;
+  color: #777;
+  margin-top: 15px;
+}
+
+/* =========================
+   ADMIN FORM LAYOUT
+========================= */
+
+.admin-form-header {
+  margin-bottom: 20px;
+}
+
+.admin-form-header h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.admin-form-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 28px 32px;
+  max-width: 760px;
+}
+
+.admin-form-card .form-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Two-column layout for related short fields */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 20px;
+}
+
+/* Footer with separator */
+.admin-form-card .form-footer {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #f3f4f6;
+}
+
+/* Meta timestamps styled as subtle footer info */
+.admin-form-card .meta {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  margin-bottom: 0;
+  padding-top: 12px;
+  border-top: 1px solid #f9fafb;
+}
+
+/* Wrapper for list/grid content in secondary tabs (no card) */
+.admin-tab-panel {
+  margin-top: 4px;
+}
+
+/* Checkbox column inside a form-row — aligns with the sibling input field */
+.form-group-checkboxes {
+  padding-top: 26px;
+}
+
+.form-group-checkboxes .checkbox-row + .checkbox-row {
+  margin-top: 8px;
+}
+
+/* Active/status checkbox — always the last data field, visually separated */
+.form-group-last {
+  margin-top: 8px;
+  padding-top: 20px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.form-group-last .checkbox-row span {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+@media (max-width: 600px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  .admin-form-card {
+    padding: 20px 16px;
+  }
+}

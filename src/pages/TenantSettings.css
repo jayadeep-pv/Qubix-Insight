@@ -1,0 +1,145 @@
+/* ── Loading ── */
+.ts-loading {
+  color: #64748b;
+  padding: 40px 0;
+}
+
+/* ── Page header ── */
+.ts-heading {
+  margin: 0;
+}
+
+.ts-heading-sub {
+  font-weight: 400;
+  color: #64748b;
+  margin-left: 8px;
+}
+
+.ts-subtitle {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+/* ── Subscription tier badge ── */
+.ts-tier-badge {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ── Read-only identity strip ── */
+.ts-identity-strip {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 20px;
+  margin-bottom: 24px;
+}
+
+/* ── Notification banners ── */
+.ts-banner {
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.ts-banner--error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+}
+
+.ts-banner--success {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
+}
+
+/* ── Tabs row ── */
+.ts-tabs {
+  margin-bottom: 20px;
+}
+
+/* ── Form field widths ── */
+.ts-field-input {
+  width: 100%;
+  max-width: 480px;
+}
+
+.ts-field-input--wide {
+  width: 100%;
+  max-width: 560px;
+}
+
+/* ── Field hint text ── */
+.ts-field-hint {
+  display: block;
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+/* ── InfoChip ── */
+.ts-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ts-chip__label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+}
+
+.ts-chip__value {
+  font-size: 13px;
+  color: #334155;
+  border-radius: 4px;
+}
+
+.ts-chip__value--mono {
+  font-family: monospace;
+}
+
+.ts-chip__value--green {
+  color: #15803d;
+  background: #f0fdf4;
+  padding: 2px 8px;
+}
+
+.ts-chip__value--red {
+  color: #b91c1c;
+  background: #fef2f2;
+  padding: 2px 8px;
+}
+
+/* ── Data Tools tab ── */
+.ts-data-tools-heading {
+  margin: 0 0 8px;
+}
+
+.ts-data-tools-hint {
+  margin-bottom: 16px;
+}
+
+.ts-data-tools-btn {
+  margin-bottom: 12px;
+}
+
+.ts-migration-result {
+  white-space: pre-wrap;
+  font-family: monospace;
+  font-size: 13px;
+}

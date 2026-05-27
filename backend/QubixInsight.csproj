@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AzureFunctionsVersion>v4</AzureFunctionsVersion>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>QubixInsight</AssemblyName>
+    <RootNamespace>QubixInsight</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Azure AI -->
+    <PackageReference Include="Azure.AI.DocumentIntelligence" Version="1.*" />
+    <PackageReference Include="Azure.AI.OpenAI" Version="2.*" />
+
+    <!-- Azure Functions -->
+    <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.*" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.*" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.*" OutputItemType="Analyzer" />
+
+    <!-- Dataverse -->
+    <PackageReference Include="Microsoft.PowerPlatform.Dataverse.Client" Version="1.*" />
+
+    <!-- Framework extensions -->
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.*" />
+
+    <!-- Storage & Identity -->
+    <PackageReference Include="Azure.Identity" Version="1.*" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.*" />
+
+    <!-- Multipart form parsing -->
+    <PackageReference Include="HttpMultipartParser" Version="5.*" />
+
+    <!-- PDF export -->
+    <PackageReference Include="QuestPDF" Version="2026.2.4" />
+  </ItemGroup>
+
+</Project>

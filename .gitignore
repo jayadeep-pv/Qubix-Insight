@@ -1,0 +1,99 @@
+# ──────────────────────────────────────────────
+# Dependencies
+# ──────────────────────────────────────────────
+/node_modules
+node_modules/
+/.pnp
+.pnp.js
+
+# ──────────────────────────────────────────────
+# Build outputs
+# ──────────────────────────────────────────────
+/build
+/coverage
+
+# .NET
+bin/
+obj/
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+[Ll]og/
+bld/
+csx/
+*.build.csdef
+
+# ──────────────────────────────────────────────
+# Environment & Secrets  ← NEVER COMMIT
+# ──────────────────────────────────────────────
+.env
+.env.local
+.env.production
+.env.production.local
+.env.development.local
+.env.test.local
+local.settings.json
+appsettings.Development.json
+appsettings.Production.json
+*.pubxml
+PublishScripts/
+*.publishsettings
+
+# ──────────────────────────────────────────────
+# Dataverse / Power Platform solution files
+# ──────────────────────────────────────────────
+solution_extract/
+*.zip
+
+# ──────────────────────────────────────────────
+# Documentation & generated files (keep out of source)
+# ──────────────────────────────────────────────
+*.docx
+*.doc
+*.pdf
+~$*
+*.py
+
+# ──────────────────────────────────────────────
+# IDE & OS
+# ──────────────────────────────────────────────
+.DS_Store
+.vs/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+Thumbs.db
+
+# ──────────────────────────────────────────────
+# Logs
+# ──────────────────────────────────────────────
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# ──────────────────────────────────────────────
+# Azure Functions
+# ──────────────────────────────────────────────
+ecf/
+rcf/
+
+# ──────────────────────────────────────────────
+# NuGet
+# ──────────────────────────────────────────────
+*.nupkg
+**/packages/*
+!**/packages/build/
+*.nuget.props
+*.nuget.targets
+
+# ──────────────────────────────────────────────
+# Testing
+# ──────────────────────────────────────────────
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+TestResult.xml

@@ -1,0 +1,24 @@
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QubixInsight", "QubixInsight.csproj", "{50786442-5051-80DB-3B18-1265ABBD2671}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{50786442-5051-80DB-3B18-1265ABBD2671}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{50786442-5051-80DB-3B18-1265ABBD2671}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{50786442-5051-80DB-3B18-1265ABBD2671}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{50786442-5051-80DB-3B18-1265ABBD2671}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6066C7B8-1CFC-4E0B-9761-0CBD3D092CDE}
+	EndGlobalSection
+EndGlobal
