@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useMemo } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { configApi } from "../../services/configApi"
 import { useNavigate } from "react-router-dom"
 import { Rule } from "../../types/Rule"

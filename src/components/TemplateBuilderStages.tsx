@@ -1,4 +1,4 @@
-﻿/**
+/**
  * TemplateBuilderStages.tsx
  *
  * Shared components used by both StartSmartBuilder and StartReview (Quick Extract).
