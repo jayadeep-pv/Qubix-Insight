@@ -1,13 +1,18 @@
 import { PublicClientApplication } from "@azure/msal-browser";
 
+const clientId = process.env.REACT_APP_CLIENT_ID;
+const apiScope = process.env.REACT_APP_API_SCOPE;
+const authorityTenantId = process.env.REACT_APP_AUTHORITY_TENANT_ID || "common";
+
+if (!clientId) console.warn("[Auth] REACT_APP_CLIENT_ID is not set");
+if (!apiScope) console.warn("[Auth] REACT_APP_API_SCOPE is not set");
+
 export const msalConfig = {
   auth: {
-    clientId: "7c876bbe-7293-49eb-bf81-54a46c665b77",
+    clientId: clientId,
     // "common" allows users from ANY Azure AD tenant to sign in.
-    // Do NOT use a single tenant GUID here — that would lock out all other tenants.
-    authority: process.env.NODE_ENV === "production"
-  ? "https://login.microsoftonline.com/common"
-  : "https://login.microsoftonline.com/c957560e-8fc9-444a-9cde-bfd3129e36ad",
+    // Set REACT_APP_AUTHORITY_TENANT_ID to lock to a specific tenant.
+    authority: `https://login.microsoftonline.com/${authorityTenantId}`,
     redirectUri: window.location.origin,
   },
   cache: {
@@ -17,11 +22,9 @@ export const msalConfig = {
 };
 
 // Scopes requested on every token acquisition.
-// The backend will read the tid claim from this token to resolve the tenant.
+// The backend reads the tid claim to resolve the tenant.
 export const loginRequest = {
-  scopes: [
-    "api://ff3fa124-94c0-431f-a573-b3c06b8865d9/hollisdocumentcomparisonapi.access"
-  ]
+  scopes: [apiScope].filter(Boolean)
 };
 
 export const msalInstance = new PublicClientApplication(msalConfig);
