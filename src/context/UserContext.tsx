@@ -1,8 +1,9 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useIsAuthenticated } from "@azure/msal-react";
-import axios from "axios";
-import { msalInstance, loginRequest } from "../authConfig";
 import { InteractionRequiredAuthError } from "@azure/msal-browser";
+import axios from "axios";
+import { msalInstance, loginRequest, trialLoginRequest, getExternalIdInstance } from "../authConfig";
+import { getAppConfig } from "../appConfig";
 
 interface UserContextType {
   isTrial: boolean;
@@ -28,12 +29,38 @@ export function useUser(): UserContextType {
   return useContext(UserContext);
 }
 
+/**
+ * Resolves the active MSAL account and instance.
+ * Prefers the main Azure AD instance; falls back to External ID for trial users.
+ * Mirrors the same logic in configApi.ts so both always use the same token.
+ */
+function resolveActiveAuth() {
+  const mainAccount = msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0];
+  if (mainAccount) {
+    return { account: mainAccount, instance: msalInstance, request: loginRequest };
+  }
+  const extId = getExternalIdInstance();
+  if (extId) {
+    const extAccount = extId.getActiveAccount() ?? extId.getAllAccounts()[0];
+    if (extAccount) {
+      return { account: extAccount, instance: extId, request: trialLoginRequest };
+    }
+  }
+  return null;
+}
+
 export function UserProvider({ children }: { children: ReactNode }) {
   const isAuthenticated = useIsAuthenticated();
   const [user, setUser] = useState<UserContextType>(defaultUser);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    // Check External ID accounts synchronously — index.tsx processed the redirect
+    // before first render, so getAllAccounts() is reliable here.
+    const extId = getExternalIdInstance();
+    const isExtIdAuthenticated = (extId?.getAllAccounts().length ?? 0) > 0;
+    const effectivelyAuthenticated = isAuthenticated || isExtIdAuthenticated;
+
+    if (!effectivelyAuthenticated) {
       setUser({ ...defaultUser, loading: false });
       return;
     }
@@ -42,21 +69,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
     async function fetchCurrentUser() {
       try {
-        const account =
-          msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0];
-
-        if (!account) {
+        const auth = resolveActiveAuth();
+        if (!auth) {
           setUser({ ...defaultUser, loading: false });
           return;
         }
 
-        const result = await msalInstance.acquireTokenSilent({
-          ...loginRequest,
-          account,
+        const result = await auth.instance.acquireTokenSilent({
+          ...auth.request,
+          account: auth.account,
         });
 
         const response = await axios.get(
-          `${process.env.REACT_APP_API_BASE ?? "http://localhost:7071"}/api/GetCurrentUser`,
+          `${getAppConfig().apiBase}/api/GetCurrentUser`,
           { headers: { Authorization: `Bearer ${result.accessToken}` } }
         );
 
@@ -72,7 +97,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         }
       } catch (err) {
         if (err instanceof InteractionRequiredAuthError) {
-          // Token refresh needed — auth flow will handle it; keep loading false
+          // Token refresh required — auth flow will handle it
         }
         if (!cancelled) setUser({ ...defaultUser, loading: false });
       }
@@ -80,7 +105,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
     fetchCurrentUser();
     return () => { cancelled = true; };
-  }, [isAuthenticated]);
+  }, [isAuthenticated]); // External ID accounts are stable after bootstrap; re-run on Azure AD auth changes
 
   return <UserContext.Provider value={user}>{children}</UserContext.Provider>;
 }

@@ -1,6 +1,8 @@
 import { PublicClientApplication } from "@azure/msal-browser";
 import type { AppConfig } from "./appConfig";
 
+// ─── Main Azure AD instance ──────────────────────────────────────────────────
+
 let _instance: PublicClientApplication | null = null;
 
 // Proxy typed as PublicClientApplication so all existing call-sites type-check.
@@ -37,4 +39,38 @@ export async function initAuth(config: AppConfig): Promise<PublicClientApplicati
   loginRequest.scopes = [config.apiScope];
   await _instance.initialize();
   return _instance;
+}
+
+// ─── Entra External ID instance (trial users) ────────────────────────────────
+
+let _externalIdInstance: PublicClientApplication | null = null;
+
+export const trialLoginRequest = { scopes: ["openid", "profile", "email"] };
+
+/** Returns the External ID instance, or null if not yet configured (Phase 3 pending). */
+export function getExternalIdInstance(): PublicClientApplication | null {
+  return _externalIdInstance;
+}
+
+/**
+ * Initialises the Entra External ID MSAL instance from runtime config.
+ * No-op when externalIdClientId is absent — the trial button stays disabled
+ * until Phase 3 Azure portal setup is complete and the client ID is set.
+ */
+export async function initExternalIdAuth(config: AppConfig): Promise<void> {
+  if (!config.externalIdClientId) return;
+
+  _externalIdInstance = new PublicClientApplication({
+    auth: {
+      clientId: config.externalIdClientId,
+      authority: "https://ilogixidentity.ciamlogin.com/",
+      redirectUri: window.location.origin,
+      knownAuthorities: ["ilogixidentity.ciamlogin.com"],
+    },
+    cache: {
+      cacheLocation: "localStorage",
+    },
+  });
+
+  await _externalIdInstance.initialize();
 }

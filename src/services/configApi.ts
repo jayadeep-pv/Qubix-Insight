@@ -1,7 +1,7 @@
 import axios from "axios";
 import { InteractionRequiredAuthError } from "@azure/msal-browser";
 import { ComparisonTemplate } from "../types/ComparisonTemplate";
-import { msalInstance, loginRequest } from "../authConfig";
+import { msalInstance, loginRequest, trialLoginRequest, getExternalIdInstance } from "../authConfig";
 import { getAppConfig } from "../appConfig";
 
 // Single axios instance — baseURL set lazily from runtime config.
@@ -11,20 +11,38 @@ const apiClient = axios.create();
 // One redirect at a time — prevents a cascade when multiple concurrent requests all get 401.
 let _loginRedirectInFlight = false;
 
+/**
+ * Resolves the active MSAL account and the instance that owns it.
+ * Prefers the main Azure AD instance; falls back to External ID for trial users.
+ */
+function resolveActiveAuth() {
+  const mainAccount = msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0];
+  if (mainAccount) {
+    return { account: mainAccount, instance: msalInstance, request: loginRequest };
+  }
+  const extId = getExternalIdInstance();
+  if (extId) {
+    const extAccount = extId.getActiveAccount() ?? extId.getAllAccounts()[0];
+    if (extAccount) {
+      return { account: extAccount, instance: extId, request: trialLoginRequest };
+    }
+  }
+  return null;
+}
+
 // Attach the MSAL Bearer token to every request.
-// Prefer getActiveAccount(); fall back to getAllAccounts()[0].
 apiClient.interceptors.request.use(async (config) => {
   // Set baseURL from runtime config on every request
   config.baseURL = getAppConfig().apiBase;
 
-  const account = msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0];
-  if (!account) {
+  const auth = resolveActiveAuth();
+  if (!auth) {
     console.warn("[Auth] No MSAL account found — request sent without token");
     return config;
   }
 
   try {
-    const result = await msalInstance.acquireTokenSilent({ ...loginRequest, account });
+    const result = await auth.instance.acquireTokenSilent({ ...auth.request, account: auth.account });
     config.headers = config.headers ?? {};
     config.headers["Authorization"] = `Bearer ${result.accessToken}`;
     config.headers["X-Aad-Tenant-Id"] = result.tenantId;
@@ -32,9 +50,8 @@ apiClient.interceptors.request.use(async (config) => {
     console.error("[Auth] acquireTokenSilent failed:", error);
     if (error instanceof InteractionRequiredAuthError && !_loginRedirectInFlight) {
       _loginRedirectInFlight = true;
-      msalInstance.acquireTokenRedirect({ ...loginRequest, account });
+      auth.instance.acquireTokenRedirect({ ...auth.request, account: auth.account });
     }
-    // Proceed without token; the response interceptor handles the resulting 401.
   }
 
   return config;
@@ -48,9 +65,9 @@ apiClient.interceptors.response.use(
       console.error("[Auth] 401 from backend:", error.response?.data);
       if (!_loginRedirectInFlight) {
         _loginRedirectInFlight = true;
-        const account = msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0];
-        if (account) {
-          msalInstance.acquireTokenRedirect({ ...loginRequest, account });
+        const auth = resolveActiveAuth();
+        if (auth) {
+          auth.instance.acquireTokenRedirect({ ...auth.request, account: auth.account });
         } else {
           msalInstance.loginRedirect(loginRequest);
         }
@@ -227,7 +244,7 @@ export const configApi = {
   async getMyInsights(userEmail: string) {
     const res = await apiClient.get(`/api/GetMyInsights`, {
       headers: {
-        "x-user-email": userEmail // ✅ keep this (custom header)
+        "x-user-email": userEmail
       }
     });
     return res.data;
@@ -317,8 +334,7 @@ export const configApi = {
     return res.data;
   },
 
-
-    // ─────────────────────────────────────────────
+  // ─────────────────────────────────────────────
   // PROMOTE DISCOVERED ATTRIBUTE TO TEMPLATE
   // One-click action from the "Also Discovered" UI
   // ─────────────────────────────────────────────
@@ -329,7 +345,6 @@ export const configApi = {
     categoryId: string | null;
     displayOrder: number;
   }) {
-    // Build a camelCase key from the name
     const attributeKey = attr.name
       .replace(/[^a-zA-Z0-9 ]/g, "")
       .trim()
@@ -356,6 +371,4 @@ export const configApi = {
     return res.data;
   },
 
-
 };
-

@@ -1,12 +1,12 @@
-import { useEffect, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useMsal, useIsAuthenticated } from "@azure/msal-react";
-import { loginRequest } from "./authConfig";
+import { InteractionStatus } from "@azure/msal-browser";
+import { loginRequest, trialLoginRequest, getExternalIdInstance } from "./authConfig";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useUser } from "./context/UserContext";
 import Layout from "./layout/Layout";
 import StartReview from "./pages/StartReview";
 import ComparisonResults from "./pages/ComparisonResults";
-import { InteractionStatus } from "@azure/msal-browser";
 import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
 import Comparisons from "./pages/Comparisons";
@@ -39,14 +39,33 @@ function App() {
   const { instance, accounts, inProgress } = useMsal();
   const isAuthenticated = useIsAuthenticated();
 
+  // External ID auth: initialised synchronously from accounts already in localStorage
+  // (index.tsx called handleRedirectPromise() before first render, so this is reliable).
+  const [extIdAuthenticated, setExtIdAuthenticated] = useState(() => {
+    const extId = getExternalIdInstance();
+    return (extId?.getAllAccounts().length ?? 0) > 0;
+  });
+
   /* =======================================================
-     ENSURE ACTIVE ACCOUNT IS SET (ONCE)
+     SET ACTIVE ACCOUNTS
   ======================================================= */
   useEffect(() => {
+    // Main Azure AD instance
     if (accounts.length > 0 && !instance.getActiveAccount()) {
       instance.setActiveAccount(accounts[0]);
     }
   }, [accounts, instance]);
+
+  useEffect(() => {
+    // External ID instance — ensure active account is set after any redirect
+    const extId = getExternalIdInstance();
+    if (!extId) return;
+    const extAccounts = extId.getAllAccounts();
+    if (extAccounts.length > 0) {
+      if (!extId.getActiveAccount()) extId.setActiveAccount(extAccounts[0]);
+      setExtIdAuthenticated(true);
+    }
+  }, []);
 
   /* =======================================================
      LOGIN / LOGOUT
@@ -55,13 +74,29 @@ function App() {
     await instance.loginRedirect(loginRequest);
   };
 
+  const handleTrialLogin = async () => {
+    const extId = getExternalIdInstance();
+    if (extId) await extId.loginRedirect(trialLoginRequest);
+  };
+
   const handleLogout = async () => {
-    await instance.logoutRedirect();
+    const extId = getExternalIdInstance();
+    if (extId && extId.getAllAccounts().length > 0) {
+      // Trial / External ID session
+      setExtIdAuthenticated(false);
+      await extId.logoutRedirect();
+    } else {
+      await instance.logoutRedirect();
+    }
   };
 
   /* =======================================================
-     WAIT FOR MSAL TO FINISH REDIRECT HANDLING
+     COMBINED AUTH STATE
   ======================================================= */
+  const effectivelyAuthenticated = isAuthenticated || extIdAuthenticated;
+
+  // Show loading spinner while main MSAL is processing a redirect.
+  // External ID redirect is already resolved before first render (see index.tsx).
   if (inProgress !== InteractionStatus.None) {
     return <LoginPage onLogin={handleLogin} loading />;
   }
@@ -69,8 +104,13 @@ function App() {
   /* =======================================================
      NOT AUTHENTICATED VIEW
   ======================================================= */
-  if (!isAuthenticated) {
-    return <LoginPage onLogin={handleLogin} />;
+  if (!effectivelyAuthenticated) {
+    return (
+      <LoginPage
+        onLogin={handleLogin}
+        onTrialLogin={getExternalIdInstance() ? handleTrialLogin : undefined}
+      />
+    );
   }
 
   /* =======================================================

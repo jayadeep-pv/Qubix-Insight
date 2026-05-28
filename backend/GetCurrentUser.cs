@@ -9,6 +9,17 @@ namespace QubixInsight.Functions;
 
 public class GetCurrentUser
 {
+    private static readonly HashSet<string> BlockedDomains = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "gmail.com", "googlemail.com",
+        "hotmail.com", "hotmail.co.uk", "hotmail.fr",
+        "outlook.com", "live.com", "live.co.uk", "msn.com",
+        "yahoo.com", "yahoo.co.uk", "yahoo.fr",
+        "icloud.com", "me.com", "mac.com",
+        "protonmail.com", "proton.me",
+        "zoho.com", "aol.com", "ymail.com"
+    };
+
     private readonly ILogger<GetCurrentUser> _logger;
     private readonly TenantResolverService _tenantResolver;
 
@@ -35,6 +46,19 @@ public class GetCurrentUser
         try
         {
             var tenant = _tenantResolver.ResolveTenant(userInfo.TenantId);
+
+            // Block personal email domains for trial accounts
+            if (tenant.IsTrial)
+            {
+                var domain = userInfo.Email?.Split('@').LastOrDefault() ?? "";
+                if (BlockedDomains.Contains(domain))
+                {
+                    _logger.LogWarning("Trial sign-up blocked for personal domain: {Domain}", domain);
+                    var blocked = req.CreateResponse(HttpStatusCode.Unauthorized);
+                    await blocked.WriteStringAsync("Please sign up with a work email address. Personal email addresses are not accepted.");
+                    return blocked;
+                }
+            }
 
             var result = new
             {

@@ -3,6 +3,8 @@ export interface AppConfig {
   apiScope: string;
   authorityTenantId: string;
   apiBase: string;
+  /** Client ID for the Entra External ID tenant (hollisapp.onmicrosoft.com). Leave empty until Phase 3 Azure setup is complete. */
+  externalIdClientId?: string;
 }
 
 let _config: AppConfig | null = null;

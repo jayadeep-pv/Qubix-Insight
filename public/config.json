@@ -2,5 +2,6 @@
   "clientId": "c9e00263-aebc-4d59-ad9e-7e6b00d4fc89",
   "apiScope": "api://ba5f6329-ac7b-49d6-a9df-a05e9c84f422/qubixinsightapi.access",
   "authorityTenantId": "91fe9c77-dbd7-40f2-8b38-2f4cb8f7d48d",
-  "apiBase": "https://func-ilogix-qubixinsight-prod-uks.azurewebsites.net/api"
+  "apiBase": "https://func-ilogix-qubixinsight-prod-uks.azurewebsites.net/api",
+  "externalIdClientId": "a7d39fd7-3fc6-459b-b2a3-a735fe40b989"
 }
