@@ -51,11 +51,17 @@ public static class JwtTenantExtractor
 
             var tid    = root.TryGetProperty("tid",                out var t)   ? t.GetString()   : null;
             var issuer = root.TryGetProperty("iss",                out var i)   ? i.GetString()   : null;
-            var name   = root.TryGetProperty("name",               out var n)   ? n.GetString()   : null;
             // email claim varies by token type: prefer 'upn' for AAD, 'email' for External ID
             var email  = root.TryGetProperty("upn",                out var upn) ? upn.GetString() :
                          root.TryGetProperty("email",              out var em)  ? em.GetString()  :
                          root.TryGetProperty("preferred_username", out var pu)  ? pu.GetString()  : null;
+            // name claim: External ID does not auto-compose displayName — fall back to given_name + family_name
+            var nameVal     = root.TryGetProperty("name",        out var n)   ? n.GetString()   : null;
+            var givenName   = root.TryGetProperty("given_name",  out var gn)  ? gn.GetString()  : null;
+            var familyName  = root.TryGetProperty("family_name", out var fn)  ? fn.GetString()  : null;
+            var name = !string.IsNullOrWhiteSpace(nameVal)
+                ? nameVal
+                : string.Join(" ", new[] { givenName, familyName }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
             return new JwtUserInfo(tid, email, name, issuer);
         }
