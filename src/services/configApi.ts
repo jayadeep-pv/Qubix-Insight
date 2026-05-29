@@ -32,8 +32,9 @@ function resolveActiveAuth() {
 
 // Attach the MSAL Bearer token to every request.
 apiClient.interceptors.request.use(async (config) => {
-  // Set baseURL from runtime config on every request
-  config.baseURL = getAppConfig().apiBase;
+  // apiBase ends with "/api" (e.g. "https://host/api"). Strip it so that
+  // axios can correctly join baseURL + "/api/FunctionName" paths without doubling.
+  config.baseURL = getAppConfig().apiBase.replace(/\/api\/?$/, '');
 
   const auth = resolveActiveAuth();
   if (!auth) {
