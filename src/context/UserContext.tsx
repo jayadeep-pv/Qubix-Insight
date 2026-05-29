@@ -110,7 +110,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           "";
 
         const response = await axios.get(
-          `${getAppConfig().apiBase}/api/GetCurrentUser`,
+          `${getAppConfig().apiBase}/GetCurrentUser`,
           { headers: { Authorization: `Bearer ${result.accessToken}` } }
         );
 

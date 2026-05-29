@@ -36,7 +36,7 @@ async function bootstrap() {
               ...trialLoginRequest,
               account: result.account,
             });
-            await fetch(`${config.apiBase}/api/UpdateTrialProfile`, {
+            await fetch(`${config.apiBase}/UpdateTrialProfile`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
