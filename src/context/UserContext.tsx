@@ -6,23 +6,41 @@ import { msalInstance, loginRequest, trialLoginRequest, getExternalIdInstance } 
 import { getAppConfig } from "../appConfig";
 
 interface UserContextType {
-  isTrial: boolean;
-  userEmail: string;
-  userName: string;
-  companyName: string;
-  tenantName: string;
+  isTrial:         boolean;
+  userEmail:       string;
+  userName:        string;
+  firstName:       string;
+  lastName:        string;
+  companyName:     string;
+  jobTitle:        string;
+  country:         string;
+  tenantName:      string;
   subscriptionTier: string;
-  loading: boolean;
+  profileComplete: boolean;
+  runsUsed:        number;
+  runLimit:        number;
+  trialExpiry:     string;
+  trialExpired:    boolean;
+  loading:         boolean;
 }
 
 const defaultUser: UserContextType = {
-  isTrial: false,
-  userEmail: "",
-  userName: "",
-  companyName: "",
-  tenantName: "",
+  isTrial:         false,
+  userEmail:       "",
+  userName:        "",
+  firstName:       "",
+  lastName:        "",
+  companyName:     "",
+  jobTitle:        "",
+  country:         "",
+  tenantName:      "",
   subscriptionTier: "",
-  loading: true,
+  profileComplete: true,
+  runsUsed:        0,
+  runLimit:        5,
+  trialExpiry:     "",
+  trialExpired:    false,
+  loading:         true,
 };
 
 const UserContext = createContext<UserContextType>(defaultUser);
@@ -103,7 +121,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
             subscriptionTier: response.data.subscriptionTier  ?? "",
             userEmail:        response.data.userEmail          ?? "",
             userName:         response.data.userName           || nameFromIdToken,
+            firstName:        response.data.firstName          ?? "",
+            lastName:         response.data.lastName           ?? "",
             companyName:      response.data.companyName        ?? "",
+            jobTitle:         response.data.jobTitle           ?? "",
+            country:          response.data.country            ?? "",
+            profileComplete:  response.data.profileComplete    ?? true,
+            runsUsed:         response.data.runsUsed           ?? 0,
+            runLimit:         response.data.runLimit           ?? 5,
+            trialExpiry:      response.data.trialExpiry        ?? "",
+            trialExpired:     response.data.trialExpired       ?? false,
             loading: false,
           });
         }

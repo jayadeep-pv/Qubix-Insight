@@ -78,6 +78,7 @@ var host = new HostBuilder()
         services.AddSingleton<AiExtractionService>();
         services.AddSingleton<AzureOcrService>();
         services.AddSingleton<TenantResolverService>();
+        services.AddSingleton<TenantUserService>();
         services.AddSingleton<TenantDataverseService>();
     })
     .Build();

@@ -2,7 +2,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { MsalProvider } from "@azure/msal-react";
 import { loadAppConfig } from "./appConfig";
-import { initAuth, initExternalIdAuth, getExternalIdInstance, msalInstance } from "./authConfig";
+import { initAuth, initExternalIdAuth, getExternalIdInstance, msalInstance, trialLoginRequest } from "./authConfig";
 import App from "./App";
 import { UserProvider } from "./context/UserContext";
 import "./App.css";
@@ -24,7 +24,33 @@ async function bootstrap() {
   if (extId) {
     try {
       const result = await extId.handleRedirectPromise();
-      if (result?.account) extId.setActiveAccount(result.account);
+      if (result?.account) {
+        extId.setActiveAccount(result.account);
+
+        // If the user just completed trial sign-up, save their profile to the backend.
+        // The profile was stored in sessionStorage before the loginRedirect call.
+        const pending = sessionStorage.getItem("trial_signup_profile");
+        if (pending) {
+          try {
+            const tokenResult = await extId.acquireTokenSilent({
+              ...trialLoginRequest,
+              account: result.account,
+            });
+            await fetch(`${config.apiBase}/api/UpdateTrialProfile`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${tokenResult.accessToken}`,
+              },
+              body: pending,
+            });
+          } catch (profileErr) {
+            console.error("[ExtID] Failed to save trial profile:", profileErr);
+          } finally {
+            sessionStorage.removeItem("trial_signup_profile");
+          }
+        }
+      }
     } catch (err) {
       console.error("[ExtID] Redirect processing failed:", err);
     }

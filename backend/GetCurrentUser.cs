@@ -22,11 +22,15 @@ public class GetCurrentUser
 
     private readonly ILogger<GetCurrentUser> _logger;
     private readonly TenantResolverService _tenantResolver;
+    private readonly TenantUserService _tenantUserService;
 
-    public GetCurrentUser(ILogger<GetCurrentUser> logger, TenantResolverService tenantResolver)
+    public GetCurrentUser(ILogger<GetCurrentUser> logger,
+        TenantResolverService tenantResolver,
+        TenantUserService tenantUserService)
     {
         _logger = logger;
         _tenantResolver = tenantResolver;
+        _tenantUserService = tenantUserService;
     }
 
     [Function("GetCurrentUser")]
@@ -60,14 +64,35 @@ public class GetCurrentUser
                 }
             }
 
+            // For trial users look up the tenant user record
+            TenantUserRecord? trialUser = null;
+            if (tenant.IsTrial && userInfo.Oid is not null)
+            {
+                trialUser = _tenantUserService.GetByOid(userInfo.Oid);
+                if (trialUser != null)
+                    _tenantUserService.UpdateLastLogin(userInfo.Oid);
+            }
+
+            var isExpired = trialUser?.TrialExpiry.HasValue == true
+                && trialUser.TrialExpiry.Value < DateTime.UtcNow;
+
             var result = new
             {
                 isTrial          = tenant.IsTrial,
                 tenantName       = tenant.TenantName,
                 subscriptionTier = tenant.SubscriptionTier,
-                userEmail        = userInfo.Email       ?? "",
-                userName         = userInfo.Name        ?? "",
-                companyName      = userInfo.CompanyName ?? ""
+                userEmail        = trialUser?.Email       ?? userInfo.Email       ?? "",
+                userName         = trialUser?.DisplayName ?? userInfo.Name        ?? "",
+                firstName        = trialUser?.FirstName   ?? "",
+                lastName         = trialUser?.LastName    ?? "",
+                companyName      = trialUser?.CompanyName ?? userInfo.CompanyName ?? "",
+                jobTitle         = trialUser?.JobTitle    ?? "",
+                country          = trialUser?.Country     ?? "",
+                profileComplete  = !tenant.IsTrial || trialUser != null,
+                runsUsed         = trialUser?.RunsUsed   ?? 0,
+                runLimit         = trialUser?.RunLimit    ?? 5,
+                trialExpiry      = trialUser?.TrialExpiry?.ToString("o") ?? "",
+                trialExpired     = isExpired
             };
 
             var response = req.CreateResponse(HttpStatusCode.OK);

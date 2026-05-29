@@ -7,7 +7,7 @@ import { useUser } from "./context/UserContext";
 import Layout from "./layout/Layout";
 import StartReview from "./pages/StartReview";
 import ComparisonResults from "./pages/ComparisonResults";
-import LoginPage from "./pages/LoginPage";
+import LoginPage, { type TrialProfileData } from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
 import Comparisons from "./pages/Comparisons";
 import DocumentTypes from "./pages/DocumentTypes";
@@ -74,9 +74,10 @@ function App() {
     await instance.loginRedirect(loginRequest);
   };
 
-  const handleTrialLogin = async () => {
+  const handleTrialLogin = async (profile: TrialProfileData) => {
+    sessionStorage.setItem("trial_signup_profile", JSON.stringify(profile));
     const extId = getExternalIdInstance();
-    if (extId) await extId.loginRedirect(trialLoginRequest);
+    if (extId) await extId.loginRedirect({ ...trialLoginRequest, loginHint: profile.email });
   };
 
   const handleLogout = async () => {
@@ -118,6 +119,7 @@ function App() {
       <LoginPage
         onLogin={handleLogin}
         onTrialLogin={getExternalIdInstance() ? handleTrialLogin : undefined}
+        loading={inProgress !== InteractionStatus.None}
       />
     );
   }

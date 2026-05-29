@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace QubixInsight.Services;
 
-public record JwtUserInfo(string? TenantId, string? Email, string? Name, string? Issuer, string? CompanyName);
+public record JwtUserInfo(string? TenantId, string? Oid, string? Email, string? Name, string? Issuer, string? CompanyName);
 
 /// <summary>
 /// Extracts claims from the Bearer JWT in the Authorization header.
@@ -50,6 +50,7 @@ public static class JwtTenantExtractor
             var root = doc.RootElement;
 
             var tid    = root.TryGetProperty("tid",                out var t)   ? t.GetString()   : null;
+            var oid    = root.TryGetProperty("oid",                out var o)   ? o.GetString()   : null;
             var issuer = root.TryGetProperty("iss",                out var i)   ? i.GetString()   : null;
             // email claim varies by token type: prefer 'upn' for AAD, 'email' for External ID
             var email  = root.TryGetProperty("upn",                out var upn) ? upn.GetString() :
@@ -78,7 +79,7 @@ public static class JwtTenantExtractor
                 }
             }
 
-            return new JwtUserInfo(tid, email, name, issuer, companyName);
+            return new JwtUserInfo(tid, oid, email, name, issuer, companyName);
         }
         catch
         {
