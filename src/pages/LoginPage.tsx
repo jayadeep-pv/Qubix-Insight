@@ -37,17 +37,17 @@ export default function LoginPage({ onLogin, onTrialLogin, loading = false }: Lo
     if (!form.firstName.trim())   e.firstName   = "Required";
     if (!form.lastName.trim())    e.lastName    = "Required";
     if (!form.email.trim())       e.email       = "Required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Enter a valid work email";
+    else if (!/^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(form.email) || /\.\./.test(form.email))
+      e.email = "Enter a valid work email";
     if (!form.companyName.trim()) e.companyName = "Required";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
-  const handleStartTrial = async () => {
+  const handleStartTrial = () => {
     if (!validate()) return;
     setSubmitting(true);
-    try { await onTrialLogin?.(form); }
-    finally { setSubmitting(false); }
+    onTrialLogin?.(form);
   };
 
   return (

@@ -77,7 +77,7 @@ function App() {
   const handleTrialLogin = async (profile: TrialProfileData) => {
     sessionStorage.setItem("trial_signup_profile", JSON.stringify(profile));
     const extId = getExternalIdInstance();
-    if (extId) await extId.loginRedirect({ ...trialLoginRequest, loginHint: profile.email });
+    if (extId) await extId.loginRedirect(trialLoginRequest);
   };
 
   const handleLogout = async () => {
