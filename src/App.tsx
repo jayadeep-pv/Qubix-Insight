@@ -82,11 +82,16 @@ function App() {
   const handleLogout = async () => {
     const extId = getExternalIdInstance();
     if (extId && extId.getAllAccounts().length > 0) {
-      // Trial / External ID session
       setExtIdAuthenticated(false);
-      await extId.logoutRedirect();
+      await extId.logoutRedirect({
+        account: extId.getActiveAccount() ?? extId.getAllAccounts()[0],
+        postLogoutRedirectUri: window.location.origin,
+      });
     } else {
-      await instance.logoutRedirect();
+      await instance.logoutRedirect({
+        account: instance.getActiveAccount() ?? accounts[0],
+        postLogoutRedirectUri: window.location.origin,
+      });
     }
   };
 
