@@ -65,8 +65,9 @@ public class GetCurrentUser
                 isTrial          = tenant.IsTrial,
                 tenantName       = tenant.TenantName,
                 subscriptionTier = tenant.SubscriptionTier,
-                userEmail        = userInfo.Email ?? "",
-                userName         = userInfo.Name  ?? ""
+                userEmail        = userInfo.Email       ?? "",
+                userName         = userInfo.Name        ?? "",
+                companyName      = userInfo.CompanyName ?? ""
             };
 
             var response = req.CreateResponse(HttpStatusCode.OK);

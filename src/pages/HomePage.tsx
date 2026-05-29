@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMsal } from "@azure/msal-react";
 import { configApi } from "../services/configApi";
+import { useUser } from "../context/UserContext";
 import { Zap, AlignLeft, GitCompare, Star, ChevronRight, Layers, BarChart2, FileText, AlertTriangle } from "lucide-react";
 
 /* ── helpers ── */
@@ -65,8 +65,8 @@ function ActionCard({ icon, iconCls, cardCls, pillCls, pillLabel, title, descrip
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
-  const { accounts } = useMsal();
-  const userName = accounts[0]?.name?.split(" ")[0] || "User";
+  const { userName: fullName } = useUser();
+  const userName = fullName?.split(" ")[0] || "User";
 
   const [recentRuns, setRecentRuns] = useState<RecentRun[]>([]);
   const [loading, setLoading] = useState(true);

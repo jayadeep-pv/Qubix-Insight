@@ -9,6 +9,7 @@ interface UserContextType {
   isTrial: boolean;
   userEmail: string;
   userName: string;
+  companyName: string;
   tenantName: string;
   subscriptionTier: string;
   loading: boolean;
@@ -18,6 +19,7 @@ const defaultUser: UserContextType = {
   isTrial: false,
   userEmail: "",
   userName: "",
+  companyName: "",
   tenantName: "",
   subscriptionTier: "",
   loading: true,
@@ -92,6 +94,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
             subscriptionTier: response.data.subscriptionTier  ?? "",
             userEmail:        response.data.userEmail          ?? "",
             userName:         response.data.userName           ?? "",
+            companyName:      response.data.companyName        ?? "",
             loading: false,
           });
         }

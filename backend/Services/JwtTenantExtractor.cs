@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace QubixInsight.Services;
 
-public record JwtUserInfo(string? TenantId, string? Email, string? Name, string? Issuer);
+public record JwtUserInfo(string? TenantId, string? Email, string? Name, string? Issuer, string? CompanyName);
 
 /// <summary>
 /// Extracts claims from the Bearer JWT in the Authorization header.
@@ -63,7 +63,22 @@ public static class JwtTenantExtractor
                 ? nameVal
                 : string.Join(" ", new[] { givenName, familyName }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
-            return new JwtUserInfo(tid, email, name, issuer);
+            // Standard Azure AD attribute first; fall back to custom extension attribute
+            string? companyName = root.TryGetProperty("companyName", out var cn) ? cn.GetString() : null;
+            if (string.IsNullOrWhiteSpace(companyName))
+            {
+                foreach (var prop in root.EnumerateObject())
+                {
+                    if (prop.Name.StartsWith("extension_", StringComparison.OrdinalIgnoreCase) &&
+                        prop.Name.EndsWith("_CompanyName", StringComparison.OrdinalIgnoreCase))
+                    {
+                        companyName = prop.Value.GetString();
+                        break;
+                    }
+                }
+            }
+
+            return new JwtUserInfo(tid, email, name, issuer, companyName);
         }
         catch
         {
