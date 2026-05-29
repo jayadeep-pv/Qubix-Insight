@@ -83,13 +83,17 @@ function App() {
     const extId = getExternalIdInstance();
     if (extId && extId.getAllAccounts().length > 0) {
       setExtIdAuthenticated(false);
+      const extAccount = extId.getActiveAccount() ?? extId.getAllAccounts()[0];
       await extId.logoutRedirect({
-        account: extId.getActiveAccount() ?? extId.getAllAccounts()[0],
+        account: extAccount,
+        logoutHint: extAccount.username,
         postLogoutRedirectUri: window.location.origin,
       });
     } else {
+      const mainAccount = instance.getActiveAccount() ?? accounts[0];
       await instance.logoutRedirect({
-        account: instance.getActiveAccount() ?? accounts[0],
+        account: mainAccount,
+        logoutHint: mainAccount?.username,
         postLogoutRedirectUri: window.location.origin,
       });
     }
