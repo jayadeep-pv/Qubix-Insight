@@ -77,7 +77,11 @@ function App() {
   const handleTrialLogin = async (profile: TrialProfileData) => {
     sessionStorage.setItem("trial_signup_profile", JSON.stringify(profile));
     const extId = getExternalIdInstance();
-    if (extId) await extId.loginRedirect({ ...trialLoginRequest, prompt: "login" });
+    if (extId) await extId.loginRedirect({
+      ...trialLoginRequest,
+      prompt: "create",         // skip sign-in page, go straight to account creation
+      loginHint: profile.email, // pre-fill email so user only needs to verify OTP
+    });
   };
 
   const handleLogout = async () => {
