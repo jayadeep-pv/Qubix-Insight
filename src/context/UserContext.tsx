@@ -82,6 +82,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
           account: auth.account,
         });
 
+        // ID token claims are always populated by MSAL regardless of access token scope.
+        // External ID access tokens (openid/profile/email) don't carry profile claims,
+        // so we derive the name from idTokenClaims as the reliable source.
+        const idClaims = (auth.account.idTokenClaims ?? {}) as Record<string, any>;
+        const nameFromIdToken =
+          idClaims["name"] ||
+          [idClaims["given_name"], idClaims["family_name"]].filter(Boolean).join(" ") ||
+          "";
+
         const response = await axios.get(
           `${getAppConfig().apiBase}/api/GetCurrentUser`,
           { headers: { Authorization: `Bearer ${result.accessToken}` } }
@@ -93,7 +102,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
             tenantName:       response.data.tenantName        ?? "",
             subscriptionTier: response.data.subscriptionTier  ?? "",
             userEmail:        response.data.userEmail          ?? "",
-            userName:         response.data.userName           ?? "",
+            userName:         response.data.userName           || nameFromIdToken,
             companyName:      response.data.companyName        ?? "",
             loading: false,
           });
