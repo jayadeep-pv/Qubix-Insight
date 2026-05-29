@@ -66,7 +66,7 @@ export async function initExternalIdAuth(config: AppConfig): Promise<void> {
       authority: "https://ilogixidentity.ciamlogin.com/",
       redirectUri: window.location.origin.includes("localhost")
         ? "http://localhost:3000"
-        : "https://witty-mushroom-08917f703.azurestaticapps.net",
+        : "https://witty-mushroom-08917f703.7.azurestaticapps.net",
       knownAuthorities: ["ilogixidentity.ciamlogin.com"],
     },
     cache: {
