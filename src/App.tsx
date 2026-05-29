@@ -79,9 +79,14 @@ function App() {
     const extId = getExternalIdInstance();
     if (extId) await extId.loginRedirect({
       ...trialLoginRequest,
-      prompt: "create",         // skip sign-in page, go straight to account creation
-      loginHint: profile.email, // pre-fill email so user only needs to verify OTP
+      prompt: "create",
+      loginHint: profile.email,
     });
+  };
+
+  const handleTrialSignIn = async () => {
+    const extId = getExternalIdInstance();
+    if (extId) await extId.loginRedirect(trialLoginRequest);
   };
 
   const handleLogout = async () => {
@@ -123,6 +128,7 @@ function App() {
       <LoginPage
         onLogin={handleLogin}
         onTrialLogin={getExternalIdInstance() ? handleTrialLogin : undefined}
+        onTrialSignIn={getExternalIdInstance() ? handleTrialSignIn : undefined}
         loading={inProgress !== InteractionStatus.None}
       />
     );

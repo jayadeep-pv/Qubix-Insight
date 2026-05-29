@@ -12,14 +12,15 @@ export interface TrialProfileData {
 }
 
 interface LoginPageProps {
-  onLogin:       () => void;
-  onTrialLogin?: (profile: TrialProfileData) => void;
-  loading?:      boolean;
+  onLogin:        () => void;
+  onTrialLogin?:  (profile: TrialProfileData) => void;
+  onTrialSignIn?: () => void;
+  loading?:       boolean;
 }
 
 type Field = keyof TrialProfileData;
 
-export default function LoginPage({ onLogin, onTrialLogin, loading = false }: LoginPageProps) {
+export default function LoginPage({ onLogin, onTrialLogin, onTrialSignIn, loading = false }: LoginPageProps) {
   const [showForm,    setShowForm]    = useState(false);
   const [submitting,  setSubmitting]  = useState(false);
   const [form,        setForm]        = useState<TrialProfileData>(
@@ -138,6 +139,14 @@ export default function LoginPage({ onLogin, onTrialLogin, loading = false }: Lo
                     disabled={loading}
                   >
                     Register for free trial
+                  </button>
+                  <button
+                    type="button"
+                    className="login-trial-signin"
+                    onClick={() => onTrialSignIn?.()}
+                    disabled={loading}
+                  >
+                    Already have a trial account? Sign in
                   </button>
                 </div>
               </>
