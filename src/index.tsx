@@ -36,7 +36,7 @@ async function bootstrap() {
               ...trialLoginRequest,
               account: result.account,
             });
-            await fetch(`${config.apiBase}/UpdateTrialProfile`, {
+            const profileRes = await fetch(`${config.apiBase}/UpdateTrialProfile`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -44,6 +44,12 @@ async function bootstrap() {
               },
               body: pending,
             });
+            if (!profileRes.ok) {
+              const errText = await profileRes.text();
+              console.error("[ExtID] UpdateTrialProfile failed:", profileRes.status, errText);
+            } else {
+              console.info("[ExtID] Trial profile saved.");
+            }
           } catch (profileErr) {
             console.error("[ExtID] Failed to save trial profile:", profileErr);
           } finally {
