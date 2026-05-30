@@ -63,7 +63,7 @@ export async function initExternalIdAuth(config: AppConfig): Promise<void> {
   _externalIdInstance = new PublicClientApplication({
     auth: {
       clientId: config.externalIdClientId,
-      authority: "https://ilogixidentity.ciamlogin.com/",
+      authority: "https://ilogixidentity.ciamlogin.com/ilogixidentity.onmicrosoft.com/",
       redirectUri: window.location.origin.includes("localhost")
         ? "http://localhost:3000"
         : "https://witty-mushroom-08917f703.7.azurestaticapps.net",
