@@ -11,8 +11,8 @@ public class AzureOcrService
 
     public AzureOcrService()
     {
-        var endpoint = Environment.GetEnvironmentVariable("DocumentIntelligenceEndpoint");
-        var key      = Environment.GetEnvironmentVariable("DocumentIntelligenceKey");
+        var endpoint = Environment.GetEnvironmentVariable("Qubix_DocumentIntelligenceEndpoint");
+        var key      = Environment.GetEnvironmentVariable("Qubix_DocumentIntelligenceKey");
 
         _client = new DocumentIntelligenceClient(
             new Uri(endpoint),

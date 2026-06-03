@@ -32,10 +32,10 @@ public class TenantUserService
 
     private ServiceClient CreateClient()
     {
-        var url          = _config["MainDataverseUrl"];
-        var clientId     = _config["CLIENT_ID"];
-        var clientSecret = _config["CLIENT_SECRET"];
-        var tenantId     = _config["TENANT_ID"];
+        var url          = _config["Qubix_MainDataverseUrl"];
+        var clientId     = _config["Qubix_ClientId"];
+        var clientSecret = _config["Qubix_ClientSecret"];
+        var tenantId     = _config["Qubix_TenantId"];
 
         var cs = $"AuthType=ClientSecret;Url={url};ClientId={clientId};" +
                  $"ClientSecret={clientSecret};TenantId={tenantId};RequireNewInstance=true;";

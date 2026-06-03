@@ -134,7 +134,7 @@ public class UploadAndStartComparison
             * 4. Blob setup (TENANT-AWARE)
             * ========================================================= */
 
-            var blobBaseUrl = Environment.GetEnvironmentVariable("BlobBaseUrl");
+            var blobBaseUrl = Environment.GetEnvironmentVariable("Qubix_BlobBaseUrl");
 
             if (string.IsNullOrWhiteSpace(blobBaseUrl))
                 throw new Exception("BlobBaseUrl missing");
@@ -147,7 +147,7 @@ public class UploadAndStartComparison
             var container = blobService.GetBlobContainerClient(tenant.BlobContainerName);
 
             var sasMinutes =
-                int.Parse(Environment.GetEnvironmentVariable("SAS_EXPIRY_MINUTES") ?? "30");
+                int.Parse(Environment.GetEnvironmentVariable("Qubix_SasExpiryMinutes") ?? "30");
 
             // ✅ Ensure exists
             await container.CreateIfNotExistsAsync();

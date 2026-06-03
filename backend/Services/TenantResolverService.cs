@@ -45,14 +45,14 @@ public class TenantResolverService
 
     private TenantSettings LookupFromDataverse(string aadTenantId)
     {
-        var mainDataverseUrl = _config["MainDataverseUrl"];
+        var mainDataverseUrl = _config["Qubix_MainDataverseUrl"];
 
         if (string.IsNullOrWhiteSpace(mainDataverseUrl))
             throw new Exception("MainDataverseUrl is not configured.");
 
-        var clientId     = _config["CLIENT_ID"];
-        var clientSecret = _config["CLIENT_SECRET"];
-        var tenantId     = _config["TENANT_ID"];
+        var clientId     = _config["Qubix_ClientId"];
+        var clientSecret = _config["Qubix_ClientSecret"];
+        var tenantId     = _config["Qubix_TenantId"];
 
         var connectionString =
             $"AuthType=ClientSecret;" +

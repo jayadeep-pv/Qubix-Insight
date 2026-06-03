@@ -18,7 +18,7 @@ public class AiSummaryService
         _logger = logger;
 
         _deploymentName =
-            Environment.GetEnvironmentVariable("AzureOpenAIDeployment")
+            Environment.GetEnvironmentVariable("Qubix_AzureOpenAIDeployment")
             ?? throw new InvalidOperationException("AzureOpenAIDeployment not set.");
     }
 

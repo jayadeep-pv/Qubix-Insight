@@ -14,9 +14,9 @@ public class TenantDataverseService
 
     public ServiceClient CreateClient(string dataverseUrl)
     {
-        var clientId = _config["CLIENT_ID"];
-        var clientSecret = _config["CLIENT_SECRET"];
-        var tenantId = _config["TENANT_ID"];
+        var clientId = _config["Qubix_ClientId"];
+        var clientSecret = _config["Qubix_ClientSecret"];
+        var tenantId = _config["Qubix_TenantId"];
 
         var connectionString =
         $"AuthType=ClientSecret;" +

@@ -98,7 +98,7 @@ public class CreateRule
                 return response;
             }
 
-            var connectionString = Environment.GetEnvironmentVariable("DataverseConnection");
+            var connectionString = Environment.GetEnvironmentVariable("Qubix_DataverseConnection");
            
 
             var entity = new Entity("ilx_analysisrule");

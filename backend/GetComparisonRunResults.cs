@@ -415,9 +415,9 @@ TenantQueryHelper.AddTenantFilter(docQuery, tenant.TenantRecordId.ToString());
 
 var docEntities = service.RetrieveMultiple(docQuery).Entities;
 
-var blobBaseUrl = Environment.GetEnvironmentVariable("BlobBaseUrl");
+var blobBaseUrl = Environment.GetEnvironmentVariable("Qubix_BlobBaseUrl");
 
-var storageAccount = Environment.GetEnvironmentVariable("STORAGE_ACCOUNT_NAME");
+var storageAccount = Environment.GetEnvironmentVariable("Qubix_StorageAccountName");
 
 if (string.IsNullOrWhiteSpace(blobBaseUrl))
     throw new Exception("BlobBaseUrl missing");

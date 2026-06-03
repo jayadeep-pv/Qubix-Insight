@@ -190,8 +190,8 @@ public async Task<List<(string Text, int Page, IReadOnlyList<float> Polygon)>> E
     Stream documentStream)
 {
     var client = new DocumentIntelligenceClient(
-        new Uri(Environment.GetEnvironmentVariable("DocumentIntelligenceEndpoint")!),
-        new AzureKeyCredential(Environment.GetEnvironmentVariable("DocumentIntelligenceKey")!)
+        new Uri(Environment.GetEnvironmentVariable("Qubix_DocumentIntelligenceEndpoint")!),
+        new AzureKeyCredential(Environment.GetEnvironmentVariable("Qubix_DocumentIntelligenceKey")!)
     );
 
     // Copy to MemoryStream — DocumentIntelligenceClient requires BinaryData

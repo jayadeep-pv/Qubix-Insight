@@ -84,10 +84,10 @@ public class UpdateTenantSettings
 
     private ServiceClient ConnectToMasterDataverse()
     {
-        var url    = _config["MainDataverseUrl"] ?? throw new Exception("MainDataverseUrl not configured.");
-        var cid    = _config["CLIENT_ID"]         ?? throw new Exception("CLIENT_ID not configured.");
-        var secret = _config["CLIENT_SECRET"]     ?? throw new Exception("CLIENT_SECRET not configured.");
-        var tid    = _config["TENANT_ID"]          ?? throw new Exception("TENANT_ID not configured.");
+        var url    = _config["Qubix_MainDataverseUrl"] ?? throw new Exception("MainDataverseUrl not configured.");
+        var cid    = _config["Qubix_ClientId"]         ?? throw new Exception("CLIENT_ID not configured.");
+        var secret = _config["Qubix_ClientSecret"]     ?? throw new Exception("CLIENT_SECRET not configured.");
+        var tid    = _config["Qubix_TenantId"]          ?? throw new Exception("TENANT_ID not configured.");
 
         var cs  = $"AuthType=ClientSecret;Url={url};ClientId={cid};ClientSecret={secret};TenantId={tid};RequireNewInstance=true;";
         var svc = new ServiceClient(cs);

@@ -16,7 +16,7 @@ var host = new HostBuilder()
         services.AddSingleton<ServiceClient>(sp =>
         {
             var connectionString =
-                Environment.GetEnvironmentVariable("DataverseConnection");
+                Environment.GetEnvironmentVariable("Qubix_DataverseConnection");
 
             if (string.IsNullOrEmpty(connectionString))
                 throw new InvalidOperationException(
@@ -35,7 +35,7 @@ var host = new HostBuilder()
         services.AddSingleton<IOrganizationService>(sp =>
         {
             var connectionString =
-                Environment.GetEnvironmentVariable("DataverseConnection");
+                Environment.GetEnvironmentVariable("Qubix_DataverseConnection");
 
             if (string.IsNullOrEmpty(connectionString))
                 throw new InvalidOperationException(
@@ -54,9 +54,9 @@ var host = new HostBuilder()
         services.AddSingleton<AzureOpenAIClient>(sp =>
         {
             var endpoint =
-                Environment.GetEnvironmentVariable("AzureOpenAIEndpoint");
+                Environment.GetEnvironmentVariable("Qubix_AzureOpenAIEndpoint");
             var key =
-                Environment.GetEnvironmentVariable("AzureOpenAIKey");
+                Environment.GetEnvironmentVariable("Qubix_AzureOpenAIKey");
 
             if (string.IsNullOrEmpty(endpoint) ||
                 string.IsNullOrEmpty(key))
