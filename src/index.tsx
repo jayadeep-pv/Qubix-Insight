@@ -32,15 +32,12 @@ async function bootstrap() {
         const pending = sessionStorage.getItem("trial_signup_profile");
         if (pending) {
           try {
-            const tokenResult = await extId.acquireTokenSilent({
-              ...trialLoginRequest,
-              account: result.account,
-            });
+            // result.accessToken is already available from the redirect — no acquireTokenSilent needed
             const profileRes = await fetch(`${config.apiBase}/UpdateTrialProfile`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${tokenResult.accessToken}`,
+                "Authorization": `Bearer ${result.accessToken}`,
               },
               body: pending,
             });
