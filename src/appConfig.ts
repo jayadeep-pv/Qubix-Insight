@@ -3,8 +3,9 @@ export interface AppConfig {
   apiScope: string;
   authorityTenantId: string;
   apiBase: string;
-  /** Client ID for the Entra External ID tenant (hollisapp.onmicrosoft.com). Leave empty until Phase 3 Azure setup is complete. */
   externalIdClientId?: string;
+  /** Tenant GUID for the Entra External ID tenant — found in Azure Portal → External ID → ilogixidentity → Overview → Tenant ID */
+  externalIdTenantId?: string;
 }
 
 let _config: AppConfig | null = null;

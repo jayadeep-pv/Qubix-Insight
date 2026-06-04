@@ -60,10 +60,22 @@ export function getExternalIdInstance(): PublicClientApplication | null {
 export async function initExternalIdAuth(config: AppConfig): Promise<void> {
   if (!config.externalIdClientId) return;
 
+  // Authority must include the tenant GUID so it matches the iss claim in the token.
+  // externalIdTenantId comes from config.json — get it from Azure Portal →
+  // External ID → ilogixidentity → Overview → Tenant ID.
+  const tenantSegment = config.externalIdTenantId ?? "";
+  const authority = tenantSegment
+    ? `https://ilogixidentity.ciamlogin.com/${tenantSegment}/`
+    : "https://ilogixidentity.ciamlogin.com/";
+
+  if (!tenantSegment) {
+    console.warn("[ExtID] externalIdTenantId not set in config.json — authority_mismatch likely. Add the External ID tenant GUID.");
+  }
+
   _externalIdInstance = new PublicClientApplication({
     auth: {
       clientId: config.externalIdClientId,
-      authority: "https://ilogixidentity.ciamlogin.com/",
+      authority,
       redirectUri: window.location.origin.includes("localhost")
         ? "http://localhost:3000"
         : "https://witty-mushroom-08917f703.7.azurestaticapps.net",

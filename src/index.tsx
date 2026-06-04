@@ -2,7 +2,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { MsalProvider } from "@azure/msal-react";
 import { loadAppConfig } from "./appConfig";
-import { initAuth, initExternalIdAuth, getExternalIdInstance, msalInstance, trialLoginRequest } from "./authConfig";
+import { initAuth, initExternalIdAuth, getExternalIdInstance, msalInstance } from "./authConfig";
 import App from "./App";
 import { UserProvider } from "./context/UserContext";
 import "./App.css";
@@ -26,6 +26,11 @@ async function bootstrap() {
       const result = await extId.handleRedirectPromise();
       if (result?.account) {
         extId.setActiveAccount(result.account);
+        console.info("[ExtID] Redirect complete. Account:", {
+          tenantId: result.account.tenantId,
+          environment: result.account.environment,
+          homeAccountId: result.account.homeAccountId,
+        });
 
         // If the user just completed trial sign-up, save their profile to the backend.
         // The profile was stored in sessionStorage before the loginRedirect call.
