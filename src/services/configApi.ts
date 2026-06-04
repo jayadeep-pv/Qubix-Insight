@@ -45,15 +45,30 @@ apiClient.interceptors.request.use(async (config) => {
     return config;
   }
 
-  // For CIAM (External ID) accounts, omit the explicit account to avoid a known
-  // MSAL v5 authority_mismatch when account is passed for ciamlogin.com tenants.
-  // MSAL uses the active account (set in index.tsx) implicitly.
-  const isCiam = auth.account.environment.includes("ciamlogin.com");
-  const silentRequest = isCiam ? auth.request : { ...auth.request, account: auth.account };
-  const redirectRequest = isCiam ? auth.request : { ...auth.request, account: auth.account };
+  // CIAM (External ID): MSAL v5 acquireTokenSilent throws authority_mismatch for
+  // ciamlogin.com accounts even when the authority is correct. Use the token stored
+  // in sessionStorage by index.tsx after the redirect instead.
+  if (auth.account.environment.includes("ciamlogin.com")) {
+    const stored = sessionStorage.getItem("extid_token");
+    if (stored) {
+      const { accessToken, expiresOn } = JSON.parse(stored);
+      if (!expiresOn || new Date(expiresOn) > new Date()) {
+        config.headers = config.headers ?? {};
+        config.headers["Authorization"] = `Bearer ${accessToken}`;
+        config.headers["X-Aad-Tenant-Id"] = auth.account.tenantId;
+        return config;
+      }
+    }
+    // Token missing or expired — force re-login
+    if (!_loginRedirectInFlight) {
+      _loginRedirectInFlight = true;
+      auth.instance.loginRedirect(auth.request);
+    }
+    return config;
+  }
 
   try {
-    const result = await auth.instance.acquireTokenSilent(silentRequest);
+    const result = await auth.instance.acquireTokenSilent({ ...auth.request, account: auth.account });
     config.headers = config.headers ?? {};
     config.headers["Authorization"] = `Bearer ${result.accessToken}`;
     config.headers["X-Aad-Tenant-Id"] = result.tenantId;
@@ -61,7 +76,7 @@ apiClient.interceptors.request.use(async (config) => {
     console.error("[Auth] acquireTokenSilent failed:", error);
     if (error instanceof InteractionRequiredAuthError && !_loginRedirectInFlight) {
       _loginRedirectInFlight = true;
-      auth.instance.acquireTokenRedirect(redirectRequest);
+      auth.instance.acquireTokenRedirect({ ...auth.request, account: auth.account });
     }
   }
 

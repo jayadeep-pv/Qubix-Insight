@@ -122,7 +122,7 @@ public class TenantUserService
             entity["ilx_trialexpiry"] = DateTime.UtcNow.AddDays(30);
             entity["ilx_runlimit"]    = 5;
             entity["ilx_runsused"]    = 0;
-            entity["ilx_userstatus"]  = new OptionSetValue(1); // Active
+            entity["ilx_userstatus"]  = new OptionSetValue(857270000); // Active
             svc.Create(entity);
         }
         else

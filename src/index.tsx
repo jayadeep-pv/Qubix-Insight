@@ -27,6 +27,12 @@ async function bootstrap() {
       if (result?.account) {
         extId.setActiveAccount(result.account);
         console.info(`[ExtID] Redirect complete — tenantId: ${result.account.tenantId} | environment: ${result.account.environment} | homeAccountId: ${result.account.homeAccountId}`);
+        // Store token so configApi can use it directly — MSAL v5 acquireTokenSilent
+        // throws authority_mismatch for CIAM accounts even when authority is correct.
+        sessionStorage.setItem("extid_token", JSON.stringify({
+          accessToken: result.accessToken,
+          expiresOn: result.expiresOn?.toISOString() ?? null,
+        }));
 
         // If the user just completed trial sign-up, save their profile to the backend.
         // The profile was stored in sessionStorage before the loginRedirect call.
