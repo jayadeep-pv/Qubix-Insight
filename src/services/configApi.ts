@@ -24,8 +24,7 @@ function resolveActiveAuth() {
   if (extId) {
     const extAccount = extId.getActiveAccount() ?? extId.getAllAccounts()[0];
     if (extAccount) {
-      const authority = `https://${extAccount.environment}/${extAccount.tenantId}/`;
-      return { account: extAccount, instance: extId, request: { ...trialLoginRequest, authority } };
+      return { account: extAccount, instance: extId, request: trialLoginRequest };
     }
   }
   return null;
