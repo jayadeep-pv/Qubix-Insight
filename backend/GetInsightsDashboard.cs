@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.PowerPlatform.Dataverse.Client;
 using Microsoft.Xrm.Sdk.Query;
 using Microsoft.Xrm.Sdk;
+using QubixInsight.Models;
 using QubixInsight.Services;
 
 namespace QubixInsight.Functions;
@@ -65,10 +66,6 @@ public class GetInsightsDashboard
             await err.WriteStringAsync($"Dataverse connection failed: {ex.Message}");
             return err;
         }
-
-
-
-        var service = _tenantDataverseService.CreateClient(tenant.DataverseUrl);
 
         /* =============================
            TOTAL INSIGHTS
