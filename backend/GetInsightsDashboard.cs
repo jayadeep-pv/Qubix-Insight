@@ -67,6 +67,9 @@ public class GetInsightsDashboard
             return err;
         }
 
+        try
+        {
+
         /* =============================
            TOTAL INSIGHTS
         ============================== */
@@ -366,7 +369,7 @@ public class GetInsightsDashboard
         ============================== */
 
         var result = new
-        {
+        { // try block closed below after response
             totalInsights = totalInsights,
             insightsThisMonth = insightsThisMonth,
             totalRuns = totalRuns,
@@ -383,7 +386,15 @@ public class GetInsightsDashboard
 
         var response = req.CreateResponse(HttpStatusCode.OK);
         await response.WriteAsJsonAsync(result);
-
         return response;
+
+        } // end try
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[Dashboard] Query failed: {Type}: {Message}", ex.GetType().Name, ex.Message);
+            var err = req.CreateResponse(HttpStatusCode.InternalServerError);
+            await err.WriteStringAsync($"Dashboard query failed: {ex.Message}");
+            return err;
+        }
     }
 }
