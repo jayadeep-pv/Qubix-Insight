@@ -202,7 +202,7 @@ public class GetInsightsDashboard
         var runQuery = new QueryExpression("ilx_analysisrun")
         {
             ColumnSet = new ColumnSet(
-                "ilx_name",
+                "ilx_runid",
                 "createdon",
                 "ilx_analysis",
                 "ilx_documenttype",
@@ -316,7 +316,7 @@ public class GetInsightsDashboard
                 insightName = comparisonNames[comparisonRef.Id];
 
             if (string.IsNullOrEmpty(insightName))
-                insightName = run.GetAttributeValue<string>("ilx_name");
+                insightName = run.GetAttributeValue<string>("ilx_runid");
 
             int documentCount = docCounts.ContainsKey(runId)
                 ? docCounts[runId]
@@ -346,7 +346,7 @@ public class GetInsightsDashboard
             return new
             {
                 id = runId,
-                runName = run.GetAttributeValue<string>("ilx_name"),
+                runName = run.GetAttributeValue<string>("ilx_runid"),
                 insightName = insightName,
 
                 // existing fields kept
