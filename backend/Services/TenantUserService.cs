@@ -100,9 +100,10 @@ public class TenantUserService
         q.Criteria.AddCondition("ilx_externalobjectid", ConditionOperator.Equal, oid);
         var existing = svc.RetrieveMultiple(q).Entities.FirstOrDefault();
 
-        var composedName = !string.IsNullOrWhiteSpace(displayName)
-            ? displayName
-            : $"{firstName} {lastName}".Trim();
+        // Prefer form-supplied first/last name over JWT display name (which can be "unknown" for new External ID users)
+        var composedName = (!string.IsNullOrWhiteSpace(firstName) || !string.IsNullOrWhiteSpace(lastName))
+            ? $"{firstName} {lastName}".Trim()
+            : !string.IsNullOrWhiteSpace(displayName) ? displayName : "";
 
         var entity = new Entity("ilx_tenantuser");
         entity["ilx_externalobjectid"] = oid;

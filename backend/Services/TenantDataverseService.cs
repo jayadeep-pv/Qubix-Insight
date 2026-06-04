@@ -14,6 +14,10 @@ public class TenantDataverseService
 
     public ServiceClient CreateClient(string dataverseUrl)
     {
+        // Trial tenants have no dedicated DataverseUrl — fall back to the master environment
+        if (string.IsNullOrWhiteSpace(dataverseUrl))
+            dataverseUrl = _config["Qubix_MainDataverseUrl"] ?? "";
+
         var clientId = _config["Qubix_ClientId"];
         var clientSecret = _config["Qubix_ClientSecret"];
         var tenantId = _config["Qubix_TenantId"];
