@@ -16,7 +16,10 @@ let _loginRedirectInFlight = false;
  * Prefers the main Azure AD instance; falls back to External ID for trial users.
  */
 function resolveActiveAuth() {
-  const mainAccount = msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0];
+  // getAllAccounts() returns ALL cached accounts including External ID (CIAM) ones.
+  // Filter to only Azure AD accounts so the main instance never gets a CIAM account.
+  const mainAccount = msalInstance.getActiveAccount()
+    ?? msalInstance.getAllAccounts().find(a => !a.environment.includes("ciamlogin.com"));
   if (mainAccount) {
     return { account: mainAccount, instance: msalInstance, request: loginRequest };
   }

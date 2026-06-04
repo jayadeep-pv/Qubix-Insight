@@ -55,7 +55,8 @@ export function useUser(): UserContextType {
  * Mirrors the same logic in configApi.ts so both always use the same token.
  */
 function resolveActiveAuth() {
-  const mainAccount = msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0];
+  const mainAccount = msalInstance.getActiveAccount()
+    ?? msalInstance.getAllAccounts().find(a => !a.environment.includes("ciamlogin.com"));
   if (mainAccount) {
     return { account: mainAccount, instance: msalInstance, request: loginRequest };
   }
