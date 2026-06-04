@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Extensions.Logging;
 using Microsoft.PowerPlatform.Dataverse.Client;
 using Microsoft.Xrm.Sdk.Query;
 using Microsoft.Xrm.Sdk;
@@ -10,13 +11,16 @@ namespace QubixInsight.Functions;
 
 public class GetInsightsDashboard
 {
+    private readonly ILogger<GetInsightsDashboard> _logger;
     private readonly TenantResolverService _tenantResolver;
     private readonly TenantDataverseService _tenantDataverseService;
 
     public GetInsightsDashboard(
+    ILogger<GetInsightsDashboard> logger,
     TenantResolverService tenantResolver,
     TenantDataverseService tenantDataverseService)
     {
+        _logger = logger;
         _tenantResolver = tenantResolver;
         _tenantDataverseService = tenantDataverseService;
     }
@@ -36,7 +40,31 @@ public class GetInsightsDashboard
             return bad;
         }
 
-        var tenant = _tenantResolver.ResolveTenant(aadTenantId);
+        TenantSettings tenant;
+        try
+        {
+            tenant = _tenantResolver.ResolveTenant(aadTenantId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[Dashboard] ResolveTenant failed for {TenantId}", aadTenantId);
+            var err = req.CreateResponse(HttpStatusCode.InternalServerError);
+            await err.WriteStringAsync($"Tenant resolution failed: {ex.Message}");
+            return err;
+        }
+
+        ServiceClient service;
+        try
+        {
+            service = _tenantDataverseService.CreateClient(tenant.DataverseUrl);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[Dashboard] Dataverse connect failed. DataverseUrl='{Url}'", tenant.DataverseUrl);
+            var err = req.CreateResponse(HttpStatusCode.InternalServerError);
+            await err.WriteStringAsync($"Dataverse connection failed: {ex.Message}");
+            return err;
+        }
 
 
 
