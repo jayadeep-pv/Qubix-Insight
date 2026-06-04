@@ -67,6 +67,7 @@ public class UpdateDocumentType
             entity["ilx_name"] = data["name"].ToString();
 
             if (data.ContainsKey("description"))
+                entity["ilx_description"] = data["description"]?.ToString();
 
             if (data.ContainsKey("baseAiPrompt"))
                 entity["ilx_baseaiprompt"] = data["baseAiPrompt"]?.ToString();

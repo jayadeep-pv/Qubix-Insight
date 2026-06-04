@@ -50,6 +50,7 @@ public class GetDocumentTypes
             {
                 ColumnSet = new ColumnSet(
                     "ilx_name",
+                    "ilx_description",
                     "ilx_baseaiprompt",
                     "ilx_enablecompare",
                     "ilx_enablescoring",
@@ -68,6 +69,7 @@ public class GetDocumentTypes
             {
                 id = e.Id,
                 name = e.GetAttributeValue<string>("ilx_name"),
+                description = e.GetAttributeValue<string>("ilx_description"),
                 baseAiPrompt = e.GetAttributeValue<string>("ilx_baseaiprompt"),
                 enableCompare = e.GetAttributeValue<bool?>("ilx_enablecompare") ?? false,
                 enableScoring = e.GetAttributeValue<bool?>("ilx_enablescoring") ?? false,

@@ -67,6 +67,7 @@ public class CreateDocumentType
 
             if (data.ContainsKey("description"))
             {
+                entity["ilx_description"] = data["description"]?.ToString();
             }
 
             if (data.ContainsKey("baseAiPrompt"))
