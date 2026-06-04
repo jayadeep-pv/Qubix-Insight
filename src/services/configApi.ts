@@ -45,8 +45,15 @@ apiClient.interceptors.request.use(async (config) => {
     return config;
   }
 
+  // For CIAM (External ID) accounts, omit the explicit account to avoid a known
+  // MSAL v5 authority_mismatch when account is passed for ciamlogin.com tenants.
+  // MSAL uses the active account (set in index.tsx) implicitly.
+  const isCiam = auth.account.environment.includes("ciamlogin.com");
+  const silentRequest = isCiam ? auth.request : { ...auth.request, account: auth.account };
+  const redirectRequest = isCiam ? auth.request : { ...auth.request, account: auth.account };
+
   try {
-    const result = await auth.instance.acquireTokenSilent({ ...auth.request, account: auth.account });
+    const result = await auth.instance.acquireTokenSilent(silentRequest);
     config.headers = config.headers ?? {};
     config.headers["Authorization"] = `Bearer ${result.accessToken}`;
     config.headers["X-Aad-Tenant-Id"] = result.tenantId;
@@ -54,7 +61,7 @@ apiClient.interceptors.request.use(async (config) => {
     console.error("[Auth] acquireTokenSilent failed:", error);
     if (error instanceof InteractionRequiredAuthError && !_loginRedirectInFlight) {
       _loginRedirectInFlight = true;
-      auth.instance.acquireTokenRedirect({ ...auth.request, account: auth.account });
+      auth.instance.acquireTokenRedirect(redirectRequest);
     }
   }
 
