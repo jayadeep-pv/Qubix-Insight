@@ -43,7 +43,7 @@ public class UpdateTemplateAttribute
 
     [Function("UpdateTemplateAttribute")]
     public async Task<HttpResponseData> Run(
-        [HttpTrigger(AuthorizationLevel.Function, "put")] HttpRequestData req)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put")] HttpRequestData req)
     {
         try
         {

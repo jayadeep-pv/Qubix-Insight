@@ -40,7 +40,7 @@ public class UpdateAiInsightProfile
 
     [Function("UpdateAiInsightProfile")]
     public async Task<HttpResponseData> Run(
-        [HttpTrigger(AuthorizationLevel.Function, "put")] HttpRequestData req)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put")] HttpRequestData req)
     {
         var response = req.CreateResponse();
 

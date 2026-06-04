@@ -22,7 +22,7 @@ public class DeactivateComparisonRun
 
     [Function("DeactivateComparisonRun")]
     public async Task<HttpResponseData> Run(
-        [HttpTrigger(AuthorizationLevel.Function, "put", Route = "DeactivateComparisonRun/{id}")]
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "DeactivateComparisonRun/{id}")]
         HttpRequestData req,
         string id)
     {

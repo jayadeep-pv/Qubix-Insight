@@ -41,7 +41,7 @@ public class UploadAndStartComparison
 
     [Function("UploadAndStartComparison")]
     public async Task<HttpResponseData> Run(
-        [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequestData req)
     {
         _logger.LogInformation("=== UploadAndStartComparison START ===");
 

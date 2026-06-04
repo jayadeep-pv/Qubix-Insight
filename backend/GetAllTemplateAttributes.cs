@@ -22,7 +22,7 @@ public class GetAllTemplateAttributes
 
     [Function("GetAllTemplateAttributes")]
     public async Task<HttpResponseData> Run(
-        [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequestData req)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
     {
         try
         {

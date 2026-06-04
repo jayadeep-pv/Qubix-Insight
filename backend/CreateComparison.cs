@@ -29,7 +29,7 @@ public class CreateComparison
 
     [Function("CreateComparison")]
     public async Task<HttpResponseData> Run(
-        [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequestData req)
     {
 
         var aadTenantId = JwtTenantExtractor.GetAadTenantId(req);
