@@ -2,6 +2,7 @@
 import { useMsal, useIsAuthenticated } from "@azure/msal-react";
 import { InteractionStatus } from "@azure/msal-browser";
 import { loginRequest } from "../authConfig";
+import { getAccessToken } from "../services/tokenHelper";
 import { useNavigate, useLocation } from "react-router-dom";
 import AiSettingsPanel from "../components/AiSettingsPanel";
 import { configApi } from "../services/configApi";
@@ -218,21 +219,8 @@ function StartReview() {
     }
   }, [accounts, instance]);
 
-  const getToken = async (): Promise<string | null> => {
-    const activeAccount = instance.getActiveAccount();
-    if (!activeAccount) return null;
-    if (inProgress !== InteractionStatus.None) return null;
-    try {
-      const response = await instance.acquireTokenSilent({
-        ...loginRequest,
-        account: activeAccount,
-      });
-      return response.accessToken;
-    } catch {
-      await instance.acquireTokenRedirect(loginRequest);
-      return null;
-    }
-  };
+  const getToken = (): Promise<string | null> =>
+    getAccessToken(instance, instance.getActiveAccount() ?? accounts[0], inProgress);
 
   /* ── Loaders ── */
   const loadDocumentTypes = async () => {

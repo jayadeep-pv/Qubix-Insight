@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { useMsal } from "@azure/msal-react";
-import { loginRequest } from "../authConfig";
+import { getAccessToken } from "../services/tokenHelper";
 import AiInsightsSection from "../components/AiInsightsSection";
 import { useNavigate } from "react-router-dom";
 import { Document, Page, pdfjs } from "react-pdf";
@@ -528,16 +528,14 @@ const sendChatQuestion = async () => {
   setChatLoading(true);
 
   try {
-    const token = await instance.acquireTokenSilent({
-      ...loginRequest,
-      account: accounts[0],
-    });
+    const token = await getAccessToken(instance, accounts[0]);
+    if (!token) return;
 
     const res = await fetch(`${API_BASE}/api/AskRunQuestion`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token.accessToken}`
+        Authorization: `Bearer ${token}`
       },
       body: JSON.stringify({
         runId: runId,
@@ -575,16 +573,14 @@ const sendChatQuestion = async () => {
         setLoading(true);
         setError("");
 
-        const token = await instance.acquireTokenSilent({
-          ...loginRequest,
-          account: accounts[0],
-        });
+        const tokenStr = await getAccessToken(instance, accounts[0]);
+        if (!tokenStr) return;
 
         const response = await fetch(
           `${API_BASE}/api/GetComparisonRunResults?comparisonRunId=${runId}`,
           {
             headers: {
-              Authorization: `Bearer ${token.accessToken}`,
+              Authorization: `Bearer ${tokenStr}`,
             },
           }
         );
