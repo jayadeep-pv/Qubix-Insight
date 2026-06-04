@@ -49,7 +49,6 @@ public class GetAttributeCategories
                 ColumnSet = new ColumnSet(
                     "ilx_name",
                     "ilx_categorykey",
-                    "ilx_description",
                     "ilx_displayorder",
                     "statecode",
                     "createdon",
@@ -71,7 +70,6 @@ public class GetAttributeCategories
                 id = e.Id,
                 name = e.GetAttributeValue<string>("ilx_name"),
                 key = e.GetAttributeValue<string>("ilx_categorykey"),
-                description = e.GetAttributeValue<string>("ilx_description"),
                 displayOrder = e.GetAttributeValue<int?>("ilx_displayorder") ?? 0,
                 isActive = (e.GetAttributeValue<OptionSetValue>("statecode")?.Value ?? 0) == 0,
                 createdOn = e.GetAttributeValue<DateTime?>("createdon"),
