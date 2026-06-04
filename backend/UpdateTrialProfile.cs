@@ -70,7 +70,8 @@ public class UpdateTrialProfile
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "UpdateTrialProfile failed for oid {Oid}", userInfo.Oid);
+            _logger.LogError(ex, "UpdateTrialProfile failed for oid {Oid} | {Type}: {Message} | Inner: {Inner}",
+                userInfo.Oid, ex.GetType().Name, ex.Message, ex.InnerException?.Message);
             var err = req.CreateResponse(HttpStatusCode.InternalServerError);
             await err.WriteStringAsync(ex.Message);
             return err;
