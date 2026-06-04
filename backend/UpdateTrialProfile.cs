@@ -12,14 +12,17 @@ public class UpdateTrialProfile
     private readonly ILogger<UpdateTrialProfile> _logger;
     private readonly TenantResolverService _tenantResolver;
     private readonly TenantUserService _tenantUserService;
+    private readonly GraphService _graphService;
 
     public UpdateTrialProfile(ILogger<UpdateTrialProfile> logger,
         TenantResolverService tenantResolver,
-        TenantUserService tenantUserService)
+        TenantUserService tenantUserService,
+        GraphService graphService)
     {
         _logger = logger;
         _tenantResolver = tenantResolver;
         _tenantUserService = tenantUserService;
+        _graphService = graphService;
     }
 
     private record ProfileRequest(
@@ -62,6 +65,14 @@ public class UpdateTrialProfile
                 companyName:     profile?.CompanyName,
                 jobTitle:        profile?.JobTitle,
                 country:         profile?.Country
+            );
+
+            // Update the External ID directory so the MSAL account picker shows
+            // the user's real name instead of "unknown" on subsequent logins.
+            await _graphService.UpdateExternalIdUserAsync(
+                oid:       userInfo.Oid,
+                givenName: profile?.FirstName ?? "",
+                surname:   profile?.LastName  ?? ""
             );
 
             var ok = req.CreateResponse(HttpStatusCode.OK);

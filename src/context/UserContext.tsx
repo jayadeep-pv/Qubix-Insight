@@ -96,23 +96,37 @@ export function UserProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        const result = await auth.instance.acquireTokenSilent({
-          ...auth.request,
-          account: auth.account,
-        });
+        // For CIAM (External ID) accounts use the token stored in sessionStorage
+        // by index.tsx — acquireTokenSilent throws authority_mismatch for CIAM in MSAL v5.
+        const isCiam = auth.account.environment.includes("ciamlogin.com");
+        let accessToken: string;
 
-        // ID token claims are always populated by MSAL regardless of access token scope.
-        // External ID access tokens (openid/profile/email) don't carry profile claims,
-        // so we derive the name from idTokenClaims as the reliable source.
+        if (isCiam) {
+          const stored = sessionStorage.getItem("extid_token");
+          const parsed = stored ? JSON.parse(stored) : null;
+          if (!parsed || (parsed.expiresOn && new Date(parsed.expiresOn) <= new Date())) {
+            auth.instance.loginRedirect(auth.request);
+            return;
+          }
+          accessToken = parsed.accessToken;
+        } else {
+          const result = await auth.instance.acquireTokenSilent({
+            ...auth.request,
+            account: auth.account,
+          });
+          accessToken = result.accessToken;
+        }
+
+        // ID token claims — used only as last-resort fallback for name display.
+        // GetCurrentUser (Dataverse) is the authoritative source.
         const idClaims = (auth.account.idTokenClaims ?? {}) as Record<string, any>;
         const nameFromIdToken =
-          idClaims["name"] ||
           [idClaims["given_name"], idClaims["family_name"]].filter(Boolean).join(" ") ||
-          "";
+          idClaims["name"] || "";
 
         const response = await axios.get(
           `${getAppConfig().apiBase}/GetCurrentUser`,
-          { headers: { Authorization: `Bearer ${result.accessToken}` } }
+          { headers: { Authorization: `Bearer ${accessToken}` } }
         );
 
         if (!cancelled) {

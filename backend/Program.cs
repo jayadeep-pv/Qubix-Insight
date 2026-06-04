@@ -71,15 +71,15 @@ var host = new HostBuilder()
         });
 
         services.AddMemoryCache();
+        services.AddHttpClient();
 
-        // 🔥 THIS MUST BE INSIDE ConfigureServices
         services.AddSingleton<AiSummaryService>();
-        services.AddSingleton<AiExtractionService>();
         services.AddSingleton<AiExtractionService>();
         services.AddSingleton<AzureOcrService>();
         services.AddSingleton<TenantResolverService>();
         services.AddSingleton<TenantUserService>();
         services.AddSingleton<TenantDataverseService>();
+        services.AddSingleton<GraphService>();
     })
     .Build();
 
