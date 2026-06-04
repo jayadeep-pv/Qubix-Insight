@@ -26,11 +26,7 @@ async function bootstrap() {
       const result = await extId.handleRedirectPromise();
       if (result?.account) {
         extId.setActiveAccount(result.account);
-        console.info("[ExtID] Redirect complete. Account:", {
-          tenantId: result.account.tenantId,
-          environment: result.account.environment,
-          homeAccountId: result.account.homeAccountId,
-        });
+        console.info(`[ExtID] Redirect complete — tenantId: ${result.account.tenantId} | environment: ${result.account.environment} | homeAccountId: ${result.account.homeAccountId}`);
 
         // If the user just completed trial sign-up, save their profile to the backend.
         // The profile was stored in sessionStorage before the loginRedirect call.
