@@ -2,17 +2,24 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using Azure.AI.DocumentIntelligence;
+using Microsoft.Extensions.Logging;
 
 namespace QubixInsight.Services;
 
 public class AzureOcrService
 {
     private readonly DocumentIntelligenceClient _client;
+    private readonly ILogger<AzureOcrService> _logger;
 
-    public AzureOcrService()
+    public AzureOcrService(ILogger<AzureOcrService> logger)
     {
+        _logger = logger;
+
         var endpoint = Environment.GetEnvironmentVariable("Qubix_DocumentIntelligenceEndpoint");
         var key      = Environment.GetEnvironmentVariable("Qubix_DocumentIntelligenceKey");
+
+        _logger.LogInformation("[OCR] Endpoint configured: {Endpoint}", endpoint ?? "NULL");
+        _logger.LogInformation("[OCR] Key configured: {KeyStatus}", string.IsNullOrEmpty(key) ? "NULL/EMPTY" : $"set ({key.Length} chars, starts '{key[..4]}...')");
 
         _client = new DocumentIntelligenceClient(
             new Uri(endpoint),
@@ -24,12 +31,10 @@ public class AzureOcrService
     // ==========================================
     public async Task<string> ExtractTextAsync(byte[] fileBytes)
     {
-        using var stream = new MemoryStream(fileBytes);
-
         var operation = await _client.AnalyzeDocumentAsync(
             WaitUntil.Completed,
             "prebuilt-layout",
-            BinaryData.FromStream(stream));
+            BinaryData.FromBytes(fileBytes));
 
         var result = operation.Value;
         var sb     = new StringBuilder();
@@ -49,12 +54,14 @@ public class AzureOcrService
     // ==========================================
     public async Task<OcrExtractionResult> ExtractTextWithAnchorsAsync(byte[] fileBytes)
     {
-        using var stream = new MemoryStream(fileBytes);
+        _logger.LogInformation("[OCR] Calling AnalyzeDocumentAsync — file size: {Bytes} bytes", fileBytes.Length);
 
         var operation = await _client.AnalyzeDocumentAsync(
             WaitUntil.Completed,
             "prebuilt-layout",
-            BinaryData.FromStream(stream));
+            BinaryData.FromBytes(fileBytes));
+
+        _logger.LogInformation("[OCR] AnalyzeDocumentAsync succeeded");
 
         var result = operation.Value;
 

@@ -679,7 +679,7 @@ const sendChatQuestion = async () => {
         setRunName(raw.RunName ?? "");
 
         setMode(
-          data.mode === "Summarise" || data.mode === 942870001
+          data.mode === "Summarise" || data.mode === 857270001
             ? "Summarise"
             : data.candidates.length > 0
               ? "Scoring"

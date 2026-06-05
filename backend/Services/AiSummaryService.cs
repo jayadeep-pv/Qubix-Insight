@@ -37,13 +37,7 @@ public class AiSummaryService
             new UserChatMessage(fullPrompt)
         };
 
-        var options = new ChatCompletionOptions
-        {
-            Temperature      = 0.2f,
-            MaxOutputTokenCount = 1500
-        };
-
-        var response = await chatClient.CompleteChatAsync(messages, options);
+        var response = await chatClient.CompleteChatAsync(messages);
 
         var content = response.Value.Content[0].Text;
         var usage   = response.Value.Usage;

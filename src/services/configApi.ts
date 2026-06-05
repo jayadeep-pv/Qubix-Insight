@@ -379,8 +379,8 @@ export const configApi = {
       .join("");
 
     const DATA_TYPE_MAP: Record<string, number> = {
-      Text: 942870001, Number: 942870003, Date: 942870004,
-      Currency: 942870000, Boolean: 942870002, Email: 942870001,
+      Text: 857270001, Number: 857270003, Date: 857270004,
+      Currency: 857270000, Boolean: 857270002, Email: 857270001,
     };
 
     const res = await apiClient.post("/api/CreateTemplateAttribute", {
@@ -389,7 +389,7 @@ export const configApi = {
       attributeKey:     attributeKey || `field${Date.now()}`,
       aiExtractionHint: attr.description ?? "",
       categoryId:       attr.categoryId,
-      expectedDataType: DATA_TYPE_MAP[attr.dataType] ?? 942870001,
+      expectedDataType: DATA_TYPE_MAP[attr.dataType] ?? 857270001,
       displayOrder:     attr.displayOrder,
       isMandatory:      false,
       templateId,

@@ -65,12 +65,12 @@ export interface TemplateBuilderState {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const DATA_TYPE_OPTION_MAP: Record<string, number> = {
-  Currency: 942870000,
-  Text:     942870001,
-  Boolean:  942870002,
-  Number:   942870003,
-  Date:     942870004,
-  Email:    942870001,
+  Currency: 857270000,
+  Text:     857270001,
+  Boolean:  857270002,
+  Number:   857270003,
+  Date:     857270004,
+  Email:    857270001,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -589,7 +589,7 @@ export function useTemplateSave() {
           attributeKey:     attributeKey || `field${i + 1}`,
           aiExtractionHint: (attr.Description ?? attr.description ?? "").trim(),
           categoryId:       matchedCat?.id ?? null,
-          expectedDataType: DATA_TYPE_OPTION_MAP[attr.dataType] ?? DATA_TYPE_OPTION_MAP["Text"] ?? 942870001,
+          expectedDataType: DATA_TYPE_OPTION_MAP[attr.dataType] ?? DATA_TYPE_OPTION_MAP["Text"] ?? 857270001,
           displayOrder:     i + 1,
           isMandatory:      attr.isMandatory ?? false,
           templateId,
@@ -600,7 +600,8 @@ export function useTemplateSave() {
       setLoading(false);
       return true;
     } catch (ex: any) {
-      setError(`Save failed: ${ex?.message ?? "Unknown error"}`);
+      const detail = ex?.response?.data ?? ex?.message ?? "Unknown error";
+      setError(`Save failed: ${detail}`);
       setLoading(false);
       return false;
     }

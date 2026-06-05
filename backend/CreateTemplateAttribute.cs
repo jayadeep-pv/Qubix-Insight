@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Extensions.Logging;
 using Microsoft.Xrm.Sdk;
 using QubixInsight.Services;
 
@@ -10,13 +11,16 @@ namespace QubixInsight.Functions;
 
 public class CreateTemplateAttribute
 {
+    private readonly ILogger<CreateTemplateAttribute> _logger;
     private readonly TenantResolverService _tenantResolver;
     private readonly TenantDataverseService _tenantDataverseService;
 
     public CreateTemplateAttribute(
+        ILogger<CreateTemplateAttribute> logger,
         TenantResolverService tenantResolver,
         TenantDataverseService tenantDataverseService)
     {
+        _logger = logger;
         _tenantResolver = tenantResolver;
         _tenantDataverseService = tenantDataverseService;
     }
@@ -143,6 +147,7 @@ public class CreateTemplateAttribute
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "[CreateTemplateAttribute] {Type}: {Message}", ex.GetType().Name, ex.Message);
             var error = req.CreateResponse(HttpStatusCode.InternalServerError);
             await error.WriteStringAsync($"CreateTemplateAttribute failed: {ex.Message}");
             return error;

@@ -241,7 +241,7 @@ public class UploadAndStartComparison
                 }
                 else if (file.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
                 {
-                    var ocrService = new AzureOcrService();
+                    var ocrService = new AzureOcrService(Microsoft.Extensions.Logging.Abstractions.NullLogger<AzureOcrService>.Instance);
                     //extractedText = await ocrService.ExtractTextAsync(fileBytes);
 
                     extractedText = null;
