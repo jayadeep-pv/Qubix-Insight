@@ -336,9 +336,10 @@ Document excerpt:
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in DetectAttributesFromDocument");
+                _logger.LogError(ex, "[Detect] {Type}: {Message} | Inner: {Inner}",
+                    ex.GetType().Name, ex.Message, ex.InnerException?.Message ?? "none");
                 var error = req.CreateResponse(HttpStatusCode.InternalServerError);
-                await error.WriteStringAsync(ex.Message);
+                await error.WriteStringAsync($"{ex.GetType().Name}: {ex.Message}");
                 return error;
             }
         }
