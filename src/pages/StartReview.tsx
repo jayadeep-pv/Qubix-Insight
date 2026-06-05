@@ -1,7 +1,7 @@
 ﻿import React, { useEffect, useRef, useState } from "react";
 import { useMsal, useIsAuthenticated } from "@azure/msal-react";
 import { InteractionStatus } from "@azure/msal-browser";
-import { loginRequest } from "../authConfig";
+
 import { getAccessToken } from "../services/tokenHelper";
 import { useNavigate, useLocation } from "react-router-dom";
 import AiSettingsPanel from "../components/AiSettingsPanel";
@@ -40,12 +40,13 @@ type InsightMode = "extract" | "summarise" | "compare" | "compare-scoring";
 
 /* ===== API ===== */
 
-const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:7071";
+import { getAppConfig } from "../appConfig";
+const getApiBase = () => getAppConfig().apiBase.replace(/\/api\/?$/, "");
+const UPLOAD_FUNCTION_URL  = () => `${getApiBase()}/api/UploadAndStartComparison`;
+const EXECUTE_FUNCTION_URL = () => `${getApiBase()}/api/ExecuteComparisonRun`;
+const CREATE_INSIGHTS_URL  = () => `${getApiBase()}/api/CreateComparisonInsights`;
+const SMART_UPLOAD_URL     = () => `${getApiBase()}/api/DetectAttributesFromDocument`;
 
-const UPLOAD_FUNCTION_URL  = `${API_BASE}/api/UploadAndStartComparison`;
-const EXECUTE_FUNCTION_URL = `${API_BASE}/api/ExecuteComparisonRun`;
-const CREATE_INSIGHTS_URL  = `${API_BASE}/api/CreateComparisonInsights`;
-const SMART_UPLOAD_URL     = `${API_BASE}/api/DetectAttributesFromDocument`;
 
 /* ===== Mode metadata ===== */
 
@@ -394,7 +395,7 @@ function StartReview() {
       const params = new URLSearchParams();
       if (contextOverride)   params.set("context",    contextOverride);
       if (extractTemplateId) params.set("templateId", extractTemplateId);
-      const url = `${SMART_UPLOAD_URL}${params.toString() ? "?" + params.toString() : ""}`;
+      const url = `${SMART_UPLOAD_URL()}${params.toString() ? "?" + params.toString() : ""}`;
 
       const response = await fetch(url, {
         method: "POST",
@@ -467,7 +468,7 @@ function StartReview() {
 
     const user = getCurrentUser();
 
-    const response = await fetch(UPLOAD_FUNCTION_URL, {
+    const response = await fetch(UPLOAD_FUNCTION_URL(), {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -498,7 +499,7 @@ function StartReview() {
     const includeAttributeInsight = aiOptions.includes("attributeInsight");
 
     if (includeExecutiveSummary && selectedProfiles.length > 0) {
-      await fetch(CREATE_INSIGHTS_URL, {
+      await fetch(CREATE_INSIGHTS_URL(), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -510,7 +511,7 @@ function StartReview() {
 
     const user = getCurrentUser();
 
-    await fetch(EXECUTE_FUNCTION_URL, {
+    await fetch(EXECUTE_FUNCTION_URL(), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -549,7 +550,7 @@ function StartReview() {
 
       const user = getCurrentUser();
 
-      const uploadRes = await fetch(UPLOAD_FUNCTION_URL, {
+      const uploadRes = await fetch(UPLOAD_FUNCTION_URL(), {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -564,7 +565,7 @@ function StartReview() {
 
       const { runRecordId } = await uploadRes.json();
 
-      await fetch(EXECUTE_FUNCTION_URL, {
+      await fetch(EXECUTE_FUNCTION_URL(), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

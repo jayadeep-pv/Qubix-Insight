@@ -25,7 +25,8 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
    Interfaces
 ===================================================== */
 
-const API_BASE = "http://localhost:7071";
+import { getAppConfig } from "../appConfig";
+const getApiBase = () => getAppConfig().apiBase.replace(/\/api\/?$/, "");
 
 
 interface Candidate {
@@ -531,7 +532,7 @@ const sendChatQuestion = async () => {
     const token = await getAccessToken(instance, accounts[0]);
     if (!token) return;
 
-    const res = await fetch(`${API_BASE}/api/AskRunQuestion`, {
+    const res = await fetch(`${getApiBase()}/api/AskRunQuestion`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -577,7 +578,7 @@ const sendChatQuestion = async () => {
         if (!tokenStr) return;
 
         const response = await fetch(
-          `${API_BASE}/api/GetComparisonRunResults?comparisonRunId=${runId}`,
+          `${getApiBase()}/api/GetComparisonRunResults?comparisonRunId=${runId}`,
           {
             headers: {
               Authorization: `Bearer ${tokenStr}`,
