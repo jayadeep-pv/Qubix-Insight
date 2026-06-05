@@ -220,6 +220,8 @@ export default function ComparisonResults() {
   const [mode, setMode] = useState<"Compare" | "Scoring" | "Summarise">("Compare");
   const [runName, setRunName] = useState<string>("");
   const [comparisonName, setComparisonName] = useState<string>("");
+  const [documentTypeName, setDocumentTypeName] = useState<string>("");
+  const [templateName, setTemplateName] = useState<string>("");
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [attributes, setAttributes] = useState<AttributeValue[]>([]);
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
@@ -616,6 +618,8 @@ const sendChatQuestion = async () => {
         setIncludeExecutiveSummary(raw.includeExecutiveSummary ?? true);
 
         setComparisonName(raw.InsightName || "");
+        setDocumentTypeName(raw.DocumentTypeName || "");
+        setTemplateName(raw.TemplateName || "");
 
         console.log("RAW RESPONSE:", raw);
         console.log("SummaryJson:", raw.SummaryJson);
@@ -1067,8 +1071,11 @@ const pdfViewer = pdfUrl ? (
 
             <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
               <span className="mode-pill mode-pill-summarise">{mode}</span>
-              {summary?.documentType && (
-                <span style={{ fontSize: 13, color: "#6b7280" }}><strong>Type:</strong> {summary.documentType}</span>
+              {documentTypeName && (
+                <span style={{ fontSize: 13, color: "#6b7280" }}><strong>Type:</strong> {documentTypeName}</span>
+              )}
+              {templateName && (
+                <span style={{ fontSize: 13, color: "#6b7280" }}><strong>Template:</strong> {templateName}</span>
               )}
               {runMeta?.createdBy && (
                 <span style={{ fontSize: 13, color: "#6b7280" }}><strong>By:</strong> {runMeta.createdBy}</span>

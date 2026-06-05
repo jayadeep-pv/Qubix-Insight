@@ -234,9 +234,9 @@ function StartReview() {
   };
 
   const filteredDocumentTypes = documentTypes.filter(dt => {
-    if (mode === "summarise")       return dt.enableSummarise === true;
-    if (mode === "compare")         return dt.enableCompare === true;
-    if (mode === "compare-scoring") return dt.enableScoring === true;
+    if (mode === "summarise")       return dt.enableSummarise !== false;
+    if (mode === "compare")         return dt.enableCompare !== false;
+    if (mode === "compare-scoring") return dt.enableScoring !== false;
     return true;
   });
 
