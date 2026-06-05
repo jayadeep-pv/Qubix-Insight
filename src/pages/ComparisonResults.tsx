@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { useMsal } from "@azure/msal-react";
 import { getAccessToken } from "../services/tokenHelper";
+import { getAppConfig } from "../appConfig";
 import AiInsightsSection from "../components/AiInsightsSection";
 import { useNavigate } from "react-router-dom";
 import { Document, Page, pdfjs } from "react-pdf";
@@ -25,7 +26,6 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
    Interfaces
 ===================================================== */
 
-import { getAppConfig } from "../appConfig";
 const getApiBase = () => getAppConfig().apiBase.replace(/\/api\/?$/, "");
 
 

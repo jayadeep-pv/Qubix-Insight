@@ -3,6 +3,7 @@ import { useMsal, useIsAuthenticated } from "@azure/msal-react";
 import { InteractionStatus } from "@azure/msal-browser";
 
 import { getAccessToken } from "../services/tokenHelper";
+import { getAppConfig } from "../appConfig";
 import { useNavigate, useLocation } from "react-router-dom";
 import AiSettingsPanel from "../components/AiSettingsPanel";
 import { configApi } from "../services/configApi";
@@ -40,7 +41,6 @@ type InsightMode = "extract" | "summarise" | "compare" | "compare-scoring";
 
 /* ===== API ===== */
 
-import { getAppConfig } from "../appConfig";
 const getApiBase = () => getAppConfig().apiBase.replace(/\/api\/?$/, "");
 const UPLOAD_FUNCTION_URL  = () => `${getApiBase()}/api/UploadAndStartComparison`;
 const EXECUTE_FUNCTION_URL = () => `${getApiBase()}/api/ExecuteComparisonRun`;
