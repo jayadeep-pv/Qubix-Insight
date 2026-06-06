@@ -13,6 +13,8 @@ import {
   Layers,
   Power,
   Search,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { useUser } from "../context/UserContext";
 
@@ -50,6 +52,7 @@ export default function Layout({ onLogout }: LayoutProps) {
   const navigate = useNavigate();
   const { isTrial, userName, userEmail, tenantName } = useUser();
   const [search, setSearch] = useState("");
+  const [iconOnly, setIconOnly] = useState(false);
 
   const page = PAGE_META[location.pathname] ?? { title: "Qubix Insight", subtitle: "" };
 
@@ -57,11 +60,11 @@ export default function Layout({ onLogout }: LayoutProps) {
     <div className="app-layout">
 
       {/* ── Sidebar ── */}
-      <aside className="sidebar">
+      <aside className={`sidebar${iconOnly ? " icon-only" : ""}`}>
         <div className="sidebar-grid" />
 
         {/* Logo */}
-        <div className="logo">
+        <div className="logo" title={iconOnly ? "Qubix Insight" : undefined}>
           <div className="logo-icon"><Layers size={16} /></div>
           <div className="logo-text">
             <span className="logo-name">Qubix Insight</span>
@@ -70,11 +73,11 @@ export default function Layout({ onLogout }: LayoutProps) {
         </div>
 
         <nav>
-          <NavLink to="/" end>
+          <NavLink to="/" end title={iconOnly ? "Home" : undefined}>
             <Home size={16} />
             <span>Home</span>
           </NavLink>
-          <NavLink to="/dashboard">
+          <NavLink to="/dashboard" title={iconOnly ? "My Insights" : undefined}>
             <List size={16} />
             <span>My Insights</span>
           </NavLink>
@@ -82,32 +85,32 @@ export default function Layout({ onLogout }: LayoutProps) {
           <div className="sidebar-group">
             <div className="sidebar-group-title">Administration</div>
 
-            <NavLink to="all-insights">
+            <NavLink to="all-insights" title={iconOnly ? "All Insights" : undefined}>
               <Shield size={16} />
               <span>All Insights</span>
             </NavLink>
 
-            <NavLink to="/document-types">
+            <NavLink to="/document-types" title={iconOnly ? "Document Types" : undefined}>
               <FolderTree size={16} />
               <span>Document Types</span>
             </NavLink>
 
-            <NavLink to="/comparison-templates">
+            <NavLink to="/comparison-templates" title={iconOnly ? "Templates" : undefined}>
               <FileText size={16} />
               <span>Templates</span>
             </NavLink>
 
-            <NavLink to="/admin/template-attributes">
+            <NavLink to="/admin/template-attributes" title={iconOnly ? "Template Attributes" : undefined}>
               <ListChecks size={16} />
               <span>Template Attributes</span>
             </NavLink>
 
-            <NavLink to="/admin/rules">
+            <NavLink to="/admin/rules" title={iconOnly ? "Rules" : undefined}>
               <Shield size={16} />
               <span>Rules</span>
             </NavLink>
 
-            <NavLink to="/admin/ai-insight-profiles">
+            <NavLink to="/admin/ai-insight-profiles" title={iconOnly ? "AI Insight Profiles" : undefined}>
               <BrainCircuit size={16} />
               <span>AI Insight Profiles</span>
             </NavLink>
@@ -117,7 +120,7 @@ export default function Layout({ onLogout }: LayoutProps) {
             <div className="sidebar-group">
               <div className="sidebar-group-title">System</div>
 
-              <NavLink to="/settings">
+              <NavLink to="/settings" title={iconOnly ? "Settings" : undefined}>
                 <Settings size={16} />
                 <span>Settings</span>
               </NavLink>
@@ -128,7 +131,7 @@ export default function Layout({ onLogout }: LayoutProps) {
         {/* Bottom section */}
         <div className="sidebar-bottom">
           {(userName || userEmail) && (
-            <div className="sidebar-user">
+            <div className="sidebar-user" title={iconOnly ? (userName || userEmail) : undefined}>
               <div className="sidebar-avatar">{initials(userName, userEmail)}</div>
               <div className="sidebar-user-info">
                 <span className="sidebar-user-name">{userName || userEmail}</span>
@@ -137,14 +140,24 @@ export default function Layout({ onLogout }: LayoutProps) {
             </div>
           )}
 
-          <NavLink to="/support" className="sidebar-support">
+          <NavLink to="/support" className="sidebar-support" title={iconOnly ? "Support" : undefined}>
             <HelpCircle size={16} />
             <span>Support</span>
           </NavLink>
 
-          <button type="button" className="logout-btn" onClick={onLogout}>
+          <button type="button" className="logout-btn" onClick={onLogout} title={iconOnly ? "Logout" : undefined}>
             <Power size={16} />
             <span>Logout</span>
+          </button>
+
+          {/* Collapse toggle */}
+          <button
+            type="button"
+            className="sidebar-collapse-btn"
+            onClick={() => setIconOnly(v => !v)}
+            title={iconOnly ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {iconOnly ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
           </button>
         </div>
       </aside>

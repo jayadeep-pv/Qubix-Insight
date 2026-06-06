@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
-import { LayoutDashboard, FileText, Sparkles, ChevronDown, Download, BarChart2, MessageCircle } from "lucide-react";
+import { LayoutDashboard, FileText, Sparkles, ChevronDown, Download, BarChart2 } from "lucide-react";
 import { PageBreadcrumb } from "../components/PageBreadcrumb";
 import ChatTab from "../components/ChatTab";
 import { configApi } from "../services/configApi";
@@ -1046,6 +1046,7 @@ const pdfViewer = pdfUrl ? (
   if (mode === "Summarise") {
     return (
       <>
+      <div className="rr-layout">
       <div className="results-container">        
 
       <PageBreadcrumb
@@ -1100,7 +1101,6 @@ const pdfViewer = pdfUrl ? (
                       { key: "summary", label: "Overview", icon: <LayoutDashboard size={15} />, count: null },
                       { key: "fields", label: "Attribute Extraction", icon: <FileText size={15} />, count: attributes.length },
                       ...(attributes.some(hasValidAiInsight) ? [{ key: "ai", label: "AI Insight", icon: <Sparkles size={15} />, count: null }] : []),
-                      { key: "chat", label: "AI Q&A", icon: <MessageCircle size={15} />, count: null },
                     ].map(tab => (
                     <div
                       key={tab.key}
@@ -1252,9 +1252,22 @@ const pdfViewer = pdfUrl ? (
                   </span>
                 )}
                 {attr.values?.[0]?.confidenceScore !== undefined && (
-                  <span style={{ fontSize: 12, color: "#6b7280" }}>
-                    {Math.round(attr.values[0].confidenceScore * 100)}% confidence
-                  </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, flex: 1, minWidth: 60 }}>
+                    <div style={{ flex: 1, height: 3, background: "#f1f5f9", borderRadius: 2, overflow: "hidden" }}>
+                      <div style={{
+                        height: "100%",
+                        width: `${Math.round(attr.values[0].confidenceScore * 100)}%`,
+                        background: attr.riskLevel?.toLowerCase() === "high" ? "#ef4444"
+                          : attr.riskLevel?.toLowerCase() === "medium" ? "#f59e0b"
+                          : "#10b981",
+                        borderRadius: 2,
+                        transition: "width 0.3s ease",
+                      }} />
+                    </div>
+                    <span style={{ fontSize: 10, color: "#94a3b8", whiteSpace: "nowrap", flexShrink: 0 }}>
+                      {Math.round(attr.values[0].confidenceScore * 100)}%
+                    </span>
+                  </div>
                 )}
                 {attr.values?.[0]?.pageNumber && (
                   <span style={{ fontSize: 12, color: "#6b7280" }}>
@@ -1395,17 +1408,16 @@ const pdfViewer = pdfUrl ? (
 
 
 
-        {activeTab === "chat" && (
-          <ChatTab
-            chatMessages={chatMessages}
-            chatInput={chatInput}
-            setChatInput={setChatInput}
-            sendChatQuestion={sendChatQuestion}
-            chatLoading={chatLoading}
-          />
-        )}
-
-     
+      </div>
+      <div className="rr-chat-pane">
+        <ChatTab
+          chatMessages={chatMessages}
+          chatInput={chatInput}
+          setChatInput={setChatInput}
+          sendChatQuestion={sendChatQuestion}
+          chatLoading={chatLoading}
+        />
+      </div>
       </div>
 
       {pdfExporting && (
@@ -1437,6 +1449,7 @@ const winner = candidates.find(c => c.isWinner) || sortedCandidates[0] || null;
 
 return (
   <>
+    <div className="rr-layout">
     <div className="results-container">
 
 
@@ -1503,7 +1516,6 @@ return (
   { key: "fields", label: "Comparison", icon: <FileText size={15} />, count: attributes.length },
   ...(candidates.length > 0 ? [{ key: "scoring", label: "Scoring", icon: <BarChart2 size={15} />, count: null }] : []),
   ...(attributes.some(hasValidAiInsight) ? [{ key: "ai", label: "AI Insights", icon: <Sparkles size={15} />, count: null }] : []),
-  { key: "chat", label: "AI Q&A", icon: <MessageCircle size={15} />, count: null },
 ].map(tab => (
     <div
       key={tab.key}
@@ -2152,16 +2164,16 @@ return (
   </div>
       )}
 
-    {activeTab === "chat" && (
-      <ChatTab
-        chatMessages={chatMessages}
-        chatInput={chatInput}
-        setChatInput={setChatInput}
-        sendChatQuestion={sendChatQuestion}
-        chatLoading={chatLoading}
-      />
-    )}
-
+  </div>
+  <div className="rr-chat-pane">
+    <ChatTab
+      chatMessages={chatMessages}
+      chatInput={chatInput}
+      setChatInput={setChatInput}
+      sendChatQuestion={sendChatQuestion}
+      chatLoading={chatLoading}
+    />
+  </div>
   </div>
 
   {/* PDF export overlay */}

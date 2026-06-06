@@ -7,7 +7,7 @@ import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell
 } from "recharts";
-import { useMsal } from "@azure/msal-react";
+
 import { Plus, Zap, TrendingUp, FileText, Layers, Activity } from "lucide-react";
 import { PageBreadcrumb } from "../components/PageBreadcrumb";
 
@@ -25,17 +25,7 @@ const Dashboard: React.FC = () => {
   const [period, setPeriod]           = useState("7d");
   const [activeRightTab, setActiveRightTab] = useState<"activity" | "doctypes">("activity");
 
-  const { accounts } = useMsal();
-  const userName = accounts[0]?.name?.split(" ")[0] || "User";
-
   useEffect(() => { loadDashboard(); }, [period]);
-
-  function getGreeting(): string {
-    const h = new Date().getHours();
-    if (h < 12) return "Good morning";
-    if (h < 18) return "Good afternoon";
-    return "Good evening";
-  }
 
   function timeAgo(dateStr: string): string {
     if (!dateStr) return "";

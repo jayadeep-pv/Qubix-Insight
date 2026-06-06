@@ -415,3 +415,75 @@
   border-color: rgba(255,255,255,0.12);
   color: white;
 }
+
+/* Collapse toggle button */
+.sidebar-collapse-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(255,255,255,0.25);
+  border: none;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: all 0.15s ease;
+  margin-top: 4px;
+}
+.sidebar-collapse-btn:hover { color: rgba(255,255,255,0.7); }
+
+/* ── Icon-only sidebar ────────────────────────────────── */
+.sidebar.icon-only {
+  width: 52px;
+  padding: 0 6px 12px;
+}
+
+/* hide all text labels */
+.sidebar.icon-only .logo-text,
+.sidebar.icon-only .sidebar-group-title,
+.sidebar.icon-only a span,
+.sidebar.icon-only .logout-btn span,
+.sidebar.icon-only .sidebar-support span,
+.sidebar.icon-only .sidebar-user-info {
+  display: none;
+}
+
+/* centre the logo icon */
+.sidebar.icon-only .logo {
+  justify-content: center;
+  padding: 14px 0 12px;
+}
+
+/* centre all nav links */
+.sidebar.icon-only a,
+.sidebar.icon-only .sidebar-support {
+  justify-content: center;
+  padding: 8px 0;
+}
+
+/* remove left accent bar in icon mode */
+.sidebar.icon-only a.active::before { display: none; }
+
+/* centre the user avatar */
+.sidebar.icon-only .sidebar-user {
+  justify-content: center;
+  padding: 6px 0;
+}
+
+/* centre action buttons */
+.sidebar.icon-only .logout-btn,
+.sidebar.icon-only .sidebar-collapse-btn {
+  justify-content: center;
+  padding: 8px 0;
+  border: none;
+  background: transparent;
+  width: 100%;
+}
+
+/* tighten group spacing */
+.sidebar.icon-only .sidebar-group {
+  margin-top: 8px;
+  padding-top: 8px;
+}
