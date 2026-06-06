@@ -20,6 +20,8 @@ public class ComparisonRunResultDto
 
     public string InsightName { get; set; }
     public string RunName { get; set; }
+    public string DocumentTypeName { get; set; }
+    public string TemplateName { get; set; }
 
 }
 

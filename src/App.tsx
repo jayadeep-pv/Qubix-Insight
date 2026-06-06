@@ -163,32 +163,34 @@ function App() {
             CONFIGURATION SCREENS
         =============================== */}
 
-        <Route path="document-types" element={<TrialGuard><DocumentTypes /></TrialGuard>} />
+        {/* List pages — trial users can view but not create/edit */}
+        <Route path="document-types" element={<DocumentTypes />} />
         <Route path="document-types/new" element={<TrialGuard><DocumentTypeForm /></TrialGuard>} />
         <Route path="document-types/:id" element={<TrialGuard><DocumentTypeForm /></TrialGuard>} />
 
-        <Route path="/comparison-templates" element={<TrialGuard><ComparisonTemplate /></TrialGuard>} />
+        <Route path="/comparison-templates" element={<ComparisonTemplate />} />
         <Route path="/comparison/new" element={<TrialGuard><ComparisonTemplateForm /></TrialGuard>} />
         <Route path="/comparison/:id" element={<TrialGuard><ComparisonTemplateForm /></TrialGuard>} />
 
-        <Route path="/admin/template-attributes" element={<TrialGuard><TemplateAttributes /></TrialGuard>} />
+        <Route path="/admin/template-attributes" element={<TemplateAttributes />} />
         <Route path="/admin/template-attributes/new" element={<TrialGuard><TemplateAttributeForm /></TrialGuard>} />
         <Route path="/admin/template-attributes/:id" element={<TrialGuard><TemplateAttributeForm /></TrialGuard>} />
 
-        <Route path="/admin/rules" element={<TrialGuard><RulesList /></TrialGuard>} />
+        <Route path="/admin/rules" element={<RulesList />} />
         <Route path="/admin/rules/new" element={<TrialGuard><RuleForm /></TrialGuard>} />
         <Route path="/admin/rules/:id" element={<TrialGuard><RuleForm /></TrialGuard>} />
 
-        <Route path="/admin/ai-insight-profiles" element={<TrialGuard><AiInsightProfiles /></TrialGuard>} />
+        <Route path="/admin/ai-insight-profiles" element={<AiInsightProfiles />} />
         <Route path="/admin/ai-insight-profiles/new" element={<TrialGuard><AiInsightProfileForm /></TrialGuard>} />
         <Route path="/admin/ai-insight-profiles/:id" element={<TrialGuard><AiInsightProfileForm /></TrialGuard>} />
 
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/my-insights" element={<MyInsights />} />
-        <Route path="/all-insights" element={<TrialGuard><AllInsights /></TrialGuard>} />
+        <Route path="/all-insights" element={<AllInsights />} />
 
         <Route path="/runs/:runId" element={<RunResults />} />
 
+        {/* Settings — trial users cannot access */}
         <Route path="/settings" element={<TrialGuard><TenantSettings /></TrialGuard>} />
 
         <Route path="/support" element={<SupportPage />} />

@@ -103,7 +103,7 @@ namespace QubixInsight.Services
                             ColumnSet = new ColumnSet(
                                 "ilx_normalisedvalue",
                                 "ilx_templateattribute",
-                                "ilx_analysisattributeinsight"
+                                "ilx_attributeaiinsight"
                             )
                         };
 
@@ -136,7 +136,7 @@ namespace QubixInsight.Services
                                 {
                                     attributeName = attributeName,
                                     value = CleanJsonValue(rawValue) ?? "",
-                                    attributeAiInsight = r.GetAttributeValue<string>("ilx_analysisattributeinsight")
+                                    attributeAiInsight = r.GetAttributeValue<string>("ilx_attributeaiinsight")
                                 };
                             })
                             .ToList<dynamic>();

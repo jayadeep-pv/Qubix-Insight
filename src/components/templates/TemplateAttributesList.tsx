@@ -3,6 +3,7 @@ import { configApi } from "../../services/configApi"
 import { useNavigate } from "react-router-dom"
 import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react"
 import { PageBreadcrumb } from "../PageBreadcrumb"
+import { useUser } from "../../context/UserContext"
 
 type SortKey = "name" | "displayName" | "category" | "expectedDataType" | "order" | "isActive";
 type SortDir = "asc" | "desc";
@@ -22,6 +23,7 @@ export default function TemplateAttributesList({ templateId, hideHeader }: Props
   const [pageSize, setPageSize] = useState(10)
 
   const navigate = useNavigate()
+  const { isTrial } = useUser()
 
   useEffect(() => { load() }, [templateId])
 
@@ -130,7 +132,9 @@ export default function TemplateAttributesList({ templateId, hideHeader }: Props
               onClick={() => navigate(templateId
                 ? `/admin/template-attributes/new?templateId=${templateId}`
                 : "/admin/template-attributes/new"
-              )}>
+              )}
+              disabled={isTrial}
+              title={isTrial ? "Not available on trial" : undefined}>
               + New Attribute
             </button>
           </div>
@@ -194,7 +198,8 @@ export default function TemplateAttributesList({ templateId, hideHeader }: Props
                     type="button"
                     className="btn-icon deactivate"
                     onClick={e => { e.stopPropagation(); toggleActive(item) }}
-                    title={item.isActive ? "Deactivate" : "Reactivate"}
+                    disabled={isTrial}
+                    title={isTrial ? "Not available on trial" : item.isActive ? "Deactivate" : "Reactivate"}
                   >{item.isActive ? "🚫" : "♻️"}</button>
                 </td>
               </tr>

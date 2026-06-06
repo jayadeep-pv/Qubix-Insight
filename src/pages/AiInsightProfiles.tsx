@@ -4,6 +4,7 @@ import { AiInsightProfile } from "../types/AiInsightProfile";
 import { useNavigate } from "react-router-dom";
 import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { PageBreadcrumb } from "../components/PageBreadcrumb";
+import { useUser } from "../context/UserContext";
 
 type SortKey = "profileName" | "profileCode" | "profileStatusLabel" | "statecode";
 type SortDir = "asc" | "desc";
@@ -19,6 +20,7 @@ export default function AiInsightProfiles() {
   const [pageSize, setPageSize] = useState(10);
 
   const navigate = useNavigate();
+  const { isTrial } = useUser();
 
   useEffect(() => { init(); }, []);
 
@@ -126,7 +128,13 @@ export default function AiInsightProfiles() {
           <h2 className="page-section-title">AI Insight Profiles</h2>
           <p className="page-subtitle">Manage AI insight analysis modes used during document review</p>
         </div>
-        <button type="button" className="btn-primary" onClick={() => navigate("/admin/ai-insight-profiles/new")}>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={() => navigate("/admin/ai-insight-profiles/new")}
+          disabled={isTrial}
+          title={isTrial ? "Not available on trial" : undefined}
+        >
           + New Profile
         </button>
       </div>
@@ -173,7 +181,8 @@ export default function AiInsightProfiles() {
                     type="button"
                     className="btn-icon deactivate"
                     onClick={e => { e.stopPropagation(); toggleActive(item); }}
-                    title={item.statecode === 0 ? "Deactivate" : "Reactivate"}
+                    disabled={isTrial}
+                    title={isTrial ? "Not available on trial" : item.statecode === 0 ? "Deactivate" : "Reactivate"}
                   >{item.statecode === 0 ? "🚫" : "♻️"}</button>
                 </td>
               </tr>

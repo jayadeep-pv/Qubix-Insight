@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { configApi } from "../services/configApi";
 import { useUser } from "../context/UserContext";
-import { Zap, AlignLeft, GitCompare, Star, ChevronRight, Layers, BarChart2, FileText, AlertTriangle } from "lucide-react";
+import { Zap, AlignLeft, GitCompare, Star, ChevronRight, BarChart2, FileText, AlertTriangle, Activity } from "lucide-react";
 
 /* ── helpers ── */
 function getGreeting(): string {
@@ -106,40 +106,56 @@ const HomePage: React.FC = () => {
   return (
     <div className="hp-root">
 
-      {/* ══ HERO ══ */}
-      <div className="hp-hero">
-        {/* decorative circles */}
-        <div className="hp-hero-circle hp-hero-circle--1" />
-        <div className="hp-hero-circle hp-hero-circle--2" />
-
-        <div className="hp-hero-left">
-          <h1 className="hp-hero-title">{getGreeting()}, {userName} 👋</h1>
-          <p className="hp-hero-sub">Your document intelligence workspace</p>
+      {/* ══ GREETING + KPI ROW ══ */}
+      <div className="hp-header">
+        <div className="hp-greeting">
+          <h1 className="hp-greeting-title">{getGreeting()}, {userName} 👋</h1>
+          <p className="hp-greeting-sub">Your document intelligence workspace</p>
         </div>
 
-        <div className="hp-hero-stats">
-          <div className="hp-stat">
-            <BarChart2 size={15} className="hp-stat-icon" />
-            <span className="hp-stat-value">
-              {loading ? "—" : stats.totalInsights}
-            </span>
-            <span className="hp-stat-label">Insights</span>
+        <div className="hp-kpi-row">
+          <div className="hp-kpi hp-kpi--blue">
+            <div className="hp-kpi-icon-wrap hp-kpi-icon-wrap--blue">
+              <BarChart2 size={18} />
+            </div>
+            <div className="hp-kpi-body">
+              <span className="hp-kpi-label">Total Insights</span>
+              <span className="hp-kpi-value">{loading ? "—" : stats.totalInsights}</span>
+              <span className="hp-kpi-sub">Analysis runs this week</span>
+            </div>
           </div>
-          <div className="hp-stat-divider" />
-          <div className="hp-stat">
-            <FileText size={15} className="hp-stat-icon" />
-            <span className="hp-stat-value">
-              {loading ? "—" : stats.totalDocs}
-            </span>
-            <span className="hp-stat-label">Documents</span>
+
+          <div className="hp-kpi hp-kpi--teal">
+            <div className="hp-kpi-icon-wrap hp-kpi-icon-wrap--teal">
+              <FileText size={18} />
+            </div>
+            <div className="hp-kpi-body">
+              <span className="hp-kpi-label">Documents</span>
+              <span className="hp-kpi-value">{loading ? "—" : stats.totalDocs}</span>
+              <span className="hp-kpi-sub">All documents processed</span>
+            </div>
           </div>
-          <div className="hp-stat-divider" />
-          <div className="hp-stat">
-            <AlertTriangle size={15} className={`hp-stat-icon${!loading && stats.highRisk > 0 ? " hp-stat-icon--alert" : ""}`} />
-            <span className={`hp-stat-value${!loading && stats.highRisk > 0 ? " hp-stat-value--alert" : ""}`}>
-              {loading ? "—" : stats.highRisk}
-            </span>
-            <span className="hp-stat-label">High Risk</span>
+
+          <div className={`hp-kpi ${!loading && stats.highRisk > 0 ? "hp-kpi--red" : "hp-kpi--gray"}`}>
+            <div className={`hp-kpi-icon-wrap ${!loading && stats.highRisk > 0 ? "hp-kpi-icon-wrap--red" : "hp-kpi-icon-wrap--gray"}`}>
+              <AlertTriangle size={18} />
+            </div>
+            <div className="hp-kpi-body">
+              <span className="hp-kpi-label">High Risk</span>
+              <span className="hp-kpi-value">{loading ? "—" : stats.highRisk}</span>
+              <span className="hp-kpi-sub">Flagged items</span>
+            </div>
+          </div>
+
+          <div className="hp-kpi hp-kpi--green">
+            <div className="hp-kpi-icon-wrap hp-kpi-icon-wrap--green">
+              <Activity size={18} />
+            </div>
+            <div className="hp-kpi-body">
+              <span className="hp-kpi-label">System Status</span>
+              <span className="hp-kpi-value hp-kpi-value--green">Active</span>
+              <span className="hp-kpi-sub">AI services running</span>
+            </div>
           </div>
         </div>
       </div>
@@ -278,118 +294,85 @@ const HomePage: React.FC = () => {
         </div>
       </div>
 
-      {/* ══ DIVIDER ══ */}
-      <div className="hp-divider" />
-
-      {/* ══ FOOTER ══ */}
-      <footer className="hp-footer">
-        <span className="hp-footer-logo">
-          <Layers size={13} />
-          DocInsight AI
-        </span>
-        <span className="hp-footer-sep">·</span>
-        <span>Document intelligence platform</span>
-        <span className="hp-footer-sep">·</span>
-        <span>© {new Date().getFullYear()} All rights reserved</span>
-      </footer>
 
       <style>{`
         /* ══ PAGE SHELL ══ */
         .hp-root {
           display: flex;
           flex-direction: column;
-          padding-top: 16px;
         }
 
-        /* ══ HERO ══ */
-        .hp-hero {
+        /* ══ GREETING + KPI ROW ══ */
+        .hp-header {
           max-width: 1200px;
           width: 100%;
-          margin: 0 auto 28px;
-          background: linear-gradient(135deg, #0b1b33 0%, #172e52 100%);
-          border-radius: 16px;
-          padding: 18px 40px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 32px;
-          position: relative;
-          overflow: hidden;
+          margin: 0 auto 16px;
         }
 
-        /* decorative circles */
-        .hp-hero-circle {
-          position: absolute;
-          border-radius: 50%;
-          pointer-events: none;
+        .hp-greeting { margin-bottom: 12px; }
+        .hp-greeting-title {
+          font-family: 'Syne', sans-serif;
+          font-size: 22px; font-weight: 700; color: #0f172a;
+          margin: 0 0 4px; letter-spacing: -0.02em; line-height: 1.2;
         }
-        .hp-hero-circle--1 {
-          width: 180px; height: 180px;
-          right: -40px; top: -50px;
-          background: rgba(250,70,22,0.07);
-        }
-        .hp-hero-circle--2 {
-          width: 110px; height: 110px;
-          right: 140px; bottom: -50px;
-          background: rgba(250,70,22,0.04);
+        .hp-greeting-sub { font-size: 13px; color: #64748b; margin: 0; }
+
+        /* KPI row */
+        .hp-kpi-row {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 16px;
         }
 
-        /* left text */
-        .hp-hero-left { position: relative; z-index: 1; }
-        .hp-hero-title {
-          font-size: 22px; font-weight: 700; color: #ffffff;
-          margin: 0 0 5px; letter-spacing: -0.02em; line-height: 1.25;
-        }
-        .hp-hero-sub { font-size: 12px; color: #64748b; margin: 0; line-height: 1.5; }
-
-        /* stats row */
-        .hp-hero-stats {
-          display: flex;
-          align-items: center;
-          gap: 0;
-          background: rgba(255,255,255,0.05);
-          border: 1px solid rgba(255,255,255,0.1);
+        .hp-kpi {
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
+          border-top: 3px solid transparent;
           border-radius: 12px;
-          padding: 10px 20px;
-          flex-shrink: 0;
-          position: relative;
-          z-index: 1;
-        }
-        .hp-stat {
+          padding: 18px 20px;
           display: flex;
-          flex-direction: column;
           align-items: center;
-          gap: 2px;
-          padding: 0 18px;
-          text-align: center;
+          gap: 16px;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.04);
         }
-        .hp-stat-divider {
-          width: 1px;
-          height: 30px;
-          background: rgba(255,255,255,0.12);
+        .hp-kpi--blue  { border-top-color: #3b82f6; }
+        .hp-kpi--teal  { border-top-color: #10b981; }
+        .hp-kpi--red   { border-top-color: #ef4444; }
+        .hp-kpi--gray  { border-top-color: #d1d5db; }
+        .hp-kpi--green { border-top-color: #10b981; }
+
+        .hp-kpi-icon-wrap {
+          width: 42px; height: 42px; border-radius: 10px;
+          display: flex; align-items: center; justify-content: center;
           flex-shrink: 0;
         }
-        .hp-stat-icon { color: #FA4616; flex-shrink: 0; }
-        .hp-stat-icon--alert { color: #f87171; }
-        .hp-stat-value {
-          font-size: 20px; font-weight: 700; color: #ffffff;
+        .hp-kpi-icon-wrap--blue  { background: #eff6ff; color: #3b82f6; }
+        .hp-kpi-icon-wrap--teal  { background: #f0fdf4; color: #10b981; }
+        .hp-kpi-icon-wrap--red   { background: #fef2f2; color: #ef4444; }
+        .hp-kpi-icon-wrap--gray  { background: #f8fafc; color: #94a3b8; }
+        .hp-kpi-icon-wrap--green { background: #f0fdf4; color: #10b981; }
+
+        .hp-kpi-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .hp-kpi-label {
+          font-size: 10px; font-weight: 600; text-transform: uppercase;
+          letter-spacing: 0.07em; color: #64748b;
+        }
+        .hp-kpi-value {
+          font-family: 'Syne', sans-serif;
+          font-size: 26px; font-weight: 700; color: #0f172a;
           line-height: 1; letter-spacing: -0.02em;
         }
-        .hp-stat-value--alert { color: #f87171; }
-        .hp-stat-label {
-          font-size: 10px; font-weight: 600; color: #64748b;
-          text-transform: uppercase; letter-spacing: 0.07em;
-        }
+        .hp-kpi-sub { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+        .hp-kpi-value--green { font-size: 20px; color: #10b981; letter-spacing: 0; }
 
         /* ══ SPLIT LAYOUT ══ */
         .hp-split {
           display: flex;
           align-items: stretch;
-          gap: 28px;
+          gap: 20px;
           width: 100%;
           max-width: 1200px;
           margin: 0 auto;
-          margin-top: 28px;
         }
 
         /* ══ LEFT COLUMN ══ */
@@ -526,6 +509,7 @@ const HomePage: React.FC = () => {
           padding: 10px;
           display: flex;
           flex-direction: column;
+          align-items: stretch;
           gap: 8px;
           min-height: 0;
         }
@@ -610,47 +594,22 @@ const HomePage: React.FC = () => {
         }
 
         /* ══ EMPTY STATE ══ */
-        .hp-empty { padding: 40px 20px; text-align: center; }
+        .hp-empty { padding: 60px 20px 20px; text-align: center; }
         .hp-empty-icon  { margin-bottom: 12px; color: #d1d5db; display: flex; justify-content: center; }
         .hp-empty-title { font-size: 14px; font-weight: 600; color: #374151; margin: 0 0 4px; }
         .hp-empty-sub   { font-size: 12px; color: #9ca3af; margin: 0; }
 
-        /* ══ DIVIDER ══ */
-        .hp-divider {
-          max-width: 1200px;
-          width: 100%;
-          margin: 28px auto 0;
-          height: 1px;
-          background: linear-gradient(to right, transparent, #e5e7eb 20%, #e5e7eb 80%, transparent);
-        }
-
-        /* ══ FOOTER ══ */
-        .hp-footer {
-          max-width: 1200px;
-          width: 100%;
-          margin: 0 auto;
-          padding: 16px 0 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          font-size: 11px;
-          color: #9ca3af;
-        }
-        .hp-footer-logo {
-          display: inline-flex; align-items: center; gap: 5px;
-          font-weight: 600; color: #6b7280;
-        }
-        .hp-footer-sep { color: #d1d5db; }
 
         /* ══ RESPONSIVE ══ */
+        @media (max-width: 1100px) {
+          .hp-kpi-row { grid-template-columns: repeat(2, 1fr); }
+        }
         @media (max-width: 860px) {
-          .hp-hero  { flex-direction: column; align-items: flex-start; padding: 28px 24px; }
-          .hp-hero-stats { width: 100%; justify-content: center; }
-          .hp-split { flex-direction: column; }
-          .hp-grid  { grid-template-columns: repeat(2, 1fr); }
-          .hp-card  { width: 100%; }
-          .hp-left  { min-height: 0; }
+          .hp-kpi-row { grid-template-columns: 1fr; }
+          .hp-split   { flex-direction: column; }
+          .hp-grid    { grid-template-columns: repeat(2, 1fr); }
+          .hp-card    { width: 100%; }
+          .hp-left    { min-height: 0; }
         }
         @media (max-width: 480px) {
           .hp-grid { grid-template-columns: 1fr; }

@@ -4,6 +4,7 @@ import type { ComparisonTemplate } from "../../types/ComparisonTemplate"
 import { useNavigate } from "react-router-dom"
 import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react"
 import { PageBreadcrumb } from "../PageBreadcrumb"
+import { useUser } from "../../context/UserContext"
 
 type SortKey = "name" | "documentType" | "isActive";
 type SortDir = "asc" | "desc";
@@ -24,6 +25,7 @@ export default function TemplatesList({ documentTypeId, documentTypeName, hideHe
   const [pageSize, setPageSize] = useState(10)
 
   const navigate = useNavigate()
+  const { isTrial } = useUser()
 
   useEffect(() => { load() }, [documentTypeId])
 
@@ -121,7 +123,9 @@ export default function TemplatesList({ documentTypeId, documentTypeName, hideHe
               <p className="page-subtitle">Manage comparison templates used for document analysis</p>
             </div>
             <button type="button" className="btn-primary"
-              onClick={() => navigate(`/comparison/new?documentTypeId=${documentTypeId || ""}`)}>
+              onClick={() => navigate(`/comparison/new?documentTypeId=${documentTypeId || ""}`)}
+              disabled={isTrial}
+              title={isTrial ? "Not available on trial" : undefined}>
               + New Template
             </button>
           </div>
@@ -176,7 +180,8 @@ export default function TemplatesList({ documentTypeId, documentTypeName, hideHe
                     type="button"
                     className="btn-icon deactivate"
                     onClick={e => { e.stopPropagation(); toggleActive(item) }}
-                    title={item.isActive ? "Deactivate" : "Reactivate"}
+                    disabled={isTrial}
+                    title={isTrial ? "Not available on trial" : item.isActive ? "Deactivate" : "Reactivate"}
                   >{item.isActive ? "🚫" : "♻️"}</button>
                 </td>
               </tr>

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom"
 import { Rule } from "../../types/Rule"
 import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react"
 import { PageBreadcrumb } from "../PageBreadcrumb"
+import { useUser } from "../../context/UserContext"
 
 type SortKey = "name" | "templateName" | "templateAttributeName" | "directionLabel" | "impactLabel" | "severityLabel" | "weight" | "isActive";
 type SortDir = "asc" | "desc";
@@ -26,6 +27,7 @@ export default function RulesList({ templateAttributeId, hideHeader }: Props) {
   const [pageSize, setPageSize] = useState(10)
 
   const navigate = useNavigate()
+  const { isTrial } = useUser()
 
   useEffect(() => { load() }, [templateAttributeId])
 
@@ -148,7 +150,9 @@ export default function RulesList({ templateAttributeId, hideHeader }: Props) {
               <p className="page-subtitle">Define rule logic for comparison attributes</p>
             </div>
             <button type="button" className="btn-primary"
-              onClick={() => navigate(`/admin/rules/new${templateAttributeId ? `?attributeId=${templateAttributeId}` : ""}`)}>
+              onClick={() => navigate(`/admin/rules/new${templateAttributeId ? `?attributeId=${templateAttributeId}` : ""}`)}
+              disabled={isTrial}
+              title={isTrial ? "Not available on trial" : undefined}>
               + New Rule
             </button>
           </div>
@@ -213,7 +217,8 @@ export default function RulesList({ templateAttributeId, hideHeader }: Props) {
                     type="button"
                     className="btn-icon deactivate"
                     onClick={e => { e.stopPropagation(); toggleActive(item) }}
-                    title={item.isActive ? "Deactivate" : "Reactivate"}
+                    disabled={isTrial}
+                    title={isTrial ? "Not available on trial" : item.isActive ? "Deactivate" : "Reactivate"}
                   >{item.isActive ? "🚫" : "♻️"}</button>
                 </td>
               </tr>

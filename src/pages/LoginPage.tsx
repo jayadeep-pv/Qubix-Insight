@@ -21,9 +21,9 @@ interface LoginPageProps {
 type Field = keyof TrialProfileData;
 
 export default function LoginPage({ onLogin, onTrialLogin, onTrialSignIn, loading = false }: LoginPageProps) {
-  const [showForm,    setShowForm]    = useState(false);
-  const [submitting,  setSubmitting]  = useState(false);
-  const [form,        setForm]        = useState<TrialProfileData>(
+  const [showForm,   setShowForm]   = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [form,       setForm]       = useState<TrialProfileData>(
     { firstName: "", lastName: "", email: "", companyName: "", jobTitle: "", country: "" }
   );
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({});
@@ -54,58 +54,22 @@ export default function LoginPage({ onLogin, onTrialLogin, onTrialSignIn, loadin
   return (
     <div className="login-root">
 
-      {/* ── Left panel — brand / hero ── */}
-      <div className="login-hero">
-        <div className="login-hero-inner">
-
-          <div className="login-logo">
-            <div className="login-logo-icon"><Layers size={22} /></div>
-            <span className="login-logo-name">DocInsight</span>
-            <span className="login-logo-badge">AI</span>
-          </div>
-
-          <div className="login-hero-body">
-            <h1 className="login-hero-title">
-              Intelligent document<br />comparison at scale
-            </h1>
-            <p className="login-hero-subtitle">
-              Extract, compare and summarise complex documents in seconds
-              using AI — so your team can focus on decisions, not data entry.
-            </p>
-            <ul className="login-feature-list">
-              <li>
-                <span className="login-feature-icon"><FileSearch size={16} /></span>
-                <span>Side-by-side document comparison with scoring</span>
-              </li>
-              <li>
-                <span className="login-feature-icon"><BrainCircuit size={16} /></span>
-                <span>AI-powered insight extraction and executive summaries</span>
-              </li>
-              <li>
-                <span className="login-feature-icon"><ShieldCheck size={16} /></span>
-                <span>Risk flagging and configurable compliance rules</span>
-              </li>
-            </ul>
-          </div>
-
-          <div className="login-hero-footer">Secure · Multi-tenant · Enterprise-ready</div>
-        </div>
-        <div className="login-decor login-decor--1" />
-        <div className="login-decor login-decor--2" />
-      </div>
-
-      {/* ── Right panel ── */}
+      {/* ── Left panel — form (white) ── */}
       <div className={`login-panel${showForm ? " login-panel--wide" : ""}`}>
+
+        {/* Logo */}
+        <div className="login-logo">
+          <div className="login-logo-icon"><Layers size={22} /></div>
+          <div className="login-logo-text">
+            <span className="login-logo-name">Qubix Insight</span>
+            <span className="login-logo-sub">iLogix Global</span>
+          </div>
+        </div>
 
         {!showForm ? (
 
           /* ── Sign-in card ── */
-          <div className="login-card">
-
-            <div className="login-card-logo">
-              <div className="login-logo-icon login-logo-icon--sm"><Layers size={16} /></div>
-            </div>
-
+          <div>
             <h2 className="login-card-title">Sign in</h2>
             <p className="login-card-subtitle">
               Use your Microsoft account to access your workspace
@@ -156,18 +120,10 @@ export default function LoginPage({ onLogin, onTrialLogin, onTrialSignIn, loadin
         ) : (
 
           /* ── Trial registration form ── */
-          <div className="login-card login-card--form">
-
-            <div className="login-card-logo">
-              <div className="login-logo-icon login-logo-icon--sm"><Layers size={16} /></div>
-            </div>
-
+          <div className="login-card--form">
             <h2 className="login-card-title">Start your free trial</h2>
-            <p className="login-card-subtitle">
-              30 days free · No credit card required
-            </p>
+            <p className="login-card-subtitle">30 days free · No credit card required</p>
 
-            {/* First + Last */}
             <div className="lf-row">
               <div className="lf-field">
                 <label className="lf-label">First Name <span className="lf-req">*</span></label>
@@ -192,7 +148,6 @@ export default function LoginPage({ onLogin, onTrialLogin, onTrialSignIn, loadin
               </div>
             </div>
 
-            {/* Work Email */}
             <div className="lf-field lf-field--full">
               <label className="lf-label">Work Email <span className="lf-req">*</span></label>
               <input
@@ -205,7 +160,6 @@ export default function LoginPage({ onLogin, onTrialLogin, onTrialSignIn, loadin
               {errors.email && <span className="lf-err">{errors.email}</span>}
             </div>
 
-            {/* Company */}
             <div className="lf-field lf-field--full">
               <label className="lf-label">Company Name <span className="lf-req">*</span></label>
               <input
@@ -217,7 +171,6 @@ export default function LoginPage({ onLogin, onTrialLogin, onTrialSignIn, loadin
               {errors.companyName && <span className="lf-err">{errors.companyName}</span>}
             </div>
 
-            {/* Job Title + Country */}
             <div className="lf-row">
               <div className="lf-field">
                 <label className="lf-label">Job Title</label>
@@ -255,13 +208,42 @@ export default function LoginPage({ onLogin, onTrialLogin, onTrialSignIn, loadin
               <ArrowLeft size={13} />
               Back to sign in
             </button>
-
           </div>
         )}
 
         <p className="login-panel-footer">
-          © {new Date().getFullYear()} DocInsight AI · All rights reserved
+          © {new Date().getFullYear()} Qubix Insight · All rights reserved
         </p>
+      </div>
+
+      {/* ── Right panel — hero with grid background ── */}
+      <div className="login-hero">
+        <div className="login-hero-inner">
+          <h1 className="login-hero-title">
+            Intelligent document<br />comparison at scale
+          </h1>
+          <p className="login-hero-subtitle">
+            Extract, compare and summarise complex documents in seconds
+            using AI — so your team can focus on decisions, not data entry.
+          </p>
+          <ul className="login-feature-list">
+            <li>
+              <span className="login-feature-icon"><FileSearch size={16} /></span>
+              <span>Side-by-side document comparison with scoring</span>
+            </li>
+            <li>
+              <span className="login-feature-icon"><BrainCircuit size={16} /></span>
+              <span>AI-powered insight extraction and executive summaries</span>
+            </li>
+            <li>
+              <span className="login-feature-icon"><ShieldCheck size={16} /></span>
+              <span>Risk flagging and configurable compliance rules</span>
+            </li>
+          </ul>
+          <p className="login-hero-footer">Secure · Multi-tenant · Enterprise-ready</p>
+        </div>
+        <div className="login-decor login-decor--1" />
+        <div className="login-decor login-decor--2" />
       </div>
 
     </div>

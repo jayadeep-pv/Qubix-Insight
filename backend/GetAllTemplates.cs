@@ -4,19 +4,23 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.PowerPlatform.Dataverse.Client;
 using Microsoft.Xrm.Sdk.Query;
 using Microsoft.Xrm.Sdk;
+using Microsoft.Extensions.Logging;
 using QubixInsight.Services;
 
 namespace QubixInsight.Functions;
 
 public class GetAllTemplates
 {
+    private readonly ILogger<GetAllTemplates> _logger;
     private readonly TenantResolverService _tenantResolver;
     private readonly TenantDataverseService _tenantDataverseService;
 
    public GetAllTemplates(
+        ILogger<GetAllTemplates> logger,
         TenantResolverService tenantResolver,
         TenantDataverseService tenantDataverseService)
     {
+        _logger = logger;
         _tenantResolver = tenantResolver;
         _tenantDataverseService = tenantDataverseService;
     }
@@ -25,6 +29,8 @@ public class GetAllTemplates
     public async Task<HttpResponseData> Run(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
     {
+      try
+      {
         var aadTenantId = JwtTenantExtractor.GetAadTenantId(req);
 
         if (string.IsNullOrWhiteSpace(aadTenantId))
@@ -104,5 +110,13 @@ public class GetAllTemplates
         await response.WriteAsJsonAsync(results);
 
         return response;
+      }
+      catch (Exception ex)
+      {
+          _logger.LogError(ex, "[GetAllTemplates] {Message}", ex.Message);
+          var error = req.CreateResponse(HttpStatusCode.InternalServerError);
+          await error.WriteStringAsync($"GetAllTemplates failed: {ex.Message}");
+          return error;
+      }
     }
 }

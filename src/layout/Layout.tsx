@@ -1,141 +1,210 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import {
   Home,
   List,
   Shield,
   FileText,
-  Sliders,
   Settings,
   HelpCircle,
-  PlusCircle,
   FolderTree,
   BrainCircuit,
   ListChecks,
   Layers,
-  Power
+  Power,
+  Search,
 } from "lucide-react";
 import { useUser } from "../context/UserContext";
-import TrialBanner from "../components/TrialBanner";
+
+import "./Layout.css";
 
 interface LayoutProps {
   onLogout: () => void;
 }
 
+const PAGE_META: Record<string, { title: string; subtitle: string }> = {
+  "/":                           { title: "Home",                 subtitle: "Your document intelligence workspace" },
+  "/dashboard":                  { title: "My Insights",          subtitle: "Recent analysis runs" },
+  "/all-insights":               { title: "All Insights",         subtitle: "Organisation-wide analysis" },
+  "/document-types":             { title: "Document Types",       subtitle: "Manage document classifications" },
+  "/comparison-templates":       { title: "Templates",            subtitle: "Manage analysis templates" },
+  "/admin/template-attributes":  { title: "Template Attributes",  subtitle: "Configure template fields" },
+  "/admin/rules":                { title: "Rules",                subtitle: "Compliance and scoring rules" },
+  "/admin/ai-insight-profiles":  { title: "AI Insight Profiles",  subtitle: "Configure AI extraction profiles" },
+  "/settings":                   { title: "Settings",             subtitle: "Tenant and account settings" },
+  "/support":                    { title: "Support",              subtitle: "Help and resources" },
+};
+
+function initials(name: string, email: string): string {
+  if (name) {
+    const parts = name.trim().split(" ");
+    return parts.length >= 2
+      ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+      : parts[0].slice(0, 2).toUpperCase();
+  }
+  return email ? email[0].toUpperCase() : "U";
+}
+
 export default function Layout({ onLogout }: LayoutProps) {
+  const location = useLocation();
   const navigate = useNavigate();
-  const { isTrial } = useUser();
+  const { isTrial, userName, userEmail, tenantName } = useUser();
+  const [search, setSearch] = useState("");
+
+  const page = PAGE_META[location.pathname] ?? { title: "Qubix Insight", subtitle: "" };
 
   return (
     <div className="app-layout">
+
+      {/* ── Sidebar ── */}
       <aside className="sidebar">
+        <div className="sidebar-grid" />
 
         {/* Logo */}
         <div className="logo">
           <div className="logo-icon"><Layers size={16} /></div>
           <div className="logo-text">
-            <span className="logo-name">DocInsight</span>
-            <span className="logo-badge">AI</span>
+            <span className="logo-name">Qubix Insight</span>
+            <span className="logo-sub">iLogix Global</span>
           </div>
         </div>
 
         <nav>
+          <NavLink to="/" end>
+            <Home size={16} />
+            <span>Home</span>
+          </NavLink>
+          <NavLink to="/dashboard">
+            <List size={16} />
+            <span>My Insights</span>
+          </NavLink>
 
-          {/* Core */}
-          <div className="nav-section">
+          <div className="sidebar-group">
+            <div className="sidebar-group-title">Administration</div>
 
-            <NavLink to="/" end>
-              <Home size={18} />
-              <span>Home</span>
+            <NavLink to="all-insights">
+              <Shield size={16} />
+              <span>All Insights</span>
             </NavLink>
 
-            <NavLink to="/dashboard">
-              <List size={18} />
-              <span>My Insights</span>
+            <NavLink to="/document-types">
+              <FolderTree size={16} />
+              <span>Document Types</span>
             </NavLink>
 
+            <NavLink to="/comparison-templates">
+              <FileText size={16} />
+              <span>Templates</span>
+            </NavLink>
+
+            <NavLink to="/admin/template-attributes">
+              <ListChecks size={16} />
+              <span>Template Attributes</span>
+            </NavLink>
+
+            <NavLink to="/admin/rules">
+              <Shield size={16} />
+              <span>Rules</span>
+            </NavLink>
+
+            <NavLink to="/admin/ai-insight-profiles">
+              <BrainCircuit size={16} />
+              <span>AI Insight Profiles</span>
+            </NavLink>
           </div>
 
-          <div className="sidebar-divider" />
-
-          {/* Administration — hidden for trial accounts */}
           {!isTrial && (
-            <>
-              <div className="sidebar-group">
+            <div className="sidebar-group">
+              <div className="sidebar-group-title">System</div>
 
-                <div className="sidebar-group-title">
-                  Administration
-                </div>
+              <NavLink to="/settings">
+                <Settings size={16} />
+                <span>Settings</span>
+              </NavLink>
+            </div>
+          )}
+        </nav>
 
-                <NavLink to="all-insights">
-                  <Shield size={18} />
-                  <span>All Insights</span>
-                </NavLink>
-
-                <NavLink to="/document-types">
-                  <FolderTree size={18} />
-                  <span>Document Types</span>
-                </NavLink>
-
-                <NavLink to="/comparison-templates">
-                  <FileText size={18} />
-                  <span>Templates</span>
-                </NavLink>
-
-                <NavLink to="/admin/template-attributes">
-                  <ListChecks size={18} />
-                  <span>Template Attributes</span>
-                </NavLink>
-
-                <NavLink to="/admin/rules" className="nav-link">
-                  <Shield size={18} />
-                  <span>Rules</span>
-                </NavLink>
-
-                <NavLink to="/admin/ai-insight-profiles">
-                  <BrainCircuit size={18} />
-                  <span>AI Insight Profiles</span>
-                </NavLink>
-
+        {/* Bottom section */}
+        <div className="sidebar-bottom">
+          {(userName || userEmail) && (
+            <div className="sidebar-user">
+              <div className="sidebar-avatar">{initials(userName, userEmail)}</div>
+              <div className="sidebar-user-info">
+                <span className="sidebar-user-name">{userName || userEmail}</span>
+                {tenantName && <span className="sidebar-user-role">{tenantName}</span>}
               </div>
-
-              <div className="sidebar-divider" />
-
-              <div className="sidebar-group">
-
-                <div className="sidebar-group-title">
-                  System
-                </div>
-
-                <NavLink to="/settings">
-                  <Settings size={18} />
-                  <span>Settings</span>
-                </NavLink>
-
-              </div>
-            </>
+            </div>
           )}
 
-        </nav>
-        <div className="sidebar-divider"></div>
-        {/* Bottom Section */}
-       <div className="sidebar-bottom">
-        <NavLink to="/support" className="sidebar-support">
-          <HelpCircle size={16} />
-          <span>Support</span>
-        </NavLink>
+          <NavLink to="/support" className="sidebar-support">
+            <HelpCircle size={16} />
+            <span>Support</span>
+          </NavLink>
 
-        <button type="button" className="logout-btn" onClick={onLogout}>
-          <Power size={18} />
-          <span>Logout</span>
-        </button>
-      </div>
-
+          <button type="button" className="logout-btn" onClick={onLogout}>
+            <Power size={16} />
+            <span>Logout</span>
+          </button>
+        </div>
       </aside>
 
-      <main className="content">
-        {isTrial && <TrialBanner />}
-        <Outlet />
-      </main>
+      {/* ── Right column ── */}
+      <div className="layout-right">
+
+        {/* Topbar */}
+        <header className="topbar">
+          {/* Page title */}
+          <div className="topbar-title-area">
+            <span className="topbar-title">{page.title}</span>
+            {page.subtitle && <span className="topbar-subtitle">{page.subtitle}</span>}
+          </div>
+
+          {/* Search */}
+          <div className="topbar-search">
+            <Search size={14} className="topbar-search-icon" />
+            <input
+              className="topbar-search-input"
+              placeholder="Quick search…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+
+          {/* Right: company pill + user name */}
+          <div className="topbar-right">
+            {tenantName && (
+              <div
+                className="topbar-tenant"
+                onClick={isTrial ? () => navigate("/support") : undefined}
+                style={isTrial ? { cursor: "pointer" } : undefined}
+                title={isTrial ? "Trial account — click to upgrade" : undefined}
+              >
+                {tenantName}
+              </div>
+            )}
+            {(userName || userEmail) && (
+              <span className="topbar-user">{userName || userEmail}</span>
+            )}
+          </div>
+        </header>
+
+        {/* Main content */}
+        <main className="content">
+          <Outlet />
+          <footer className="layout-footer">
+            <span className="layout-footer-logo">
+              <Layers size={12} />
+              Qubix Insight
+            </span>
+            <span className="layout-footer-sep">·</span>
+            <span>Document intelligence platform</span>
+            <span className="layout-footer-sep">·</span>
+            <span>© {new Date().getFullYear()} All rights reserved</span>
+          </footer>
+        </main>
+      </div>
+
     </div>
   );
 }

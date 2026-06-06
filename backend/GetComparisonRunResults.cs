@@ -7,6 +7,9 @@ using Microsoft.Xrm.Sdk.Query;
 using QubixInsight.Models;
 using System.Text.Json;
 using QubixInsight.Services;
+using Azure.Storage.Blobs;
+using Azure.Storage.Sas;
+using Azure.Identity;
 
 namespace QubixInsight.Functions;
 
@@ -65,7 +68,7 @@ public class GetComparisonRunResults
             var run = service.Retrieve(
                 "ilx_analysisrun",
                 runId,
-                new ColumnSet("ilx_name", "ilx_mode", "ilx_rawresultjson", "ilx_executedbyuser", "createdon", "ilx_analysis"));
+                new ColumnSet("ilx_runid", "ilx_mode", "ilx_rawresultjson", "ilx_executedbyuser", "createdon", "ilx_analysis"));
 
             var modeValue =
                 run.GetAttributeValue<OptionSetValue>("ilx_mode")?.Value ?? 857270000;
@@ -77,17 +80,35 @@ public class GetComparisonRunResults
             var comparisonRef =
                 run.GetAttributeValue<EntityReference>("ilx_analysis");
 
-            string comparisonName = null;
+            string comparisonName    = null;
+            string documentTypeName  = null;
+            string templateName      = null;
 
             if (comparisonRef != null)
             {
                 var comparison = service.Retrieve(
                     comparisonRef.LogicalName,
                     comparisonRef.Id,
-                    new ColumnSet("ilx_name")
+                    new ColumnSet("ilx_name", "ilx_documenttype", "ilx_analysistemplate")
                 );
 
                 comparisonName = comparison.GetAttributeValue<string>("ilx_name");
+
+                var docTypeRef = comparison.GetAttributeValue<EntityReference>("ilx_documenttype");
+                if (docTypeRef != null)
+                {
+                    var docType = service.Retrieve(
+                        "ilx_documenttype", docTypeRef.Id, new ColumnSet("ilx_name"));
+                    documentTypeName = docType.GetAttributeValue<string>("ilx_name");
+                }
+
+                var templateRef = comparison.GetAttributeValue<EntityReference>("ilx_analysistemplate");
+                if (templateRef != null)
+                {
+                    var template = service.Retrieve(
+                        "ilx_analysistemplate", templateRef.Id, new ColumnSet("ilx_name"));
+                    templateName = template.GetAttributeValue<string>("ilx_name");
+                }
             }
 
             var modeText = modeValue == 857270001 ? "Summarise" : "Compare";
@@ -263,7 +284,7 @@ public class GetComparisonRunResults
                     "ilx_coordinates",
                     "ilx_pagenumber",
                     "ilx_confidencescore",
-                    "ilx_analysisattributeinsight")
+                    "ilx_attributeaiinsight")
             };
 
             resultQuery.Criteria.AddCondition("ilx_analysisrun", ConditionOperator.Equal, runId);
@@ -417,28 +438,60 @@ var docEntities = service.RetrieveMultiple(docQuery).Entities;
 
 var blobBaseUrl = Environment.GetEnvironmentVariable("Qubix_BlobBaseUrl");
 
-var storageAccount = Environment.GetEnvironmentVariable("Qubix_StorageAccountName");
-
 if (string.IsNullOrWhiteSpace(blobBaseUrl))
     throw new Exception("BlobBaseUrl missing");
+
+var blobServiceClient = new BlobServiceClient(
+    new Uri(blobBaseUrl),
+    new DefaultAzureCredential());
+
+// Fetch delegation key once for all documents (valid 60 min)
+var delegationKey = await blobServiceClient.GetUserDelegationKeyAsync(
+    new Azure.Storage.Blobs.Models.BlobGetUserDelegationKeyOptions(
+        DateTimeOffset.UtcNow.AddMinutes(60))
+    {
+        StartsOn = DateTimeOffset.UtcNow.AddMinutes(-5)
+    });
 
 foreach (var d in docEntities)
 {
     var blobPath = d.GetAttributeValue<string>("ilx_blobpath");
     var containerName = tenant.BlobContainerName;
 
+    string documentUrl = null;
+
+    if (!string.IsNullOrEmpty(blobPath))
+    {
+        var blobClient = blobServiceClient
+            .GetBlobContainerClient(containerName)
+            .GetBlobClient(blobPath);
+
+        var sasBuilder = new BlobSasBuilder
+        {
+            BlobContainerName = containerName,
+            BlobName          = blobPath,
+            Resource          = "b",
+            StartsOn          = DateTimeOffset.UtcNow.AddMinutes(-5),
+            ExpiresOn         = DateTimeOffset.UtcNow.AddMinutes(60)
+        };
+        sasBuilder.SetPermissions(BlobSasPermissions.Read);
+
+        var sasToken = sasBuilder.ToSasQueryParameters(
+            delegationKey.Value,
+            blobServiceClient.AccountName);
+
+        documentUrl = $"{blobClient.Uri}?{sasToken}";
+    }
+
     documentDtos.Add(new DocumentDto
     {
-        Id = d.Id,
-        Name = d.GetAttributeValue<string>("ilx_documentname"),
-        BlobPath = blobPath,
+        Id           = d.Id,
+        Name         = d.GetAttributeValue<string>("ilx_documentname"),
+        BlobPath     = blobPath,
         ExtractedText = d.GetAttributeValue<string>("ilx_extractedtext"),
-
-        DocumentUrl = string.IsNullOrEmpty(blobPath)
-            ? null
-            : $"{blobBaseUrl}/{containerName}/{blobPath}"
-            });
-        }
+        DocumentUrl  = documentUrl
+    });
+}
 
 
             var response = req.CreateResponse(HttpStatusCode.OK);
@@ -460,8 +513,10 @@ foreach (var d in docEntities)
                     CreatedBy = executedByName,
                     CreatedOn = createdOn,
 
-                    InsightName = comparisonName,
-                    RunName = run.GetAttributeValue<string>("ilx_name") ?? "",
+                    InsightName      = comparisonName,
+                    RunName          = run.GetAttributeValue<string>("ilx_runid") ?? "",
+                    DocumentTypeName = documentTypeName,
+                    TemplateName     = templateName,
 
                     Candidates = candidateDtos,
                     Attributes = attributeDtos,

@@ -4,6 +4,7 @@ import { DocumentType } from "../types/DocumentType";
 import { useNavigate } from "react-router-dom";
 import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { PageBreadcrumb } from "../components/PageBreadcrumb";
+import { useUser } from "../context/UserContext";
 
 type SortKey = "name" | "description" | "isActive";
 type SortDir = "asc" | "desc";
@@ -18,6 +19,7 @@ export default function DocumentTypes() {
   const [pageSize, setPageSize] = useState(10);
 
   const navigate = useNavigate();
+  const { isTrial } = useUser();
 
   useEffect(() => { load(); }, []);
 
@@ -107,7 +109,13 @@ export default function DocumentTypes() {
           <h2 className="page-section-title">Document Types</h2>
           <p className="page-subtitle">Manage document types used for comparison and AI insights</p>
         </div>
-        <button type="button" className="btn-primary" onClick={() => navigate("/document-types/new")}>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={() => navigate("/document-types/new")}
+          disabled={isTrial}
+          title={isTrial ? "Not available on trial" : undefined}
+        >
           + New Document Type
         </button>
       </div>
@@ -161,7 +169,8 @@ export default function DocumentTypes() {
                     type="button"
                     className="btn-icon deactivate"
                     onClick={e => { e.stopPropagation(); toggleActive(item); }}
-                    title={item.isActive ? "Deactivate" : "Reactivate"}
+                    disabled={isTrial}
+                    title={isTrial ? "Not available on trial" : item.isActive ? "Deactivate" : "Reactivate"}
                   >{item.isActive ? "🚫" : "♻️"}</button>
                 </td>
               </tr>

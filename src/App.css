@@ -43,16 +43,14 @@ body {
 }
 
 .content-page {
-  min-height: calc(100vh - 80px);
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
 
-/* Give standalone content-page breadcrumbs the same top breathing room
-   as admin .page wrappers (which have padding-top: 48px). Only targets the
-   breadcrumb bar — NOT embedded lists where hideHeader=true hides it. */
 .content-page > .app-breadcrumb {
-  margin-top: 48px;
+  margin-top: 0;
 }
 
 /* Button group for header action areas */
@@ -1664,8 +1662,8 @@ label {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 36px 28px 20px;
-  gap: 28px;
+  padding: 0;
+  gap: 20px;
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -2638,8 +2636,30 @@ label {
 }
 
 .run-name-cell { display: flex; flex-direction: column; }
-.run-title { font-size: 13px; font-weight: 500; margin-bottom: 1px; line-height: 1.1; }
-.run-sub { font-size: 10px; color: #8c98a4; line-height: 1.1; }
+.run-title { font-size: 13px; font-weight: 600; color: #111827; margin-bottom: 2px; line-height: 1.2; }
+.run-sub   { font-size: 11px; color: #9ca3af; line-height: 1.2; }
+
+/* ── Dashboard Recent Insights table — match AI Activity panel typography ── */
+.db-table-wrap .table th {
+  padding: 8px 14px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #6b7280;
+  background: #f8fafc;
+  border-bottom: 1px solid #f1f5f9;
+}
+.db-table-wrap .table td {
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #374151;
+  border-bottom: 1px solid #f8fafc;
+  vertical-align: middle;
+}
+.db-table-wrap .table tbody tr:nth-child(even) { background: transparent; }
+.db-table-wrap .table tbody tr:hover { background: #f9fafb; }
+.db-table-wrap .table { border-radius: 0; box-shadow: none; }
 
 .view-btn {
   border: none;

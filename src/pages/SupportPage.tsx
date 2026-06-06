@@ -14,7 +14,7 @@ const FAQS: FaqItem[] = [
     q: "What are the different insight types and when should I use each?",
     a: (
       <div>
-        <p>DocInsight AI offers four insight workflows:</p>
+        <p>Qubix Insight offers four insight workflows:</p>
         <ul>
           <li><strong>Quick Scan</strong> — Upload any document with no template. The AI detects and extracts fields automatically. Best for exploring an unfamiliar document type for the first time.</li>
           <li><strong>Summarise Document</strong> — Upload a single document against a saved template. The AI extracts all template fields and produces an executive summary. Best for reviewing one document quickly.</li>
@@ -26,7 +26,7 @@ const FAQS: FaqItem[] = [
   },
   {
     q: "What file types can I upload?",
-    a: "DocInsight AI accepts PDF and Word documents (.pdf, .docx). For best results, upload text-based PDFs rather than scanned images. Scanned documents are supported via OCR but may have lower extraction accuracy.",
+    a: "Qubix Insight accepts PDF and Word documents (.pdf, .docx). For best results, upload text-based PDFs rather than scanned images. Scanned documents are supported via OCR but may have lower extraction accuracy.",
   },
   {
     q: "What is a Template and do I need one?",
@@ -34,7 +34,7 @@ const FAQS: FaqItem[] = [
   },
   {
     q: "How does the AI extract information from my documents?",
-    a: "When you upload a document, DocInsight AI reads the full text content and applies a large-language-model prompt derived from your template. It looks for each template field by meaning, not just keyword matching — so a field named Total Contract Sum and one named Agreement Value would both match a Contract Value template field. Confidence scores are shown alongside each extracted value.",
+    a: "When you upload a document, Qubix Insight reads the full text content and applies a large-language-model prompt derived from your template. It looks for each template field by meaning, not just keyword matching — so a field named Total Contract Sum and one named Agreement Value would both match a Contract Value template field. Confidence scores are shown alongside each extracted value.",
   },
   {
     q: "What do the risk levels (High / Medium / Low) mean?",

@@ -8,27 +8,27 @@ export default function TrialBanner() {
     <div style={{
       display: "flex",
       alignItems: "center",
-      gap: "10px",
-      padding: "9px 20px",
-      background: "rgba(250, 70, 22, 0.07)",
-      borderBottom: "1px solid rgba(250, 70, 22, 0.18)",
-      fontSize: "13px",
-      color: "#92400e",
+      gap: "8px",
+      padding: "5px 16px",
+      background: "rgba(250, 70, 22, 0.04)",
+      borderBottom: "1px solid rgba(250, 70, 22, 0.12)",
+      fontSize: "12px",
+      color: "#b45309",
     }}>
-      <Zap size={14} style={{ color: "#FA4616", flexShrink: 0 }} />
-      <span>
+      <Zap size={12} style={{ color: "#FA4616", flexShrink: 0 }} />
+      <span style={{ color: "#92400e" }}>
         <strong>Trial account</strong> — Quick Extract only, limited to first 5 pages per document.
       </span>
       <button
         onClick={() => navigate("/support")}
         style={{
           marginLeft: "auto",
-          padding: "4px 14px",
-          background: "#FA4616",
-          color: "#fff",
-          border: "none",
-          borderRadius: "6px",
-          fontSize: "12px",
+          padding: "2px 10px",
+          background: "transparent",
+          color: "#FA4616",
+          border: "1px solid rgba(250,70,22,0.35)",
+          borderRadius: "5px",
+          fontSize: "11px",
           fontWeight: 600,
           cursor: "pointer",
           flexShrink: 0,

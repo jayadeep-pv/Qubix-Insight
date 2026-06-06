@@ -8,7 +8,8 @@ import {
   PieChart, Pie, Cell
 } from "recharts";
 import { useMsal } from "@azure/msal-react";
-import { Plus, Zap, TrendingUp, FileText, Layers, Activity, ArrowLeft } from "lucide-react";
+import { Plus, Zap, TrendingUp, FileText, Layers, Activity } from "lucide-react";
+import { PageBreadcrumb } from "../components/PageBreadcrumb";
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -132,12 +133,9 @@ const Dashboard: React.FC = () => {
       {/* ══ TOP BAR ══ */}
       <div className="db-topbar">
         <div className="db-topbar-left">
-          <button type="button" className="btn-back-link" onClick={() => navigate(-1)}>
-            <ArrowLeft size={16} />
-            <span>Back</span>
-          </button>
-          <h1 className="db-title">Insights Overview</h1>
-          <p className="db-greeting">{getGreeting()}, {userName} 👋</p>
+          <PageBreadcrumb
+            items={[{ label: "Back", onClick: () => navigate(-1) }, { label: "Insights Overview" }]}
+          />
         </div>
         <div className="db-topbar-actions">
           <button className="btn btn-secondary db-action-btn" onClick={() => navigate("/new", { state: { mode: "extract", from: "dashboard" } })}>

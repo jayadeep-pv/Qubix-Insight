@@ -73,14 +73,14 @@ public class CreateDocumentType
             if (data.ContainsKey("baseAiPrompt"))
                 entity["ilx_baseaiprompt"] = data["baseAiPrompt"]?.ToString();
 
-            if (data.ContainsKey("enableCompare"))
-                entity["ilx_enablecompare"] = bool.Parse(data["enableCompare"].ToString());
+            entity["ilx_enablecompare"]   = data.ContainsKey("enableCompare")
+                ? bool.Parse(data["enableCompare"].ToString()) : true;
 
-            if (data.ContainsKey("enableScoring"))
-                entity["ilx_enablescoring"] = bool.Parse(data["enableScoring"].ToString());
+            entity["ilx_enablescoring"]   = data.ContainsKey("enableScoring")
+                ? bool.Parse(data["enableScoring"].ToString()) : true;
 
-            if (data.ContainsKey("enableSummarise"))
-                entity["ilx_enablesummarise"] = bool.Parse(data["enableSummarise"].ToString());
+            entity["ilx_enablesummarise"] = data.ContainsKey("enableSummarise")
+                ? bool.Parse(data["enableSummarise"].ToString()) : true;
 
             /* =========================
                ACTIVE / INACTIVE
