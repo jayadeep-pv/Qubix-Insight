@@ -17,7 +17,7 @@
 
 /* ── Topbar ───────────────────────────────────────────── */
 .topbar {
-  height: 46px;
+  height: 58px;
   background: #ffffff;
   border-bottom: 1px solid #e2e8f0;
   display: flex;
@@ -152,7 +152,7 @@
 .content {
   flex: 1;
   overflow: auto;
-  padding: 4px 28px 24px;
+  padding: 24px 28px;
   background: #f1f5f9;
   box-sizing: border-box;
 }
