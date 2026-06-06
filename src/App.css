@@ -135,7 +135,7 @@ body {
 
 .results-container {
   width: 100%;
-  padding: 16px 0 0;
+  padding: 6px 0 0;
   box-sizing: border-box;
 }
 
@@ -245,7 +245,7 @@ body {
   border-bottom: 2px solid #f3f4f6;
   width: 100%;
   box-sizing: border-box;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   background: #fff;
   border-radius: 12px 12px 0 0;
   padding: 0 4px;
