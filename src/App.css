@@ -108,30 +108,30 @@ body {
   padding: 0 20px;
 }
 
-/* ── Results page three-panel layout ─────────────────── */
-.rr-layout {
+/* ── Results page split layout (below tabs) ───────────── */
+.rr-content-split {
   display: flex;
   gap: 0;
-  min-height: 0;
+  align-items: flex-start;
 }
 
-.rr-layout .results-container {
+.rr-tab-area {
   flex: 1;
   min-width: 0;
-  overflow-y: auto;
 }
 
 .rr-chat-pane {
-  width: 210px;
+  width: 300px;
   flex-shrink: 0;
   border-left: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 58px - 48px);
+  height: calc(100vh - 58px - 48px - 160px);
   position: sticky;
   top: 0;
   background: #ffffff;
   overflow: hidden;
+  border-radius: 0 0 0 0;
 }
 
 .results-container {

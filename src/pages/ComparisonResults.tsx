@@ -1046,7 +1046,6 @@ const pdfViewer = pdfUrl ? (
   if (mode === "Summarise") {
     return (
       <>
-      <div className="rr-layout">
       <div className="results-container">        
 
       <PageBreadcrumb
@@ -1117,6 +1116,8 @@ const pdfViewer = pdfUrl ? (
                     </div>
                   ))}
                 </div>
+      <div className="rr-content-split">
+      <div className="rr-tab-area">
 
 
 
@@ -1419,6 +1420,7 @@ const pdfViewer = pdfUrl ? (
         />
       </div>
       </div>
+      </div>
 
       {pdfExporting && (
         <div className="pdf-export-overlay">
@@ -1449,7 +1451,6 @@ const winner = candidates.find(c => c.isWinner) || sortedCandidates[0] || null;
 
 return (
   <>
-    <div className="rr-layout">
     <div className="results-container">
 
 
@@ -1532,6 +1533,8 @@ return (
     </div>
   ))}
 </div>
+  <div className="rr-content-split">
+  <div className="rr-tab-area">
 
     {/* ============================= */
     /* AI INSIGHTS */
@@ -2173,6 +2176,7 @@ return (
       sendChatQuestion={sendChatQuestion}
       chatLoading={chatLoading}
     />
+  </div>
   </div>
   </div>
 
