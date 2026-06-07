@@ -99,6 +99,7 @@ export default function ChatTab({
         display: "flex",
         flexDirection: "column",
         gap: 10,
+        justifyContent: chatMessages.length === 0 && !chatLoading ? "flex-end" : "flex-start",
       }}>
 
         {/* empty state with suggestions */}
