@@ -114,6 +114,7 @@ body {
   gap: 16px;
   align-items: stretch;
   padding-top: 14px;
+  min-height: calc(100vh - 220px);
 }
 
 .rr-tab-area {
