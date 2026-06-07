@@ -1159,7 +1159,7 @@ const pdfViewer = pdfUrl ? (
           /* ============================= */}
 
           {activeTab === "summary" && (
-            <>
+            <div className="rr-tab-scroll">
               {/* Stats Cards */}
               {insightRows.length > 0 && (
                 <div className="ov-stats-grid">
@@ -1239,7 +1239,7 @@ const pdfViewer = pdfUrl ? (
                   </div>
                 </div>
               )}
-            </>
+            </div>
           )}
 
 
@@ -1422,6 +1422,7 @@ const pdfViewer = pdfUrl ? (
 )}
 
 {activeTab === "ai" && (
+  <div className="rr-tab-scroll">
   <div className="results-card">
     <h2>Attribute AI Insights</h2>
 
@@ -1473,6 +1474,7 @@ const pdfViewer = pdfUrl ? (
         );
       })}
     </div>
+  </div>
   </div>
 )}
 
@@ -1627,7 +1629,7 @@ return (
     /* ============================= */}
 
           {activeTab === "summary" && (
-          <>
+          <div className="rr-tab-scroll">
             {includeExecutiveSummary && insightRows.length > 0 ? (
               <div className="results-card" style={{ padding: "0" }}>
                 <div className="profile-tabs">
@@ -1675,9 +1677,9 @@ return (
                 </div>
               </div>
             )}
-          </>
+          </div>
         )}
-    
+
 
     {/* ================================
         PARAMETER COMPARISON (FIXED)
@@ -1685,7 +1687,7 @@ return (
 
 
       {activeTab === "ai" && (
-      <>
+      <div className="rr-tab-scroll">
       <div className="results-card">
         <h2>Attribute Comparison</h2>
 
@@ -1861,7 +1863,7 @@ return (
 
         </div>
       </div>
-      </>
+      </div>
       )}
 
 
@@ -2037,10 +2039,8 @@ return (
       )}
 
             {activeTab === "scoring" && (
-
-        
+  <div className="rr-tab-scroll">
   <div className="results-card">
-        
 
           {/* Ranking */}
             <div
@@ -2279,6 +2279,7 @@ return (
       </table>
       </div>
     </div>
+  </div>
   </div>
       )}
 

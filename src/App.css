@@ -122,6 +122,23 @@ body {
   padding: 0 4px;
 }
 
+.rr-tab-scroll {
+  height: calc(100vh - 220px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #e5e7eb transparent;
+}
+
+.rr-tab-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.rr-tab-scroll::-webkit-scrollbar-thumb {
+  background: #e5e7eb;
+  border-radius: 3px;
+}
+
 .rr-chat-pane {
   width: 300px;
   flex-shrink: 0;
