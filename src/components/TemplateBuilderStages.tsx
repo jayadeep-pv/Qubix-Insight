@@ -436,7 +436,7 @@ export function ConfirmStage({
                       {matchedCat
                         ? <span className="tbs-cat-chip">{matchedCat.name}</span>
                         : attr.category
-                          ? <span className="tbs-cat-chip tbs-cat-chip--warn">{attr.category} ⚠</span>
+                          ? <span className="tbs-cat-chip tbs-cat-chip--warn" title={attr.category}>{attr.category}&thinsp;⚠</span>
                           : <span className="tbs-none">—</span>
                       }
                     </div>
@@ -696,20 +696,21 @@ export const TEMPLATE_BUILDER_STYLES = `
   .tbs-confirm-row { display:table-row; }
   .tbs-confirm-row:not(:last-child) > div { border-bottom:1px solid #f3f4f6; }
   .tbs-confirm-row:hover > div { background:#fafafa; }
-  .tbs-confirm-row > div { display:table-cell; padding:8px 11px; vertical-align:middle; font-size:13px; }
-  .tbs-confirm-head > div:nth-child(1), .tbs-confirm-row > div:nth-child(1) { width:28px; color:#9ca3af; font-size:11px; }
-  .tbs-confirm-head > div:nth-child(2), .tbs-confirm-row > div:nth-child(2) { width:145px; font-weight:500; }
-  .tbs-confirm-head > div:nth-child(4), .tbs-confirm-row > div:nth-child(4) { width:85px; }
-  .tbs-confirm-head > div:nth-child(5), .tbs-confirm-row > div:nth-child(5) { width:130px; }
-  .tbs-confirm-head > div:nth-child(6), .tbs-confirm-row > div:nth-child(6) { width:130px; font-style:italic; color:#6b7280; font-size:12px; }
+  .tbs-confirm-row > div { display:table-cell; padding:8px 11px; vertical-align:middle; font-size:13px; overflow:hidden; }
+  .tbs-confirm-head > div:nth-child(1), .tbs-confirm-row > div:nth-child(1) { width:32px; color:#9ca3af; font-size:11px; }
+  .tbs-confirm-head > div:nth-child(2), .tbs-confirm-row > div:nth-child(2) { width:160px; max-width:160px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tbs-confirm-head > div:nth-child(4), .tbs-confirm-row > div:nth-child(4) { width:80px; white-space:nowrap; }
+  .tbs-confirm-head > div:nth-child(5), .tbs-confirm-row > div:nth-child(5) { width:160px; max-width:160px; white-space:nowrap; overflow:hidden; }
+  .tbs-confirm-head > div:nth-child(6), .tbs-confirm-row > div:nth-child(6) { width:140px; max-width:140px; font-style:italic; color:#6b7280; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .tbs-ci { color:#9ca3af; font-size:11px; font-weight:600; }
+  .tbs-cn { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .tbs-cd { font-size:12px; color:#6b7280; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .tbs-cs { font-size:12px; color:#6b7280; font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .tbs-none { color:#d1d5db; }
 
   /* ── SHARED CHIPS ── */
-  .tbs-type-chip { background:#e0f2fe; color:#075985; padding:2px 7px; border-radius:999px; font-size:11px; font-weight:600; }
-  .tbs-cat-chip  { background:#f0fdf4; color:#166534; border:0.5px solid #bbf7d0; padding:2px 7px; border-radius:999px; font-size:11px; font-weight:600; }
+  .tbs-type-chip { background:#e0f2fe; color:#075985; padding:2px 7px; border-radius:999px; font-size:11px; font-weight:600; white-space:nowrap; }
+  .tbs-cat-chip  { background:#f0fdf4; color:#166534; border:0.5px solid #bbf7d0; padding:2px 7px; border-radius:999px; font-size:11px; font-weight:600; white-space:nowrap; display:inline-block; max-width:100%; overflow:hidden; text-overflow:ellipsis; }
   .tbs-cat-chip--warn { background:#fff7ed; color:#9a3412; border-color:#fed7aa; }
 
   /* ── ACTION ROW ── */
