@@ -112,7 +112,7 @@ body {
 .rr-content-split {
   display: flex;
   gap: 16px;
-  align-items: flex-start;
+  align-items: stretch;
   padding-top: 14px;
 }
 
@@ -120,10 +120,13 @@ body {
   flex: 1;
   min-width: 0;
   padding: 0 4px;
+  display: flex;
+  flex-direction: column;
 }
 
+/* Scrollable tab panels: shrink to content but cap at viewport height */
 .rr-tab-scroll {
-  height: calc(100vh - 220px);
+  max-height: calc(100vh - 220px);
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
@@ -139,6 +142,7 @@ body {
   border-radius: 3px;
 }
 
+/* Chat pane stretches to match the left pane height via align-items: stretch */
 .rr-chat-pane {
   width: 300px;
   flex-shrink: 0;
@@ -146,7 +150,7 @@ body {
   border-radius: 8px;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 220px);
+  max-height: calc(100vh - 220px);
   margin-top: 0;
   background: #ffffff;
   overflow: hidden;
@@ -976,6 +980,7 @@ body {
 .split-pane-container {
   margin-top: 0;
   height: calc(100vh - 220px);
+  max-height: calc(100vh - 220px);
   display: flex;
   flex-direction: column;
   position: relative;
