@@ -1,4 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
+import { ChevronDown } from "lucide-react";
+
+interface NormalisedAiInsight {
+  executiveSummary?: string;
+  keyInsights?: any[];
+  confidenceLevel?: any;
+}
 
 interface AiInsightRecord {
   id: string;
@@ -7,149 +14,134 @@ interface AiInsightRecord {
   aiSummaryJsonOutput: any;
 }
 
-interface NormalisedAiInsight {
-  executiveSummary?: string;
-  keyInsights?: any[];
-  confidenceLevel?: any;
-}
-
 interface Props {
-  insightRows: AiInsightRecord[];
-  selectedInsightProfileName: string;
-  setSelectedInsightProfileName: (name: string) => void;
   selectedInsight: NormalisedAiInsight | null;
   selectedInsightRow: AiInsightRecord | null;
 }
 
-const AiInsightsSection: React.FC<Props> = ({
-  insightRows,
-  selectedInsightProfileName,
-  setSelectedInsightProfileName,
-  selectedInsight,
-  selectedInsightRow,
-}) => {
+const IMPACT_STYLE: Record<string, { border: string; badge: string; text: string }> = {
+  high:   { border: "#ef4444", badge: "#ef4444", text: "#fff" },
+  medium: { border: "#f59e0b", badge: "#f59e0b", text: "#1a1a1a" },
+  low:    { border: "#22c55e", badge: "#22c55e", text: "#fff" },
+};
+
+const AiInsightsSection: React.FC<Props> = ({ selectedInsight }) => {
+  const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
+
+  const toggle = (idx: number) => {
+    setExpandedCards(prev => {
+      const next = new Set(prev);
+      next.has(idx) ? next.delete(idx) : next.add(idx);
+      return next;
+    });
+  };
+
+  if (!selectedInsight) {
+    return (
+      <div style={{ color: "#6b7280", padding: "24px 0", textAlign: "center", fontSize: 14 }}>
+        No AI insights available for this profile.
+      </div>
+    );
+  }
+
+  const insights = Array.isArray(selectedInsight.keyInsights) ? selectedInsight.keyInsights : [];
+
   return (
-    <div className="results-card">
-    
-      {/* Profile Switch Buttons */}
-      {insightRows.length > 1 && (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 18, padding: "4px 0", borderBottom: "1px solid #f3f4f6" }}>
-          {insightRows.map((r) => {
-            const isActive = r.profileName === selectedInsightProfileName;
+    <div>
+      {selectedInsight.executiveSummary && (
+        <div style={{
+          background: "#f9fafb",
+          border: "1px solid #f0f0f0",
+          borderRadius: 8,
+          padding: "12px 16px",
+          marginBottom: 14,
+          fontSize: 13.5,
+          color: "#374151",
+          lineHeight: 1.65,
+        }}>
+          {selectedInsight.executiveSummary}
+        </div>
+      )}
+
+      {insights.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {insights.map((k: any, idx: number) => {
+            const impact = (k?.Impact ?? k?.impact ?? "").toLowerCase();
+            const style = IMPACT_STYLE[impact] ?? { border: "#9ca3af", badge: "#9ca3af", text: "#fff" };
+            const isOpen = expandedCards.has(idx);
+
             return (
-              <button
-                key={r.id}
-                type="button"
-                onClick={() => setSelectedInsightProfileName(r.profileName)}
+              <div
+                key={idx}
                 style={{
-                  border: isActive ? "1px solid #c4b5fd" : "1px solid #e5e7eb",
-                  background: isActive ? "#ede9fe" : "#f9fafb",
-                  color: isActive ? "#5b21b6" : "#6b7280",
-                  padding: "7px 16px",
-                  borderRadius: 20,
-                  cursor: "pointer",
-                  fontWeight: isActive ? 700 : 500,
-                  fontSize: 13,
-                  transition: "all 0.15s ease",
-                  boxShadow: isActive ? "0 0 0 2px rgba(139,92,246,0.12)" : "none",
+                  border: "1px solid #f0f0f0",
+                  borderLeft: `4px solid ${style.border}`,
+                  borderRadius: 8,
+                  background: "white",
+                  overflow: "hidden",
                 }}
               >
-                {r.profileName}
-              </button>
+                <button
+                  type="button"
+                  onClick={() => toggle(idx)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    width: "100%",
+                    padding: "11px 14px",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    textAlign: "left",
+                  }}
+                >
+                  <span style={{
+                    background: style.badge,
+                    color: style.text,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: "3px 8px",
+                    borderRadius: 4,
+                    textTransform: "uppercase",
+                    letterSpacing: 0.5,
+                    flexShrink: 0,
+                    minWidth: 52,
+                    textAlign: "center",
+                  }}>
+                    {impact || "info"}
+                  </span>
+                  <span style={{ flex: 1, fontSize: 13.5, fontWeight: 500, color: "#1f2937" }}>
+                    {k?.Title ?? k?.title ?? "Insight"}
+                  </span>
+                  <ChevronDown
+                    size={16}
+                    color="#9ca3af"
+                    style={{ flexShrink: 0, transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
+                  />
+                </button>
+                {isOpen && (
+                  <div style={{
+                    padding: "0 14px 14px 90px",
+                    fontSize: 13,
+                    color: "#4b5563",
+                    lineHeight: 1.65,
+                    borderTop: "1px solid #f5f5f5",
+                    paddingTop: 10,
+                  }}>
+                    {k?.Description ?? k?.description}
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
       )}
 
-      {/* ============================= */}
-      {/* EMPTY STATE */}
-      {/* ============================= */}
-      {!selectedInsight && (
-        <div className="ai-empty" style={{ color: "#6b7280" }}>
-          No AI insights available yet for this run.
+      {insights.length === 0 && !selectedInsight.executiveSummary && (
+        <div style={{ color: "#9ca3af", fontSize: 13, textAlign: "center", padding: "16px 0" }}>
+          No findings for this profile.
         </div>
-      )}
-
-      {/* ============================= */}
-      {/* INSIGHT CONTENT */}
-      {/* ============================= */}
-      {selectedInsight && (
-        <>
-          {/* Executive Summary */}
-          {selectedInsight.executiveSummary && (
-            <>
-              <h3>Executive Summary</h3>
-              <p>{selectedInsight.executiveSummary}</p>
-            </>
-          )}
-
-          {/* Key Insights */}
-          {Array.isArray(selectedInsight.keyInsights) &&
-            selectedInsight.keyInsights.length > 0 && (
-              <>
-                <h3 style={{ marginTop: 18 }}>Key Insights</h3>
-
-                {selectedInsight.keyInsights.map((k: any, idx: number) => {
-                  const impact = (k?.Impact ?? k?.impact ?? "").toLowerCase();
-
-                  const badgeClass =
-                    impact === "high"
-                      ? "badge-high"
-                      : impact === "medium"
-                      ? "badge-medium"
-                      : impact === "low"
-                      ? "badge-low"
-                      : "badge-info";
-
-                  const impactClass =
-                    impact === "high"
-                      ? "insight-high"
-                      : impact === "medium"
-                      ? "insight-medium"
-                      : impact === "low"
-                      ? "insight-low"
-                      : "";
-
-                  return (
-                    <div key={idx} className={`insight-card ${impactClass}`}>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          marginBottom: 6,
-                        }}
-                      >
-                        <strong>
-                          {k?.Title ?? k?.title ?? "Insight"}
-                        </strong>
-
-                        <span className={`impact-badge ${badgeClass}`}>
-                          {impact ? impact.toUpperCase() : "INFO"}
-                        </span>
-                      </div>
-
-                      <p style={{ margin: 0 }}>
-                        {k?.Description ?? k?.description}
-                      </p>
-                    </div>
-                  );
-                })}
-              </>
-            )}
-
-          {/* Footer Info */}
-          {selectedInsight.confidenceLevel && (
-            <div style={{ marginTop: 16, fontSize: 13, color: "#6b7280" }}>
-              Confidence Level: {selectedInsight.confidenceLevel}
-            </div>
-          )}
-
-          {selectedInsightRow?.executionTime !== undefined && (
-            <div style={{ marginTop: 6, fontSize: 13, color: "#9ca3af" }}>
-              Execution Time: {selectedInsightRow.executionTime}s
-            </div>
-          )}
-        </>
       )}
     </div>
   );

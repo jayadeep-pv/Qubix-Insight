@@ -1040,6 +1040,31 @@ const pdfViewer = pdfUrl ? (
 
 
   /* =====================================================
+     OVERVIEW STATS (Summarise mode)
+  ===================================================== */
+
+  const PROFILE_COLORS = ["#7c3aed", "#ef4444", "#f97316", "#3b82f6", "#10b981", "#6b7280"];
+
+  const allParsedInsights = insightRows
+    .map(r => normaliseInsightJson(r.aiSummaryJsonOutput))
+    .filter((i): i is NormalisedAiInsight => i !== null);
+  const allKeyInsights = allParsedInsights.flatMap(i => i.keyInsights ?? []);
+  const totalFindings = allKeyInsights.length;
+  const findingsHigh   = allKeyInsights.filter(k => (k?.Impact ?? k?.impact ?? "").toLowerCase() === "high").length;
+  const findingsMedium = allKeyInsights.filter(k => (k?.Impact ?? k?.impact ?? "").toLowerCase() === "medium").length;
+  const findingsLow    = allKeyInsights.filter(k => (k?.Impact ?? k?.impact ?? "").toLowerCase() === "low").length;
+  const totalFields    = attributes.length;
+  const extractedFields = attributes.filter(a =>
+    a.values.some((v: any) => v.value && v.value.trim() !== "" && v.value !== "-")
+  ).length;
+  const allConfScores = attributes.flatMap(a =>
+    a.values.map((v: any) => v.confidenceScore).filter((s: any) => s != null && !isNaN(Number(s)))
+  ) as number[];
+  const avgConfidence = allConfScores.length > 0
+    ? Math.round(allConfScores.reduce((sum, s) => sum + s, 0) / allConfScores.length)
+    : null;
+
+  /* =====================================================
      SUMMARISE MODE
   ===================================================== */
 
@@ -1130,31 +1155,92 @@ const pdfViewer = pdfUrl ? (
 
 
         {/* ============================= */
-          /* AI INSIGHTS */
+          /* OVERVIEW TAB               */
           /* ============================= */}
 
           {activeTab === "summary" && (
-              <>
-                {includeExecutiveSummary && insightRows.length > 0 ? (
-                  <AiInsightsSection
-                    insightRows={insightRows}
-                    selectedInsightProfileName={selectedInsightProfileName}
-                    setSelectedInsightProfileName={setSelectedInsightProfileName}
-                    selectedInsight={selectedInsight}
-                    selectedInsightRow={selectedInsightRow}
-                  />
-                ) : (
-                  <div className="results-card ai-empty-state">
-                    <div className="ai-empty-icon"><Sparkles size={28} strokeWidth={1.5} /></div>
-                    <div className="ai-empty-title">No Executive Summary</div>
-                    <div className="ai-empty-body">
-                      Executive Summary was not selected for this run.<br />
-                      Enable it via <strong>AI Options</strong> when starting a new insight.
+            <>
+              {/* Stats Cards */}
+              {insightRows.length > 0 && (
+                <div className="ov-stats-grid">
+                  <div className="ov-stat-card">
+                    <div className="ov-stat-label">Profiles run</div>
+                    <div className="ov-stat-value">{insightRows.length}</div>
+                    <div className="ov-stat-sub">{insightRows.map(r => r.profileName).join(" · ")}</div>
+                  </div>
+                  <div className="ov-stat-card">
+                    <div className="ov-stat-label">Total findings</div>
+                    <div className="ov-stat-value">{totalFindings}</div>
+                    <div className="ov-stat-sub">
+                      {findingsHigh > 0 && <span style={{ color: "#ef4444" }}>{findingsHigh} high</span>}
+                      {findingsMedium > 0 && <span style={{ color: "#f59e0b" }}>{findingsHigh > 0 ? " · " : ""}{findingsMedium} medium</span>}
+                      {findingsLow > 0 && <span style={{ color: "#22c55e" }}>{(findingsHigh > 0 || findingsMedium > 0) ? " · " : ""}{findingsLow} low</span>}
                     </div>
                   </div>
-                )}
-              </>
-            )}
+                  <div className="ov-stat-card">
+                    <div className="ov-stat-label">Fields extracted</div>
+                    <div className="ov-stat-value">{extractedFields} <span style={{ fontSize: 14, fontWeight: 500, color: "#9ca3af" }}>of {totalFields}</span></div>
+                    <div className="ov-stat-sub">{totalFields > 0 ? `${Math.round((extractedFields / totalFields) * 100)}% complete` : "—"}</div>
+                  </div>
+                  <div className="ov-stat-card">
+                    <div className="ov-stat-label">Avg confidence</div>
+                    <div className="ov-stat-value">{avgConfidence != null ? `${avgConfidence}%` : "—"}</div>
+                    <div className="ov-stat-sub">across extracted fields</div>
+                  </div>
+                </div>
+              )}
+
+              {includeExecutiveSummary && insightRows.length > 0 ? (
+                <div className="results-card" style={{ padding: "0" }}>
+                  {/* Profile Tab Bar */}
+                  <div className="profile-tabs">
+                    {insightRows.map((r, idx) => {
+                      const parsed = normaliseInsightJson(r.aiSummaryJsonOutput);
+                      const count = parsed?.keyInsights?.length ?? 0;
+                      const dotColor = PROFILE_COLORS[idx % PROFILE_COLORS.length];
+                      const isActive = r.profileName === selectedInsightProfileName;
+                      return (
+                        <button
+                          key={r.id}
+                          type="button"
+                          className={`profile-tab${isActive ? " active" : ""}`}
+                          style={{ color: isActive ? dotColor : undefined, borderBottomColor: isActive ? dotColor : "transparent" }}
+                          onClick={() => setSelectedInsightProfileName(r.profileName)}
+                        >
+                          <span style={{ width: 7, height: 7, borderRadius: "50%", background: dotColor, display: "inline-block", flexShrink: 0 }} />
+                          {r.profileName}
+                          {count > 0 && (
+                            <span style={{
+                              background: isActive ? dotColor : "#e5e7eb",
+                              color: isActive ? "white" : "#6b7280",
+                              fontSize: 10, fontWeight: 700,
+                              padding: "1px 6px", borderRadius: 10,
+                            }}>{count}</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {/* Profile Content */}
+                  <div style={{ padding: "16px 18px" }}>
+                    <AiInsightsSection
+                      selectedInsight={selectedInsight}
+                      selectedInsightRow={selectedInsightRow}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="results-card ai-empty-state">
+                  <div className="ai-empty-icon"><Sparkles size={28} strokeWidth={1.5} /></div>
+                  <div className="ai-empty-title">No Executive Summary</div>
+                  <div className="ai-empty-body">
+                    Executive Summary was not selected for this run.<br />
+                    Enable it via <strong>AI Options</strong> when starting a new insight.
+                  </div>
+                </div>
+              )}
+            </>
+          )}
 
 
 
@@ -1543,13 +1629,42 @@ return (
           {activeTab === "summary" && (
           <>
             {includeExecutiveSummary && insightRows.length > 0 ? (
-              <AiInsightsSection
-                insightRows={insightRows}
-                selectedInsightProfileName={selectedInsightProfileName}
-                setSelectedInsightProfileName={setSelectedInsightProfileName}
-                selectedInsight={selectedInsight}
-                selectedInsightRow={selectedInsightRow}
-              />
+              <div className="results-card" style={{ padding: "0" }}>
+                <div className="profile-tabs">
+                  {insightRows.map((r, idx) => {
+                    const parsed = normaliseInsightJson(r.aiSummaryJsonOutput);
+                    const count = parsed?.keyInsights?.length ?? 0;
+                    const dotColor = PROFILE_COLORS[idx % PROFILE_COLORS.length];
+                    const isActive = r.profileName === selectedInsightProfileName;
+                    return (
+                      <button
+                        key={r.id}
+                        type="button"
+                        className={`profile-tab${isActive ? " active" : ""}`}
+                        style={{ color: isActive ? dotColor : undefined, borderBottomColor: isActive ? dotColor : "transparent" }}
+                        onClick={() => setSelectedInsightProfileName(r.profileName)}
+                      >
+                        <span style={{ width: 7, height: 7, borderRadius: "50%", background: dotColor, display: "inline-block", flexShrink: 0 }} />
+                        {r.profileName}
+                        {count > 0 && (
+                          <span style={{
+                            background: isActive ? dotColor : "#e5e7eb",
+                            color: isActive ? "white" : "#6b7280",
+                            fontSize: 10, fontWeight: 700,
+                            padding: "1px 6px", borderRadius: 10,
+                          }}>{count}</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{ padding: "16px 18px" }}>
+                  <AiInsightsSection
+                    selectedInsight={selectedInsight}
+                    selectedInsightRow={selectedInsightRow}
+                  />
+                </div>
+              </div>
             ) : (
               <div className="results-card ai-empty-state">
                 <div className="ai-empty-icon"><Sparkles size={28} strokeWidth={1.5} /></div>
@@ -1561,7 +1676,7 @@ return (
               </div>
             )}
           </>
-        )}    
+        )}
     
 
     {/* ================================
