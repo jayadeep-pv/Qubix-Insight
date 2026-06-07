@@ -52,6 +52,8 @@ public class GetAllAiInsightProfiles
                     "ilx_profilestatus",
                     "ilx_prompt",
                     "ilx_displayorder",
+                    "ilx_isdefault",
+                    "ilx_ismandatory",
                     "statecode",
                     "createdon",
                     "modifiedon"
@@ -70,6 +72,8 @@ public class GetAllAiInsightProfiles
                 profileStatus = e.GetAttributeValue<OptionSetValue>("ilx_profilestatus")?.Value,
                 prompt = e.GetAttributeValue<string>("ilx_prompt"),
                 displayOrder = e.GetAttributeValue<int?>("ilx_displayorder"),
+                isDefault = e.GetAttributeValue<bool>("ilx_isdefault"),
+                isMandatory = e.GetAttributeValue<bool>("ilx_ismandatory"),
                 statecode = e.GetAttributeValue<OptionSetValue>("statecode")?.Value,
                 createdOn = e.GetAttributeValue<DateTime?>("createdon"),
                 modifiedOn = e.GetAttributeValue<DateTime?>("modifiedon")
