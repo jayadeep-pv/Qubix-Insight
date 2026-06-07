@@ -113,6 +113,7 @@ body {
   display: flex;
   gap: 16px;
   align-items: flex-start;
+  padding-top: 14px;
 }
 
 .rr-tab-area {
@@ -129,7 +130,7 @@ body {
   display: flex;
   flex-direction: column;
   height: calc(100vh - 220px);
-  margin-top: 16px;
+  margin-top: 0;
   background: #ffffff;
   overflow: hidden;
 }
@@ -956,7 +957,7 @@ body {
 /* ================================================= */
 
 .split-pane-container {
-  margin-top: 16px;
+  margin-top: 0;
   height: calc(100vh - 220px);
   display: flex;
   flex-direction: column;
