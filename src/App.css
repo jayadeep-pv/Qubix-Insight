@@ -762,10 +762,10 @@ body {
 
 .attr-card {
   border: 1px solid #e5e7eb;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #fff;
   cursor: pointer;
-  padding: 7px 10px;
+  padding: 6px 10px;
   transition: all 0.15s ease;
   position: relative;
 }
@@ -803,17 +803,17 @@ body {
 
 .attr-values-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
+  flex-direction: column;
+  gap: 4px;
   margin-top: 5px;
 }
 
 .val-chip {
-  display: inline-flex;
-  align-items: flex-start;
+  display: flex;
+  align-items: center;
   gap: 4px;
-  padding: 4px 10px;
-  border-radius: 8px;
+  padding: 4px 8px;
+  border-radius: 6px;
   font-size: 12px;
   font-weight: 500;
   background: #f3f4f6;
@@ -821,9 +821,17 @@ body {
   border: 1px solid #e5e7eb;
   cursor: pointer;
   transition: all 0.15s ease;
-  white-space: normal;
-  word-break: break-word;
-  line-height: 1.4;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.val-chip-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .val-chip:hover {

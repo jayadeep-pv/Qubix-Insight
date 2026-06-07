@@ -1324,8 +1324,8 @@ const pdfViewer = pdfUrl ? (
                       onClick={(e) => { e.stopPropagation(); handleAttributeRowClick(attr, v.candidateId, v.documentId, vIdx); }}
                       title={`${displayLabel}: ${v.value || "\u2014"}`}
                     >
-                      <span className="val-chip-label">{displayLabel}:</span>
-                      {formatValue(attr.attributeName, v.value) || "\u2014"}
+                      {documents.length > 1 && <span className="val-chip-label">{displayLabel}:</span>}
+                      <span className="val-chip-value">{formatValue(attr.attributeName, v.value) || "\u2014"}</span>
                     </span>
                   );
                 })}
@@ -1932,8 +1932,8 @@ return (
                               onClick={(e) => { e.stopPropagation(); handleAttributeRowClick(attr, v.candidateId, v.documentId, vIdx); }}
                               title={`${displayLabel}: ${v.value || "\u2014"}`}
                             >
-                              <span className="val-chip-label">{displayLabel}:</span>
-                              {formatValue(attr.attributeName, v.value) || "\u2014"}
+                              {documents.length > 1 && <span className="val-chip-label">{displayLabel}:</span>}
+                              <span className="val-chip-value">{formatValue(attr.attributeName, v.value) || "\u2014"}</span>
                             </span>
                           );
                         })}
