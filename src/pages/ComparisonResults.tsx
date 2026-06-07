@@ -1321,11 +1321,14 @@ const pdfViewer = pdfUrl ? (
                     <span
                       key={v.documentId ?? v.candidateId}
                       className={`val-chip${isWinner ? " winner" : ""}`}
+                      style={isExpanded ? { whiteSpace: "normal", overflow: "visible" } : {}}
                       onClick={(e) => { e.stopPropagation(); handleAttributeRowClick(attr, v.candidateId, v.documentId, vIdx); }}
-                      title={`${displayLabel}: ${v.value || "\u2014"}`}
+                      title={isExpanded ? undefined : `${displayLabel}: ${v.value || "\u2014"}`}
                     >
                       {documents.length > 1 && <span className="val-chip-label">{displayLabel}:</span>}
-                      <span className="val-chip-value">{formatValue(attr.attributeName, v.value) || "\u2014"}</span>
+                      <span className="val-chip-value" style={isExpanded ? { whiteSpace: "normal", overflow: "visible", textOverflow: "unset" } : {}}>
+                        {formatValue(attr.attributeName, v.value) || "\u2014"}
+                      </span>
                     </span>
                   );
                 })}
@@ -1929,11 +1932,14 @@ return (
                             <span
                               key={v.documentId ?? v.candidateId}
                               className={`val-chip${isWinner ? " winner" : ""}`}
+                              style={isExpanded ? { whiteSpace: "normal", overflow: "visible" } : {}}
                               onClick={(e) => { e.stopPropagation(); handleAttributeRowClick(attr, v.candidateId, v.documentId, vIdx); }}
-                              title={`${displayLabel}: ${v.value || "\u2014"}`}
+                              title={isExpanded ? undefined : `${displayLabel}: ${v.value || "\u2014"}`}
                             >
                               {documents.length > 1 && <span className="val-chip-label">{displayLabel}:</span>}
-                              <span className="val-chip-value">{formatValue(attr.attributeName, v.value) || "\u2014"}</span>
+                              <span className="val-chip-value" style={isExpanded ? { whiteSpace: "normal", overflow: "visible", textOverflow: "unset" } : {}}>
+                                {formatValue(attr.attributeName, v.value) || "\u2014"}
+                              </span>
                             </span>
                           );
                         })}
