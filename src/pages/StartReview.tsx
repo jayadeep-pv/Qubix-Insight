@@ -29,6 +29,7 @@ interface AiProfile {
   id: string;
   name: string;
   isDefault?: boolean;
+  isMandatory?: boolean;
 }
 
 /**
@@ -294,9 +295,10 @@ function StartReview() {
         id: d.profileId,
         name: d.profileName,
         isDefault: d.isDefault,
+        isMandatory: d.isMandatory,
       }));
       setAiProfiles(profiles);
-      setSelectedProfiles(profiles.filter(p => p.isDefault).map(p => p.id));
+      setSelectedProfiles(profiles.filter(p => p.isDefault || p.isMandatory).map(p => p.id));
     } catch {
       setAiProfiles([]);
       setSelectedProfiles([]);
@@ -552,7 +554,7 @@ function StartReview() {
     const includeExecutiveSummary = aiOptions.includes("executiveSummary");
     const includeAttributeInsight = aiOptions.includes("attributeInsight");
 
-    if (includeExecutiveSummary && selectedProfiles.length > 0) {
+    if (selectedProfiles.length > 0) {
       await fetch(CREATE_INSIGHTS_URL(), {
         method: "POST",
         headers: {
@@ -619,6 +621,29 @@ function StartReview() {
 
       const { runRecordId } = await uploadRes.json();
 
+      // Fetch mandatory/default profiles and create insights before executing
+      let profileIds: string[] = [];
+      try {
+        const allProfiles = await configApi.getAllAiInsightProfiles();
+        profileIds = (allProfiles as any[])
+          .filter(p => p.isDefault || p.isMandatory)
+          .map(p => p.id)
+          .filter(Boolean);
+
+        if (profileIds.length > 0) {
+          await fetch(CREATE_INSIGHTS_URL(), {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ comparisonRunId: runRecordId, selectedProfileIds: profileIds }),
+          });
+        }
+      } catch {
+        // non-critical — continue to execute even if insight creation fails
+      }
+
       await fetch(EXECUTE_FUNCTION_URL(), {
         method: "POST",
         headers: {
@@ -630,7 +655,7 @@ function StartReview() {
         },
         body: JSON.stringify({
           comparisonRunId: runRecordId,
-          includeExecutiveSummary: false,
+          includeExecutiveSummary: profileIds.length > 0,
           includeAttributeInsight: true,
           includeScoring: false,
         }),

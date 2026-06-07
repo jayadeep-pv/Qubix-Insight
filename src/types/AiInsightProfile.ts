@@ -8,11 +8,15 @@ export interface AiInsightProfile {
 
   profileStatus?: number;
 
-  profileStatusLabel?: string;   // <-- ADD THIS
+  profileStatusLabel?: string;
 
   prompt?: string;
 
   displayOrder?: number;
+
+  isDefault?: boolean;
+
+  isMandatory?: boolean;
 
   statecode?: number;
 
