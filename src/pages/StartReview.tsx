@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useRef, useState } from "react";
 import { useMsal, useIsAuthenticated } from "@azure/msal-react";
 import { InteractionStatus } from "@azure/msal-browser";
+import { AlertTriangle } from "lucide-react";
 
 import { getAccessToken } from "../services/tokenHelper";
 import { getAppConfig } from "../appConfig";
@@ -134,6 +135,52 @@ const MODES: {
 /* ================================================================ */
 
 const VALID_MODES: InsightMode[] = ["extract", "summarise", "compare", "compare-scoring"];
+
+/* ── Friendly error messages ── */
+function parseFriendlyError(raw: string): string {
+  const r = raw.toLowerCase();
+  if (r.includes("invalid_prompt") || r.includes("safety") || r.includes("content_filter") || r.includes("content filter"))
+    return "The document contains content that was flagged by the AI safety system and could not be processed. If you believe this is incorrect, please contact your administrator.";
+  if (r.includes("quota") || r.includes("rate limit") || r.includes("too many requests"))
+    return "The service is temporarily busy. Please wait a moment and try again. If the problem persists, contact your administrator.";
+  if (r.includes("unauthorized") || r.includes("401") || r.includes("403") || r.includes("forbidden"))
+    return "You do not have permission to perform this action. Please contact your administrator.";
+  if (r.includes("file too large") || r.includes("payload too large") || r.includes("413"))
+    return "The document is too large to process. Please try a smaller file or contact your administrator for assistance.";
+  if (r.includes("unsupported") || r.includes("invalid file") || r.includes("format"))
+    return "This file format is not supported. Please upload a PDF or Word document.";
+  if (r.includes("timeout") || r.includes("timed out"))
+    return "The request timed out — the document may be too large or complex. Please try again or contact your administrator.";
+  return "Something went wrong while processing your document. Please try again. If the problem continues, contact your administrator.";
+}
+
+/* ── Reusable error panel ── */
+function ErrorPanel({ message }: { message: string }) {
+  return (
+    <div style={{
+      display: "flex", gap: 12, alignItems: "flex-start",
+      background: "#fff8f8", border: "1px solid #fecaca",
+      borderLeft: "4px solid #ef4444", borderRadius: 8,
+      padding: "14px 16px", marginTop: 12,
+    }}>
+      <AlertTriangle size={18} color="#ef4444" style={{ flexShrink: 0, marginTop: 1 }} />
+      <div>
+        <div style={{ fontWeight: 700, fontSize: 13, color: "#b91c1c", marginBottom: 4 }}>
+          Unable to process document
+        </div>
+        <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.6, marginBottom: 8 }}>
+          {message}
+        </div>
+        <div style={{ fontSize: 12, color: "#6b7280" }}>
+          For further assistance, please contact your administrator at{" "}
+          <a href="mailto:support@qubixinsight.com" style={{ color: "#FA4616", textDecoration: "none", fontWeight: 500 }}>
+            support@qubixinsight.com
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function StartReview() {
   const { instance, accounts, inProgress } = useMsal();
@@ -406,7 +453,7 @@ function StartReview() {
         body: uploadedFiles[0],
       });
 
-      if (!response.ok) throw new Error(await response.text());
+      if (!response.ok) throw new Error(await response.text() || `HTTP ${response.status}`);
 
       const result   = await response.json();
       const attrs: any[] = result.attributes ?? result;
@@ -436,8 +483,8 @@ function StartReview() {
       setDiscoveredAttributes(discovered);
       setExtractComplete(true);
       setStatus(`${attrs.length} attributes detected${tmpl ? ` (${configured.length} from template, ${discovered.length} new)` : ""}`);
-    } catch {
-      setError("Extraction failed. Please try again.");
+    } catch (ex: any) {
+      setError(parseFriendlyError(ex?.message ?? ""));
     }
 
     setRerunningWithContext(false);
@@ -468,22 +515,29 @@ function StartReview() {
 
     const user = getCurrentUser();
 
-    const response = await fetch(UPLOAD_FUNCTION_URL(), {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "x-user-email": user?.email ?? "",
-        "x-user-name": user?.name ?? "",
-        "x-user-id": user?.aadObjectId ?? "",
-      },
-      body: formData,
-    });
+    try {
+      const response = await fetch(UPLOAD_FUNCTION_URL(), {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "x-user-email": user?.email ?? "",
+          "x-user-name": user?.name ?? "",
+          "x-user-id": user?.aadObjectId ?? "",
+        },
+        body: formData,
+      });
 
-    const result = await response.json();
-    setComparisonRunId(result.runRecordId);
-    setUploadComplete(true);
+      if (!response.ok) throw new Error(await response.text() || `HTTP ${response.status}`);
+
+      const result = await response.json();
+      setComparisonRunId(result.runRecordId);
+      setUploadComplete(true);
+      setStatus("Upload complete. Ready to generate report.");
+    } catch (ex: any) {
+      setError(parseFriendlyError(ex?.message ?? ""));
+    }
+
     setLoading(false);
-    setStatus("Upload complete. Ready to generate report.");
   };
 
   /* ── Generate Report ── */
@@ -584,7 +638,7 @@ function StartReview() {
 
       navigate(`/runs/${runRecordId}`);
     } catch (ex: any) {
-      setInsightError(`Failed to save insight: ${ex?.message ?? "Unknown error"}`);
+      setInsightError(parseFriendlyError(ex?.message ?? ""));
       setInsightSaving(false);
     }
   };
@@ -857,7 +911,7 @@ function StartReview() {
               </button>
             </div>
             <div className="flow-status">{status}</div>
-            <div className="error-text">{error}</div>
+            {error && <ErrorPanel message={error} />}
           </div>
         )}
       </div>
@@ -900,7 +954,7 @@ function StartReview() {
       {/* ── ACTION FLOW (summarise / compare modes) ── */}
       {needsTemplate && (
         <div className="dc-card sr-action-card">
-          {error && <div className="error-text sr-action-msg">{error}</div>}
+          {error && <ErrorPanel message={error} />}
           {status && <div className="flow-status sr-action-msg">{status}</div>}
           <div className="action-flow-horizontal">
             {!uploadComplete ? (
@@ -1185,9 +1239,7 @@ function StartReview() {
                   <div className="qe-insight-prompt-sub">
                     Run the AI extraction pipeline against <strong>{uploadedFiles[0]?.name}</strong> using your new template. The results will be saved as a full Insight with field highlighting.
                   </div>
-                  {insightError && (
-                    <div className="error-text qe-insight-error">{insightError}</div>
-                  )}
+                  {insightError && <ErrorPanel message={insightError} />}
                 </div>
                 <div className="qe-insight-prompt-actions">
                   <button
