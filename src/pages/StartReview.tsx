@@ -601,7 +601,7 @@ function StartReview() {
       formData.append("documentTypeId", extractSave.savedDocTypeId);
       formData.append("comparisonTemplateId", extractSave.savedTemplateId);
       formData.append("mode", "Summarise");
-      formData.append("aiScope", "Extracted");
+      formData.append("aiScope", "Hybrid");
       formData.append("files", uploadedFiles[0]);
 
       const user = getCurrentUser();
