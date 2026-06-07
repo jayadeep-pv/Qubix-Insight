@@ -111,13 +111,14 @@ body {
 /* ── Results page split layout (below tabs) ───────────── */
 .rr-content-split {
   display: flex;
-  gap: 0;
+  gap: 16px;
   align-items: flex-start;
 }
 
 .rr-tab-area {
   flex: 1;
   min-width: 0;
+  padding: 0 4px;
 }
 
 .rr-chat-pane {
@@ -135,7 +136,7 @@ body {
 
 .results-container {
   width: 100%;
-  padding: 6px 0 0;
+  padding: 6px 20px 0;
   box-sizing: border-box;
 }
 
