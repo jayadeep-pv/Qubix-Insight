@@ -229,7 +229,7 @@ export default function ComparisonResults() {
   createdBy?: string;
   createdOn?: string;
 } | null>(null);
-  const [summary, setSummary] = useState<any>(null);
+  // summary state removed — Overview is driven by insightRows from getRunInsights
   const [loading, setLoading] = useState(true);
   const [pdfExporting, setPdfExporting] = useState(false);
   const [expandedAttributes, setExpandedAttributes] = useState<string[]>([]);
@@ -691,26 +691,7 @@ const sendChatQuestion = async () => {
         setAttributes(data.attributes);
         setEvaluations(data.evaluations);
 
-        if (data.summaryJson) {
-          const parsed = data.summaryJson;
-
-          if (isLikelyRunMetaSummary(parsed)) {
-            setSummary(null);
-          } else {
-            setSummary({
-              executiveSummary: parsed.ExecutiveSummary ?? parsed.executiveSummary,
-              keyInsights: parsed.KeyInsights ?? parsed.keyInsights,
-              confidenceLevel:
-                parsed.ConfidenceLevel ?? parsed.confidenceLevel,
-              winner: parsed.Winner ?? parsed.winner,
-              totalRules: parsed.TotalRules ?? parsed.totalRules,
-              documentsProcessed:
-                parsed.DocumentsProcessed ?? parsed.documentsProcessed,
-            });
-          }
-        } else {
-          setSummary(null);
-        }
+        // summaryJson was previously used for the overview; now handled via getRunInsights below
 
         try {
             const insightRaw = await configApi.getRunInsights(runId);
@@ -1190,7 +1171,7 @@ const pdfViewer = pdfUrl ? (
                 </div>
               )}
 
-              {includeExecutiveSummary && insightRows.length > 0 ? (
+              {insightRows.length > 0 ? (
                 <div className="results-card" style={{ padding: "0" }}>
                   {/* Profile Tab Bar */}
                   <div className="profile-tabs">
@@ -1232,10 +1213,10 @@ const pdfViewer = pdfUrl ? (
               ) : (
                 <div className="results-card ai-empty-state">
                   <div className="ai-empty-icon"><Sparkles size={28} strokeWidth={1.5} /></div>
-                  <div className="ai-empty-title">No Executive Summary</div>
+                  <div className="ai-empty-title">No AI Profile Results</div>
                   <div className="ai-empty-body">
-                    Executive Summary was not selected for this run.<br />
-                    Enable it via <strong>AI Options</strong> when starting a new insight.
+                    No AI profile insights were generated for this run.<br />
+                    Make sure AI profiles are selected when starting a new insight.
                   </div>
                 </div>
               )}
@@ -1274,7 +1255,7 @@ const pdfViewer = pdfUrl ? (
 
       <div className="panel-body" onScroll={computeConnector}>
         {attributes.map((attr) => {
-          const hasAiInsight = includeExecutiveSummary && attr.values?.some(
+          const hasAiInsight = attr.values?.some(
             (v: any) =>
               v.attributeAiInsight &&
               v.attributeAiInsight.trim() !== "" &&
@@ -1633,7 +1614,7 @@ return (
 
           {activeTab === "summary" && (
           <div className="rr-tab-scroll">
-            {includeExecutiveSummary && insightRows.length > 0 ? (
+            {insightRows.length > 0 ? (
               <div className="results-card" style={{ padding: "0" }}>
                 <div className="profile-tabs">
                   {insightRows.map((r, idx) => {
@@ -1673,10 +1654,10 @@ return (
             ) : (
               <div className="results-card ai-empty-state">
                 <div className="ai-empty-icon"><Sparkles size={28} strokeWidth={1.5} /></div>
-                <div className="ai-empty-title">No Executive Summary</div>
+                <div className="ai-empty-title">No AI Profile Results</div>
                 <div className="ai-empty-body">
-                  Executive Summary was not selected for this run.<br />
-                  Enable it via <strong>AI Options</strong> when starting a new insight.
+                  No AI profile insights were generated for this run.<br />
+                  Make sure AI profiles are selected when starting a new insight.
                 </div>
               </div>
             )}
