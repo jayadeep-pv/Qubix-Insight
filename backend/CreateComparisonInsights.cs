@@ -57,6 +57,14 @@ public class CreateComparisonInsights
                 return req.CreateResponse(HttpStatusCode.BadRequest);
             }
            
+            // Load the run so we can copy its tenant ID onto each insight record
+            var run = service.Retrieve(
+                "ilx_analysisrun",
+                runId,
+                new Microsoft.Xrm.Sdk.Query.ColumnSet("ilx_tenantid"));
+
+            var tenantId = run.GetAttributeValue<string>("ilx_tenantid") ?? "";
+
             foreach (var profileIdElement in profilesProp.EnumerateArray())
             {
                 if (!Guid.TryParse(profileIdElement.GetString(), out var profileId))
@@ -72,6 +80,9 @@ public class CreateComparisonInsights
 
                 insight["ilx_runstatus"] =
                     new OptionSetValue(INSIGHT_PENDING);
+
+                if (!string.IsNullOrWhiteSpace(tenantId))
+                    insight["ilx_tenantid"] = tenantId;
 
                 service.Create(insight);
             }

@@ -644,7 +644,7 @@ function StartReview() {
         // non-critical — continue to execute even if insight creation fails
       }
 
-      await fetch(EXECUTE_FUNCTION_URL(), {
+      const execRes = await fetch(EXECUTE_FUNCTION_URL(), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -660,6 +660,8 @@ function StartReview() {
           includeScoring: false,
         }),
       });
+
+      if (!execRes.ok) throw new Error(await execRes.text() || `Execute failed (HTTP ${execRes.status})`);
 
       navigate(`/runs/${runRecordId}`);
     } catch (ex: any) {

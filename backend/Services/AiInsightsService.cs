@@ -71,23 +71,6 @@ using QubixInsight.Services; // 🔥 IMPORTANT (for AiSummaryService)
                     return;
                 }
 
-                // ============================
-                // ✅ ADD THIS BLOCK HERE
-                // ============================
-                var run = service.Retrieve(
-                    "ilx_analysisrun",
-                    runId,
-                    new ColumnSet("ilx_includeexecutivesummary"));
-
-                var includeExec = run.GetAttributeValue<bool?>("ilx_includeexecutivesummary") ?? false;
-
-                if (!includeExec)
-                {
-                    _logger.LogInformation("Skipping AI Insights — disabled on run.");
-                    return;
-                }
-                
-
                 // Build shared context
                 var fullText = string.Join("\n\n",
                     docs.Select(d =>
