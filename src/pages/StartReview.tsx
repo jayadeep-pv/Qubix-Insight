@@ -7,7 +7,7 @@ import { getAccessToken } from "../services/tokenHelper";
 import { getAppConfig } from "../appConfig";
 import { useNavigate, useLocation } from "react-router-dom";
 import AiSettingsPanel from "../components/AiSettingsPanel";
-import { configApi } from "../services/configApi";
+import { configApi, triggerLoginRedirect } from "../services/configApi";
 import { PageBreadcrumb } from "../components/PageBreadcrumb";
 import {
   AttributeReviewTable, ClassifyStage, ConfirmStage,
@@ -144,7 +144,12 @@ function parseFriendlyError(raw: string): string {
     return "The document contains content that was flagged by the AI safety system and could not be processed. If you believe this is incorrect, please contact your administrator.";
   if (r.includes("quota") || r.includes("rate limit") || r.includes("too many requests"))
     return "The service is temporarily busy. Please wait a moment and try again. If the problem persists, contact your administrator.";
-  if (r.includes("unauthorized") || r.includes("401") || r.includes("403") || r.includes("forbidden"))
+  if (r.includes("unauthorized") || r.includes("401")) {
+    // Session expired — redirect rather than show a static message
+    triggerLoginRedirect();
+    return "Your session has expired. Redirecting you to the login page…";
+  }
+  if (r.includes("403") || r.includes("forbidden"))
     return "You do not have permission to perform this action. Please contact your administrator.";
   if (r.includes("file too large") || r.includes("payload too large") || r.includes("413"))
     return "The document is too large to process. Please try a smaller file or contact your administrator for assistance.";
@@ -268,8 +273,11 @@ function StartReview() {
     }
   }, [accounts, instance]);
 
-  const getToken = (): Promise<string | null> =>
-    getAccessToken(instance, instance.getActiveAccount() ?? accounts[0], inProgress);
+  const getToken = async (): Promise<string | null> => {
+    const token = await getAccessToken(instance, instance.getActiveAccount() ?? accounts[0], inProgress);
+    if (!token) triggerLoginRedirect();
+    return token;
+  };
 
   /* ── Loaders ── */
   const loadDocumentTypes = async () => {

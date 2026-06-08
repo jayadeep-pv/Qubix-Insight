@@ -83,21 +83,29 @@ apiClient.interceptors.request.use(async (config) => {
   return config;
 });
 
+/**
+ * Triggers a login redirect when a session has expired or a 401 is received.
+ * Safe to call from raw fetch() handlers as well as the axios interceptor —
+ * the _loginRedirectInFlight flag prevents cascading redirects.
+ */
+export function triggerLoginRedirect(): void {
+  if (_loginRedirectInFlight) return;
+  _loginRedirectInFlight = true;
+  const auth = resolveActiveAuth();
+  if (auth) {
+    auth.instance.acquireTokenRedirect({ ...auth.request, account: auth.account });
+  } else {
+    msalInstance.loginRedirect(loginRequest);
+  }
+}
+
 // Catch 401s from the backend and redirect to login (once).
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       console.error("[Auth] 401 from backend:", error.response?.data);
-      if (!_loginRedirectInFlight) {
-        _loginRedirectInFlight = true;
-        const auth = resolveActiveAuth();
-        if (auth) {
-          auth.instance.acquireTokenRedirect({ ...auth.request, account: auth.account });
-        } else {
-          msalInstance.loginRedirect(loginRequest);
-        }
-      }
+      triggerLoginRedirect();
     }
     return Promise.reject(error);
   }

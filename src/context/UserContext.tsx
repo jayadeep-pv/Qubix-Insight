@@ -122,7 +122,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const idClaims = (auth.account.idTokenClaims ?? {}) as Record<string, any>;
         const nameFromIdToken =
           [idClaims["given_name"], idClaims["family_name"]].filter(Boolean).join(" ") ||
-          idClaims["name"] || "";
+          idClaims["name"] ||
+          auth.account.name ||                              // MSAL account display name
+          auth.account.username?.split("@")[0] || "";       // email prefix as last resort
 
         const response = await axios.get(
           `${getAppConfig().apiBase}/GetCurrentUser`,

@@ -11,7 +11,7 @@ import "react-pdf/dist/Page/TextLayer.css";
 import { LayoutDashboard, FileText, Sparkles, ChevronDown, Download, BarChart2 } from "lucide-react";
 import { PageBreadcrumb } from "../components/PageBreadcrumb";
 import ChatTab from "../components/ChatTab";
-import { configApi } from "../services/configApi";
+import { configApi, triggerLoginRedirect } from "../services/configApi";
 import PageLoading from "../components/PageLoading";
 
 
@@ -586,6 +586,10 @@ const sendChatQuestion = async () => {
         );
 
         
+        if (response.status === 401) {
+          triggerLoginRedirect();
+          return;
+        }
         if (!response.ok) {
           throw new Error(await response.text());
         }
@@ -715,9 +719,14 @@ const sendChatQuestion = async () => {
         catch (insErr) {
           console.warn("Failed to load AI insight rows:", insErr);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error(err);
-        setError("Unable to load comparison results.");
+        const msg = err?.message ?? "";
+        if (msg.includes("401") || msg.toLowerCase().includes("unauthorized")) {
+          triggerLoginRedirect();
+        } else {
+          setError("Unable to load comparison results.");
+        }
       } finally {
         setLoading(false);
       }
