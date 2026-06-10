@@ -72,7 +72,7 @@ public class GetMyInsights
         var query = new QueryExpression("ilx_analysisrun")
         {
             ColumnSet = new ColumnSet(
-                "ilx_name",
+                "ilx_runid",
                 "createdon",
                 "ilx_runstatus",
                 "ilx_executedbyemail",
@@ -165,7 +165,7 @@ public class GetMyInsights
         {
             id = r.Id,
 
-            runName = r.GetAttributeValue<string>("ilx_name"),
+            runName = r.GetAttributeValue<string>("ilx_runid"),
 
             insightName = r.Contains("cmp.ilx_name")
                 ? ((AliasedValue)r["cmp.ilx_name"]).Value?.ToString()

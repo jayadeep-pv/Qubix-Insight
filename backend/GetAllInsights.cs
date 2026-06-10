@@ -48,7 +48,7 @@ public class GetAllInsights
         var query = new QueryExpression("ilx_analysisrun")
         {
             ColumnSet = new ColumnSet(
-                "ilx_name",
+                "ilx_runid",
                 "createdon",
                 "ilx_runstatus",
                 "ilx_executedbyemail",
@@ -120,7 +120,7 @@ public class GetAllInsights
         {
             id = r.Id,
 
-            runName = r.GetAttributeValue<string>("ilx_name"),
+            runName = r.GetAttributeValue<string>("ilx_runid"),
 
             insightName =
                 r.Contains("cmp.ilx_name")
