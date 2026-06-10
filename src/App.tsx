@@ -91,21 +91,36 @@ function App() {
 
   const handleLogout = async () => {
     const extId = getExternalIdInstance();
-    if (extId && extId.getAllAccounts().length > 0) {
-      setExtIdAuthenticated(false);
-      const extAccount = extId.getActiveAccount() ?? extId.getAllAccounts()[0];
-      await extId.logoutRedirect({
-        account: extAccount,
-        logoutHint: extAccount.username,
-        postLogoutRedirectUri: window.location.origin,
-      });
-    } else {
-      const mainAccount = instance.getActiveAccount() ?? accounts[0];
-      await instance.logoutRedirect({
-        account: mainAccount,
-        logoutHint: mainAccount?.username,
-        postLogoutRedirectUri: window.location.origin,
-      });
+    // Only treat as External ID session when the account actually came from ciamlogin.com.
+    // Without this filter getAllAccounts() can return stale Azure AD accounts from
+    // localStorage and the wrong MSAL instance attempts logout → authority_mismatch.
+    const extAccounts = extId
+      ? extId.getAllAccounts().filter(a => a.environment?.includes("ciamlogin.com"))
+      : [];
+
+    try {
+      if (extId && extAccounts.length > 0) {
+        setExtIdAuthenticated(false);
+        const extAccount = extId.getActiveAccount() ?? extAccounts[0];
+        await extId.logoutRedirect({
+          account: extAccount,
+          logoutHint: extAccount.username,
+          postLogoutRedirectUri: window.location.origin,
+        });
+      } else {
+        const mainAccount = instance.getActiveAccount() ?? accounts[0];
+        await instance.logoutRedirect({
+          account: mainAccount ?? undefined,
+          postLogoutRedirectUri: window.location.origin,
+        });
+      }
+    } catch (err) {
+      // Fallback: clear MSAL cache and reload to the login page.
+      // Handles authority_mismatch or other redirect errors (e.g. localhost dev).
+      console.warn("[Auth] logoutRedirect failed, clearing cache:", err);
+      sessionStorage.clear();
+      localStorage.clear();
+      window.location.href = window.location.origin;
     }
   };
 
