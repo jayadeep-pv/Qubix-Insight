@@ -45,16 +45,16 @@ public class UploadAndStartComparison
     {
         _logger.LogInformation("=== UploadAndStartComparison START ===");
 
-        var aadTenantId = JwtTenantExtractor.GetAadTenantId(req);
+        var jwtUserInfo = JwtTenantExtractor.GetUserInfo(req);
 
-        if (string.IsNullOrWhiteSpace(aadTenantId))
+        if (jwtUserInfo is null || string.IsNullOrWhiteSpace(jwtUserInfo.TenantId))
         {
             var bad = req.CreateResponse(System.Net.HttpStatusCode.Unauthorized);
             await bad.WriteStringAsync("Unable to determine tenant from Bearer token.");
             return bad;
         }
 
-        var tenant = _tenantResolver.ResolveTenant(aadTenantId);
+        var tenant = _tenantResolver.ResolveTenant(jwtUserInfo.TenantId);
 
         try
         {
@@ -63,17 +63,16 @@ public class UploadAndStartComparison
              * ========================================================= */
             var form = await MultipartFormDataParser.ParseAsync(req.Body);
 
-            var userEmail = req.Headers.TryGetValues("x-user-email", out var emailValues)
-                ? emailValues.FirstOrDefault()
-                : null;
+            // Prefer JWT claims — guarantees the stored email always matches what
+            // GetMyInsights filters on. Headers are kept as fallback.
+            var userEmail = jwtUserInfo.Email
+                ?? (req.Headers.TryGetValues("x-user-email", out var emailValues) ? emailValues.FirstOrDefault() : null);
 
-            var userName = req.Headers.TryGetValues("x-user-name", out var nameValues)
-                ? nameValues.FirstOrDefault()
-                : null;
+            var userName = jwtUserInfo.Name
+                ?? (req.Headers.TryGetValues("x-user-name", out var nameValues) ? nameValues.FirstOrDefault() : null);
 
-            var userAadId = req.Headers.TryGetValues("x-user-id", out var idValues)
-                ? idValues.FirstOrDefault()
-                : null;
+            var userAadId = jwtUserInfo.Oid
+                ?? (req.Headers.TryGetValues("x-user-id", out var idValues) ? idValues.FirstOrDefault() : null);
 
             if (form.Files == null || form.Files.Count == 0)
                 throw new Exception("No files uploaded");

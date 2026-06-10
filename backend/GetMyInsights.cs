@@ -30,31 +30,38 @@ public class GetMyInsights
         [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
             {
 
-                var aadTenantId = JwtTenantExtractor.GetAadTenantId(req);
+                var userInfo = JwtTenantExtractor.GetUserInfo(req);
 
-                if (string.IsNullOrWhiteSpace(aadTenantId))
+                if (userInfo is null || string.IsNullOrWhiteSpace(userInfo.TenantId))
                 {
                     var bad = req.CreateResponse(System.Net.HttpStatusCode.Unauthorized);
                     await bad.WriteStringAsync("Unable to determine tenant from Bearer token.");
                     return bad;
                 }
 
-                var tenant = _tenantResolver.ResolveTenant(aadTenantId);
+                var tenant = _tenantResolver.ResolveTenant(userInfo.TenantId);
 
         var service = _tenantDataverseService.CreateClient(tenant.DataverseUrl);
 
         /* ======================================
-           Get User Email From Header
+           Resolve user email from JWT — consistent with GetCurrentUser and the
+           email stored in ilx_executedbyemail during UploadAndStartComparison.
+           Falls back to x-user-email header for backwards-compatibility.
         ====================================== */
 
-        var userEmail = req.Headers.TryGetValues("x-user-email", out var emailValues)
-            ? emailValues.FirstOrDefault()
-            : null;
+        var userEmail = userInfo.Email;
 
-        if (string.IsNullOrEmpty(userEmail))
+        if (string.IsNullOrWhiteSpace(userEmail))
+        {
+            userEmail = req.Headers.TryGetValues("x-user-email", out var emailValues)
+                ? emailValues.FirstOrDefault()
+                : null;
+        }
+
+        if (string.IsNullOrWhiteSpace(userEmail))
         {
             var bad = req.CreateResponse(HttpStatusCode.BadRequest);
-            await bad.WriteStringAsync("User email missing");
+            await bad.WriteStringAsync("Unable to determine user email from token.");
             return bad;
         }
 
