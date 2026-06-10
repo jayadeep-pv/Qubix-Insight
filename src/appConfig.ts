@@ -12,6 +12,15 @@ let _config: AppConfig | null = null;
 
 export async function loadAppConfig(): Promise<AppConfig> {
   if (_config) return _config;
+  // config.local.json is gitignored — use it to override apiBase for local dev
+  // without touching the committed config.json.
+  try {
+    const local = await fetch("/config.local.json");
+    if (local.ok) {
+      _config = await local.json();
+      return _config!;
+    }
+  } catch { /* not present — fall through */ }
   const res = await fetch("/config.json");
   if (!res.ok) throw new Error(`Failed to load /config.json: ${res.status}`);
   _config = await res.json();

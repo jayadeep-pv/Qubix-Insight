@@ -1,3 +1,15 @@
 {
-  "version": "2.0"
+  "version": "2.0",
+  "extensions": {
+    "http": {
+      "routePrefix": "api"
+    }
+  },
+  "cors": {
+    "allowedOrigins": [
+      "http://localhost:3000",
+      "https://localhost:3000"
+    ],
+    "supportCredentials": true
+  }
 }
