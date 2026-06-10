@@ -57,6 +57,9 @@ public class CreateTemplateAttribute
         [JsonPropertyName("isMandatory")]
         public bool IsMandatory { get; set; }
 
+        [JsonPropertyName("enableAiInsight")]
+        public bool EnableAiInsight { get; set; } = true;
+
         [JsonPropertyName("usageMode")]
         public int? UsageMode { get; set; }
 
@@ -119,7 +122,8 @@ public class CreateTemplateAttribute
             if (data.DisplayOrder.HasValue)
                 entity["ilx_displayorder"] = data.DisplayOrder.Value;
 
-            entity["ilx_ismandatory"] = data.IsMandatory;
+            entity["ilx_ismandatory"]    = data.IsMandatory;
+            entity["ilx_enableaiinsight"] = data.EnableAiInsight;
 
             if (data.UsageMode.HasValue)
                 entity["ilx_usagemode"] = new OptionSetValue(data.UsageMode.Value);

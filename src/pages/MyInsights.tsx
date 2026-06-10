@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { configApi } from "../services/configApi";
-import { useMsal } from "@azure/msal-react";
 import { useNavigate } from "react-router-dom";
+import { useUser } from "../context/UserContext";
 import { ChevronUp, ChevronDown, ChevronsUpDown, Zap } from "lucide-react";
 import { PageBreadcrumb } from "../components/PageBreadcrumb";
 
@@ -22,7 +22,7 @@ interface InsightRow {
 }
 
 const MyInsights: React.FC = () => {
-  const { instance } = useMsal();
+  const { userEmail } = useUser();
   const navigate = useNavigate();
 
   const [rows, setRows] = useState<InsightRow[]>([]);
@@ -32,12 +32,11 @@ const MyInsights: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  useEffect(() => { loadMyInsights(); }, []);
+  useEffect(() => { if (userEmail) loadMyInsights(); }, [userEmail]);
 
   async function loadMyInsights() {
     try {
-      const account = instance.getActiveAccount();
-      const data = await configApi.getMyInsights(account?.username || "");
+      const data = await configApi.getMyInsights(userEmail);
       setRows(
         (data || []).map((r: any) => ({
           id: r.id,

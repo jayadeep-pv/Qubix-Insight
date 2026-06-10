@@ -140,6 +140,7 @@ export function AttributeReviewTable({
         <div>Data Type</div>
         <div>Category</div>
         <div>Sample Value</div>
+        <div style={{textAlign:"center"}}>AI Insight</div>
         <div></div>
       </div>
 
@@ -186,6 +187,16 @@ export function AttributeReviewTable({
             placeholder="Sample value"
             aria-label="Sample Value"
           />
+          <div style={{display:"flex",justifyContent:"center",alignItems:"center"}}>
+            <input
+              type="checkbox"
+              className="tbs-ai-cb"
+              checked={attr.enableAiInsight ?? true}
+              onChange={(e) => onUpdate(i, "enableAiInsight", e.target.checked)}
+              title="Enable AI Insight for this attribute"
+              aria-label="Enable AI Insight"
+            />
+          </div>
           <button className="tbs-delete-btn" onClick={() => onRemove(i)} title="Remove">🗑</button>
         </div>
       ))}
@@ -362,15 +373,16 @@ interface ConfirmStageProps {
   loading:           boolean;
   status:            string;
   error:             string;
-  onBack:   () => void;
-  onSave:   () => void;
+  onBack:            () => void;
+  onSave:            () => void;
+  onUpdateAttribute?: (index: number, field: string, value: any) => void;
 }
 
 export function ConfirmStage({
   classifyMode, documentTypes, selectedDocTypeId,
   newDocTypeName, newDocTypeDesc, templateName, templateVersion,
   enableAiInsight, attributes, categories,
-  loading, status, error, onBack, onSave,
+  loading, status, error, onBack, onSave, onUpdateAttribute,
 }: ConfirmStageProps) {
   return (
     <>
@@ -421,6 +433,7 @@ export function ConfirmStage({
               <div className="tbs-confirm-head">
                 <div>#</div><div>Field Name</div><div>Description</div>
                 <div>Data Type</div><div>Category</div><div>Sample Value</div>
+                <div>AI Insight</div>
               </div>
               {attributes.map((attr, i) => {
                 const matchedCat = categories.find(
@@ -441,6 +454,16 @@ export function ConfirmStage({
                       }
                     </div>
                     <div className="tbs-cs">{attr.SampleValue ?? attr.sampleValue ?? "—"}</div>
+                    <div className="tbs-cai">
+                      <input
+                        type="checkbox"
+                        className="tbs-ai-cb"
+                        checked={attr.enableAiInsight ?? true}
+                        onChange={(e) => onUpdateAttribute && onUpdateAttribute(i, "enableAiInsight", e.target.checked)}
+                        disabled={!onUpdateAttribute}
+                        title={onUpdateAttribute ? "Toggle AI Insight" : undefined}
+                      />
+                    </div>
                   </div>
                 );
               })}
@@ -592,6 +615,7 @@ export function useTemplateSave() {
           expectedDataType: DATA_TYPE_OPTION_MAP[attr.dataType] ?? DATA_TYPE_OPTION_MAP["Text"] ?? 857270001,
           displayOrder:     i + 1,
           isMandatory:      attr.isMandatory ?? false,
+          enableAiInsight:  attr.enableAiInsight ?? true,
           templateId,
         });
       }
@@ -630,13 +654,13 @@ export const TEMPLATE_BUILDER_STYLES = `
   /* ── ATTRIBUTE REVIEW TABLE ── */
   .tbs-attr-header, .tbs-attr-row {
     display:grid;
-    grid-template-columns:1.2fr 2fr 1fr 1.2fr 1.5fr 44px;
+    grid-template-columns:1.2fr 2fr 1fr 1.2fr 1.5fr 52px 44px;
     gap:8px; align-items:center;
   }
   .tbs-attr-header { font-weight:600; font-size:12px; color:#374151; border-bottom:1px solid #e5e7eb; padding-bottom:8px; margin-bottom:4px; }
   .tbs-attr-row { margin-bottom:6px; }
-  .tbs-attr-row input, .tbs-attr-row select { width:100%; min-width:0; height:32px; padding:0 8px; font-size:13px; border:1px solid #d1d5db; border-radius:6px; background:#fff; }
-  .tbs-attr-row input:focus, .tbs-attr-row select:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 2px rgba(37,99,235,0.15); }
+  .tbs-attr-row input:not([type="checkbox"]), .tbs-attr-row select { width:100%; min-width:0; height:32px; padding:0 8px; font-size:13px; border:1px solid #d1d5db; border-radius:6px; background:#fff; }
+  .tbs-attr-row input:not([type="checkbox"]):focus, .tbs-attr-row select:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 2px rgba(37,99,235,0.15); }
   .tbs-delete-btn { background:none; border:none; cursor:pointer; font-size:15px; color:#9ca3af; transition:color 0.15s; }
   .tbs-delete-btn:hover { color:#ef4444; }
   .tbs-empty { color:#9ca3af; font-style:italic; font-size:13px; padding:10px 0; }
@@ -690,7 +714,7 @@ export const TEMPLATE_BUILDER_STYLES = `
   .tbs-badge--new { background:#dbeafe; color:#1d4ed8; }
   .tbs-badge--existing { background:#d1fae5; color:#065f46; }
   .tbs-confirm-scroll { overflow-x:auto; border:0.5px solid #e5e7eb; border-radius:8px; }
-  .tbs-confirm-table { display:table; width:100%; min-width:680px; border-collapse:collapse; }
+  .tbs-confirm-table { display:table; width:100%; min-width:800px; border-collapse:collapse; }
   .tbs-confirm-head { display:table-row; background:#f3f4f6; }
   .tbs-confirm-head > div { display:table-cell; padding:8px 11px; font-size:11px; font-weight:700; color:#374151; white-space:nowrap; border-bottom:1px solid #e5e7eb; }
   .tbs-confirm-row { display:table-row; }
@@ -702,6 +726,10 @@ export const TEMPLATE_BUILDER_STYLES = `
   .tbs-confirm-head > div:nth-child(4), .tbs-confirm-row > div:nth-child(4) { width:80px; white-space:nowrap; }
   .tbs-confirm-head > div:nth-child(5), .tbs-confirm-row > div:nth-child(5) { width:160px; max-width:160px; white-space:nowrap; overflow:hidden; }
   .tbs-confirm-head > div:nth-child(6), .tbs-confirm-row > div:nth-child(6) { width:140px; max-width:140px; font-style:italic; color:#6b7280; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tbs-confirm-head > div:nth-child(7), .tbs-confirm-row > div:nth-child(7) { width:72px; text-align:center; }
+  .tbs-cai { text-align:center; }
+  .tbs-ai-cb { width:15px; height:15px; cursor:pointer; accent-color:#f94b16; }
+  .tbs-ai-cb:disabled { cursor:default; accent-color:#9ca3af; }
   .tbs-ci { color:#9ca3af; font-size:11px; font-weight:600; }
   .tbs-cn { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .tbs-cd { font-size:12px; color:#6b7280; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }

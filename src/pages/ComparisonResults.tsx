@@ -13,6 +13,7 @@ import { PageBreadcrumb } from "../components/PageBreadcrumb";
 import ChatTab from "../components/ChatTab";
 import { configApi, triggerLoginRedirect } from "../services/configApi";
 import PageLoading from "../components/PageLoading";
+import { useUser } from "../context/UserContext";
 
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -216,6 +217,7 @@ function hasValidAiInsight(attr: AttributeValue) {
 export default function ComparisonResults() {
   const { runId } = useParams();
   const { instance, accounts } = useMsal();
+  const { isTrial } = useUser();
 
   const [mode, setMode] = useState<"Compare" | "Scoring" | "Summarise">("Compare");
   const [runName, setRunName] = useState<string>("");
@@ -308,9 +310,13 @@ export default function ComparisonResults() {
     a.click();
     a.remove();
     window.URL.revokeObjectURL(url);
-  } catch (err) {
+  } catch (err: any) {
     console.error(err);
-    alert("Export failed");
+    if (err?.response?.status === 403) {
+      alert("PDF export is not available on trial accounts. Please upgrade to export reports.");
+    } else {
+      alert("Export failed. Please try again.");
+    }
   } finally {
     setPdfExporting(false);
   }
@@ -1069,7 +1075,9 @@ const pdfViewer = pdfUrl ? (
           { label: "Summarise Results" },
         ]}
         actions={
-          <button type="button" className="btn btn-secondary" onClick={handleExportPdf} title="Export to PDF">
+          <button type="button" className="btn btn-secondary" onClick={handleExportPdf}
+            title={isTrial ? "PDF export is not available on trial accounts" : "Export to PDF"}
+            disabled={isTrial}>
             <Download size={15} />
             <span>Download PDF</span>
           </button>
@@ -1541,7 +1549,9 @@ return (
           { label: "Comparison Results" },
         ]}
         actions={
-          <button type="button" className="btn btn-secondary" onClick={handleExportPdf} title="Export to PDF">
+          <button type="button" className="btn btn-secondary" onClick={handleExportPdf}
+            title={isTrial ? "PDF export is not available on trial accounts" : "Export to PDF"}
+            disabled={isTrial}>
             <Download size={15} />
             <span>Download PDF</span>
           </button>

@@ -1125,7 +1125,7 @@ function StartReview() {
                     setExtractedAttributes(all.slice(0,Math.min(extractedAttributes.length,all.length)));
                     setDiscoveredAttributes(all.slice(Math.min(extractedAttributes.length,all.length)));
                   }}
-                  onAdd={()=>setExtractedAttributes(prev=>[...prev,{AttributeName:"",Description:"",dataType:"Text",category:"",SampleValue:""}])}
+                  onAdd={()=>setExtractedAttributes(prev=>[...prev,{AttributeName:"",Description:"",dataType:"Text",category:"",SampleValue:"",enableAiInsight:true}])}
                 />
               </div>
 
@@ -1222,6 +1222,16 @@ function StartReview() {
               loading={extractSave.loading}
               status={extractSave.status}
               error={extractSave.error}
+              onUpdateAttribute={(i, f, v) => {
+                const all = [...extractedAttributes, ...discoveredAttributes.map(a => ({
+                  ...a,
+                  dataType: a.dataType ?? (a.SuggestedDataType === "String" ? "Text" : (a.SuggestedDataType ?? "Text")),
+                  category: a.category ?? a.Category ?? "",
+                }))];
+                all[i] = { ...all[i], [f]: v };
+                setExtractedAttributes(all.slice(0, extractedAttributes.length));
+                setDiscoveredAttributes(all.slice(extractedAttributes.length));
+              }}
               onBack={() => { extractSave.setError(""); setExtractStage("classify"); }}
               onSave={async () => {
                 const allAttrs = [...extractedAttributes, ...discoveredAttributes.map(a => ({

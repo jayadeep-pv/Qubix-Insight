@@ -72,7 +72,8 @@ public class GetMyInsights
                 "ilx_executedbyuser",
                 "ilx_analysis",
                 "ilx_documenttype",
-                "ilx_mode"
+                "ilx_mode",
+                "statecode"
             ),
 
             TopCount = 1000
@@ -109,6 +110,7 @@ public class GetMyInsights
         ====================================== */
 
         query.Criteria.AddCondition("ilx_executedbyemail", ConditionOperator.Equal, userEmail);
+        query.Criteria.AddCondition("statecode", ConditionOperator.LessThan, 2); // include Active (0) and Inactive (1)
         TenantQueryHelper.AddTenantFilter(query, tenant.TenantRecordId.ToString());
         query.AddOrder("createdon", OrderType.Descending);
 
@@ -168,6 +170,8 @@ public class GetMyInsights
                     : null,
 
             documentCount = docCounts.TryGetValue(r.Id, out var cnt) ? cnt : 0,
+
+            isActive = (r.GetAttributeValue<OptionSetValue>("statecode")?.Value ?? 0) == 0,
 
             createdBy = r.GetAttributeValue<string>("ilx_executedbyuser"),
 

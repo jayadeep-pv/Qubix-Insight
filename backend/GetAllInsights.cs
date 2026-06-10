@@ -55,7 +55,8 @@ public class GetAllInsights
                 "ilx_executedbyuser",
                 "ilx_documenttype",
                 "ilx_analysis",
-                "ilx_mode"
+                "ilx_mode",
+                "statecode"
             ),
             TopCount = 1000
         };
@@ -72,6 +73,7 @@ public class GetAllInsights
         comparisonLink.Columns = new ColumnSet("ilx_name");
         comparisonLink.EntityAlias = "cmp";
 
+        query.Criteria.AddCondition("statecode", ConditionOperator.LessThan, 2); // include Active (0) and Inactive (1)
         TenantQueryHelper.AddTenantFilter(query, tenant.TenantRecordId.ToString());
         query.AddOrder("createdon", OrderType.Descending);
 
@@ -127,6 +129,8 @@ public class GetAllInsights
 
             documentType =
                 r.GetAttributeValue<EntityReference>("ilx_documenttype")?.Name,
+
+            isActive = (r.GetAttributeValue<OptionSetValue>("statecode")?.Value ?? 0) == 0,
 
             documentCount = docCounts.TryGetValue(r.Id, out var cnt) ? cnt : 0,
 
