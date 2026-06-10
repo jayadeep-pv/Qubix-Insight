@@ -436,22 +436,22 @@ TenantQueryHelper.AddTenantFilter(docQuery, tenant.TenantRecordId.ToString());
 
 var docEntities = service.RetrieveMultiple(docQuery).Entities;
 
-var blobBaseUrl = Environment.GetEnvironmentVariable("Qubix_BlobBaseUrl");
+var blobServiceClient = BlobHelper.CreateServiceClient();
 
-if (string.IsNullOrWhiteSpace(blobBaseUrl))
-    throw new Exception("BlobBaseUrl missing");
-
-var blobServiceClient = new BlobServiceClient(
-    new Uri(blobBaseUrl),
-    new DefaultAzureCredential());
-
-// Fetch delegation key once for all documents (valid 60 min)
-var delegationKey = await blobServiceClient.GetUserDelegationKeyAsync(
-    new Azure.Storage.Blobs.Models.BlobGetUserDelegationKeyOptions(
-        DateTimeOffset.UtcNow.AddMinutes(60))
-    {
-        StartsOn = DateTimeOffset.UtcNow.AddMinutes(-5)
-    });
+// User-delegation key is only needed when the client uses DefaultAzureCredential
+// (Managed Identity in Azure). Locally with a connection string the blob client
+// can generate SAS tokens directly via account-key credentials.
+Azure.Response<Azure.Storage.Blobs.Models.UserDelegationKey>? delegationKey = null;
+var testBlob = blobServiceClient.GetBlobContainerClient("_").GetBlobClient("_");
+if (!testBlob.CanGenerateSasUri)
+{
+    delegationKey = await blobServiceClient.GetUserDelegationKeyAsync(
+        new Azure.Storage.Blobs.Models.BlobGetUserDelegationKeyOptions(
+            DateTimeOffset.UtcNow.AddMinutes(60))
+        {
+            StartsOn = DateTimeOffset.UtcNow.AddMinutes(-5)
+        });
+}
 
 foreach (var d in docEntities)
 {
@@ -466,21 +466,32 @@ foreach (var d in docEntities)
             .GetBlobContainerClient(containerName)
             .GetBlobClient(blobPath);
 
-        var sasBuilder = new BlobSasBuilder
+        if (blobClient.CanGenerateSasUri)
         {
-            BlobContainerName = containerName,
-            BlobName          = blobPath,
-            Resource          = "b",
-            StartsOn          = DateTimeOffset.UtcNow.AddMinutes(-5),
-            ExpiresOn         = DateTimeOffset.UtcNow.AddMinutes(60)
-        };
-        sasBuilder.SetPermissions(BlobSasPermissions.Read);
+            // Local dev path: account-key SAS via connection string
+            documentUrl = blobClient.GenerateSasUri(
+                BlobSasPermissions.Read,
+                DateTimeOffset.UtcNow.AddMinutes(60)).ToString();
+        }
+        else
+        {
+            // Production path: user-delegation SAS via Managed Identity
+            var sasBuilder = new BlobSasBuilder
+            {
+                BlobContainerName = containerName,
+                BlobName          = blobPath,
+                Resource          = "b",
+                StartsOn          = DateTimeOffset.UtcNow.AddMinutes(-5),
+                ExpiresOn         = DateTimeOffset.UtcNow.AddMinutes(60)
+            };
+            sasBuilder.SetPermissions(BlobSasPermissions.Read);
 
-        var sasToken = sasBuilder.ToSasQueryParameters(
-            delegationKey.Value,
-            blobServiceClient.AccountName);
+            var sasToken = sasBuilder.ToSasQueryParameters(
+                delegationKey!.Value,
+                blobServiceClient.AccountName);
 
-        documentUrl = $"{blobClient.Uri}?{sasToken}";
+            documentUrl = $"{blobClient.Uri}?{sasToken}";
+        }
     }
 
     documentDtos.Add(new DocumentDto

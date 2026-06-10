@@ -1349,14 +1349,7 @@ private async Task<byte[]> GetDocumentBytesAsync(Entity doc, string containerNam
     if (string.IsNullOrWhiteSpace(containerName))
         throw new Exception("Container name missing");
 
-    var blobBaseUrl = Environment.GetEnvironmentVariable("Qubix_BlobBaseUrl");
-
-    if (string.IsNullOrWhiteSpace(blobBaseUrl))
-        throw new Exception("BlobBaseUrl missing");
-
-    var blobService = new BlobServiceClient(
-        new Uri(blobBaseUrl),
-        new DefaultAzureCredential());
+    var blobService = BlobHelper.CreateServiceClient();
 
     var container = blobService.GetBlobContainerClient(containerName);
 

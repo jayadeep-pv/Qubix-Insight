@@ -133,14 +133,7 @@ public class UploadAndStartComparison
             * 4. Blob setup (TENANT-AWARE)
             * ========================================================= */
 
-            var blobBaseUrl = Environment.GetEnvironmentVariable("Qubix_BlobBaseUrl");
-
-            if (string.IsNullOrWhiteSpace(blobBaseUrl))
-                throw new Exception("BlobBaseUrl missing");
-
-            var blobService = new BlobServiceClient(
-                new Uri(blobBaseUrl),
-                new DefaultAzureCredential());
+            var blobService = BlobHelper.CreateServiceClient();
 
             // ✅ THEN get container using tenant
             var container = blobService.GetBlobContainerClient(tenant.BlobContainerName);
