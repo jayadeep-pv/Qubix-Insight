@@ -92,26 +92,25 @@ export default function LoginPage({ onLogin, onTrialLogin, onTrialSignIn, loadin
                 <div className="login-separator">or</div>
 
                 <div className="login-trial-teaser">
-                  <p className="login-trial-teaser-title">New to Qubix Insight?</p>
-                  <p className="login-trial-teaser-sub">
-                    30 days free · No credit card · Any work email
-                  </p>
                   <button
                     type="button"
                     className="login-trial-btn"
                     onClick={() => setShowForm(true)}
                     disabled={loading}
                   >
-                    Register for free trial
+                    Start Free Trial
                   </button>
-                  <button
-                    type="button"
-                    className="login-trial-signin"
-                    onClick={() => onTrialSignIn?.()}
-                    disabled={loading}
-                  >
-                    Already registered? <strong>Sign in to trial</strong>
-                  </button>
+                  <p className="login-trial-teaser-sub">30 days free · No credit card · Any work email</p>
+                  {onTrialSignIn && (
+                    <button
+                      type="button"
+                      className="login-trial-signin"
+                      onClick={() => onTrialSignIn?.()}
+                      disabled={loading}
+                    >
+                      Sign In
+                    </button>
+                  )}
                 </div>
               </>
             )}
@@ -218,7 +217,9 @@ export default function LoginPage({ onLogin, onTrialLogin, onTrialSignIn, loadin
 
       {/* ── Right panel — feature network ── */}
       <div className="login-hero">
-        <p className="login-hero-tagline">Document intelligence, connected</p>
+        <p className="login-hero-tagline">
+          <span className="login-hero-tagline-accent">AI-Powered</span> Document Intelligence
+        </p>
         <FeatureNetwork />
         <p className="login-hero-footer">Secure · Multi-tenant · Enterprise-ready</p>
       </div>
@@ -239,84 +240,84 @@ function MicrosoftLogo() {
 }
 
 function FeatureNetwork() {
-  const cx = 280, cy = 250;
-  const R  = 152;
+  const cx = 280, cy = 265;
+  const R  = 178;
 
-  // 6 satellite nodes at 60° intervals starting from top
   const nodes = [
-    { angle: 270, label: "AI Insights",      sub: "Smart extraction",   color: "#a78bfa" },
-    { angle: 330, label: "Compare",          sub: "Side-by-side",       color: "#60a5fa" },
-    { angle:  30, label: "Scoring",          sub: "Ranked results",     color: "#fbbf24" },
-    { angle:  90, label: "Summarise",        sub: "Key highlights",     color: "#34d399" },
-    { angle: 150, label: "Quick Scan",       sub: "Instant analysis",   color: "#818cf8" },
-    { angle: 210, label: "Risk Analysis",    sub: "Flag & comply",      color: "#f87171" },
+    { angle: 270, label: "AI Insights",   sub: "Smart extraction", color: "#a78bfa" },
+    { angle: 330, label: "Compare",       sub: "Side-by-side",     color: "#60a5fa" },
+    { angle:  30, label: "Scoring",       sub: "Ranked results",   color: "#fbbf24" },
+    { angle:  90, label: "Summarise",     sub: "Key highlights",   color: "#34d399" },
+    { angle: 150, label: "Quick Scan",    sub: "Instant analysis", color: "#818cf8" },
+    { angle: 210, label: "Risk Analysis", sub: "Flag & comply",    color: "#f87171" },
   ].map(n => {
     const rad = (n.angle * Math.PI) / 180;
     return { ...n, x: cx + R * Math.cos(rad), y: cy + R * Math.sin(rad) };
   });
 
   return (
-    <svg viewBox="0 0 560 500" className="login-network-svg" aria-hidden="true">
+    <svg viewBox="0 0 560 530" className="login-network-svg" aria-hidden="true">
       <defs>
-        {/* subtle glow filter for center node */}
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="6" result="blur" />
+        <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="7" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+        <filter id="nodeGlow" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="4" result="blur" />
           <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
         </filter>
       </defs>
 
-      {/* ── Ring connections between adjacent nodes ── */}
+      {/* ── Ring connections ── */}
       {nodes.map((n, i) => {
         const next = nodes[(i + 1) % nodes.length];
         return (
           <line key={`ring-${i}`}
             x1={n.x} y1={n.y} x2={next.x} y2={next.y}
-            stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+            stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
         );
       })}
 
-      {/* ── Spoke lines from center to each node ── */}
+      {/* ── Spokes ── */}
       {nodes.map((n, i) => (
         <line key={`spoke-${i}`}
           x1={cx} y1={cy} x2={n.x} y2={n.y}
-          stroke="rgba(255,255,255,0.1)" strokeWidth="1"
-          strokeDasharray="4 4" />
+          stroke="rgba(255,255,255,0.14)" strokeWidth="1"
+          strokeDasharray="4 5" />
       ))}
 
       {/* ── Satellite nodes ── */}
       {nodes.map((n, i) => (
-        <g key={i} transform={`translate(${n.x},${n.y})`}>
+        <g key={i} transform={`translate(${n.x},${n.y})`} filter="url(#nodeGlow)">
           {/* outer glow ring */}
-          <circle r="40" fill="none" stroke={n.color} strokeWidth="1" strokeOpacity="0.2" />
+          <circle r="64" fill="none" stroke={n.color} strokeWidth="1.5" strokeOpacity="0.25" />
           {/* filled circle */}
-          <circle r="34" fill={n.color} fillOpacity="0.1" stroke={n.color} strokeWidth="1.2" strokeOpacity="0.5" />
+          <circle r="54" fill={n.color} fillOpacity="0.2" stroke={n.color} strokeWidth="2" strokeOpacity="0.85" />
           {/* label */}
-          <text y="-6" textAnchor="middle"
-            fill="white" fontSize="10.5" fontWeight="600"
-            fontFamily="'DM Sans', sans-serif" opacity="0.92">
+          <text y="-9" textAnchor="middle"
+            fill="white" fontSize="15" fontWeight="800"
+            fontFamily="'DM Sans', sans-serif">
             {n.label}
           </text>
-          <text y="9" textAnchor="middle"
-            fill={n.color} fontSize="9" fontWeight="500"
-            fontFamily="'DM Sans', sans-serif" opacity="0.75">
+          <text y="13" textAnchor="middle"
+            fill="white" fontSize="12.5" fontWeight="500"
+            fontFamily="'DM Sans', sans-serif" opacity="0.78">
             {n.sub}
           </text>
-          {/* dot in center */}
-          <circle r="3.5" fill={n.color} fillOpacity="0.7" />
+          <circle r="4.5" fill={n.color} fillOpacity="0.9" />
         </g>
       ))}
 
       {/* ── Centre node ── */}
       <g transform={`translate(${cx},${cy})`} filter="url(#glow)">
-        <circle r="56" fill="rgba(250,70,22,0.08)" stroke="rgba(250,70,22,0.3)" strokeWidth="1.5" />
-        <circle r="42" fill="rgba(250,70,22,0.15)" stroke="#FA4616" strokeWidth="1.5" strokeOpacity="0.6" />
-        {/* Layers icon paths drawn manually */}
-        <polygon points="0,-10 10,-5 0,0 -10,-5" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="1.5" strokeLinejoin="round" />
-        <polyline points="-10,-1 0,4 10,-1" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5" strokeLinejoin="round" />
-        <polyline points="-10,3 0,8 10,3" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" strokeLinejoin="round" />
-        <text y="24" textAnchor="middle"
-          fill="white" fontSize="11" fontWeight="700"
-          fontFamily="'Syne', sans-serif" letterSpacing="-0.3" opacity="0.9">
+        <circle r="66" fill="rgba(250,70,22,0.1)" stroke="rgba(250,70,22,0.35)" strokeWidth="1.5" />
+        <circle r="52" fill="rgba(250,70,22,0.22)" stroke="#FA4616" strokeWidth="2" strokeOpacity="0.85" />
+        <polygon points="0,-12 12,-6 0,0 -12,-6" fill="none" stroke="rgba(255,255,255,0.95)" strokeWidth="1.8" strokeLinejoin="round" />
+        <polyline points="-12,-1 0,5 12,-1" fill="none" stroke="rgba(255,255,255,0.75)" strokeWidth="1.8" strokeLinejoin="round" />
+        <polyline points="-12,4 0,10 12,4" fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="1.8" strokeLinejoin="round" />
+        <text y="30" textAnchor="middle"
+          fill="white" fontSize="13.5" fontWeight="700"
+          fontFamily="'Syne', sans-serif" letterSpacing="-0.3">
           Qubix Insight
         </text>
       </g>
