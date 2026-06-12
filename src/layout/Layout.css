@@ -416,23 +416,26 @@
   color: white;
 }
 
-/* Collapse toggle button */
+/* Collapse toggle button — sits in the logo row, pushed to the right */
 .sidebar-collapse-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  padding: 6px 10px;
+  width: auto;
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 4px;
   border-radius: 6px;
   background: transparent;
-  color: rgba(255,255,255,0.25);
+  color: rgba(255,255,255,0.35);
   border: none;
   cursor: pointer;
-  font-family: 'DM Sans', sans-serif;
   transition: all 0.15s ease;
-  margin-top: 4px;
 }
-.sidebar-collapse-btn:hover { color: rgba(255,255,255,0.7); }
+.sidebar-collapse-btn:hover {
+  color: rgba(255,255,255,0.85);
+  background: rgba(255,255,255,0.08);
+}
 
 /* ── Icon-only sidebar ────────────────────────────────── */
 .sidebar.icon-only {
@@ -473,8 +476,7 @@
 }
 
 /* centre action buttons */
-.sidebar.icon-only .logout-btn,
-.sidebar.icon-only .sidebar-collapse-btn {
+.sidebar.icon-only .logout-btn {
   justify-content: center;
   padding: 8px 0;
   border: none;
