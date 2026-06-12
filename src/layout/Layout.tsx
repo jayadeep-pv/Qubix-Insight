@@ -13,8 +13,8 @@ import {
   Layers,
   Power,
   Search,
-  PanelLeftClose,
-  PanelLeftOpen,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useUser } from "../context/UserContext";
 
@@ -79,7 +79,7 @@ export default function Layout({ onLogout }: LayoutProps) {
           onClick={() => setIconOnly(v => !v)}
           title={iconOnly ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {iconOnly ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
+          {iconOnly ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
         </button>
 
         <nav>
