@@ -16,10 +16,10 @@ interface Props {
 }
 
 const DEFAULT_SUGGESTED = [
+  "Summarise this document",
   "Who are the parties involved?",
-  "Is there a break clause?",
-  "What are the key obligations?",
-  "Summarise the main risks",
+  "What are the key dates or deadlines?",
+  "What are the main points or conclusions?",
 ];
 
 function renderValue(value: unknown): React.ReactNode {
