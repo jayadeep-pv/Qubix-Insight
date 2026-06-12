@@ -2385,6 +2385,7 @@ return (
   </div>
   <div className="rr-chat-pane">
     <ChatTab
+      suggestedPrompts={suggestedPrompts}
       chatMessages={chatMessages}
       chatInput={chatInput}
       setChatInput={setChatInput}
