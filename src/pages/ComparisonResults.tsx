@@ -1282,14 +1282,14 @@ const pdfViewer = pdfUrl ? (
 
     {/* LEFT: ATTRIBUTE LIST */}
     <div className="attr-list-panel">
-      <div className="panel-header">
+      <div className="panel-header" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span>Quick Field View</span>
+          <span>Extracted Attributes</span>
           <span style={{ fontSize: 12, fontWeight: 500, color: "#9ca3af" }}>
             {filteredAttributes.length}{attrSearch ? ` of ${attributes.length}` : ""} fields
           </span>
         </div>
-        <div style={{ position: "relative", marginTop: 8 }}>
+        <div style={{ position: "relative" }}>
           <Search size={12} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: "#9ca3af", pointerEvents: "none" }} />
           <input
             type="text"
@@ -1959,14 +1959,14 @@ return (
 
             {/* LEFT: ATTRIBUTE LIST */}
             <div className="attr-list-panel">
-              <div className="panel-header">
+              <div className="panel-header" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span>Attribute Comparison</span>
                   <span style={{ fontSize: 12, fontWeight: 500, color: "#9ca3af" }}>
                     {filteredAttributes.length}{attrSearch ? ` of ${attributes.length}` : ""} fields
                   </span>
                 </div>
-                <div style={{ position: "relative", marginTop: 8 }}>
+                <div style={{ position: "relative" }}>
                   <Search size={12} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: "#9ca3af", pointerEvents: "none" }} />
                   <input
                     type="text"
