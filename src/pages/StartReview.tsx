@@ -5,6 +5,7 @@ import { AlertTriangle } from "lucide-react";
 
 import { getAccessToken } from "../services/tokenHelper";
 import { getAppConfig } from "../appConfig";
+import { getExternalIdInstance } from "../authConfig";
 import { useNavigate, useLocation } from "react-router-dom";
 import AiSettingsPanel from "../components/AiSettingsPanel";
 import { configApi, triggerLoginRedirect } from "../services/configApi";
@@ -200,13 +201,13 @@ function StartReview() {
 
   /* ── Current user ── */
   const getCurrentUser = () => {
+    // Try main Azure AD instance first; fall back to External ID for CIAM trial users.
     const account = instance.getActiveAccount();
-    if (!account) return null;
-    return {
-      email: account.username,
-      name: account.name,
-      aadObjectId: account.localAccountId,
-    };
+    if (account) return { email: account.username, name: account.name, aadObjectId: account.localAccountId };
+    const extId = getExternalIdInstance();
+    const extAccount = extId?.getActiveAccount() ?? extId?.getAllAccounts()[0];
+    if (extAccount) return { email: extAccount.username, name: extAccount.name, aadObjectId: extAccount.localAccountId };
+    return null;
   };
 
   /* ── Core state ── */
@@ -725,7 +726,12 @@ function StartReview() {
         }),
       });
 
-      if (!execRes.ok) throw new Error(await execRes.text() || `Execute failed (HTTP ${execRes.status})`);
+      if (!execRes.ok) {
+        // Log the issue but still navigate — the backend may have completed the run
+        // before the HTTP response failed (e.g. connection drop, infrastructure timeout).
+        // The results page will reflect the actual run state.
+        console.warn(`[SaveInsight] Execute returned ${execRes.status} — navigating to results anyway`);
+      }
 
       navigate(`/runs/${runRecordId}`);
     } catch (ex: any) {
