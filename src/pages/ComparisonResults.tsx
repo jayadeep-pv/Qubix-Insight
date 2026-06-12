@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
-import { LayoutDashboard, FileText, Sparkles, ChevronDown, Download, BarChart2 } from "lucide-react";
+import { LayoutDashboard, FileText, Sparkles, ChevronDown, Download, BarChart2, Search, X } from "lucide-react";
 import { PageBreadcrumb } from "../components/PageBreadcrumb";
 import ChatTab from "../components/ChatTab";
 import { configApi, triggerLoginRedirect } from "../services/configApi";
@@ -237,6 +237,7 @@ export default function ComparisonResults() {
   const [pdfExporting, setPdfExporting] = useState(false);
   const [expandedAttributes, setExpandedAttributes] = useState<string[]>([]);
   const [expandedAiAttributes, setExpandedAiAttributes] = useState<string[]>([]);
+  const [attrSearch, setAttrSearch] = useState("");
   const [error, setError] = useState("");
 
 
@@ -1063,6 +1064,10 @@ const pdfViewer = pdfUrl ? (
   const findingsHigh   = allKeyInsights.filter(k => (k?.Impact ?? k?.impact ?? "").toLowerCase() === "high").length;
   const findingsMedium = allKeyInsights.filter(k => (k?.Impact ?? k?.impact ?? "").toLowerCase() === "medium").length;
   const findingsLow    = allKeyInsights.filter(k => (k?.Impact ?? k?.impact ?? "").toLowerCase() === "low").length;
+  const filteredAttributes = attrSearch.trim()
+    ? attributes.filter(a => a.attributeName.toLowerCase().includes(attrSearch.toLowerCase()))
+    : attributes;
+
   const totalFields    = attributes.length;
   const extractedFields = attributes.filter(a =>
     a.values.some((v: any) => v.value && v.value.trim() !== "" && v.value !== "-")
@@ -1140,7 +1145,7 @@ const pdfViewer = pdfUrl ? (
                     ].map(tab => (
                     <div
                       key={tab.key}
-                      onClick={() => setActiveTab(tab.key as any)}
+                      onClick={() => { setActiveTab(tab.key as any); setAttrSearch(""); }}
                       className={`premium-tab${activeTab === tab.key ? " active" : ""}`}
                     >
                       {React.cloneElement(tab.icon, {
@@ -1278,14 +1283,36 @@ const pdfViewer = pdfUrl ? (
     {/* LEFT: ATTRIBUTE LIST */}
     <div className="attr-list-panel">
       <div className="panel-header">
-        <span>Quick Field View</span>
-        <span style={{ fontSize: 12, fontWeight: 500, color: "#9ca3af" }}>
-          {attributes.length} fields
-        </span>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span>Quick Field View</span>
+          <span style={{ fontSize: 12, fontWeight: 500, color: "#9ca3af" }}>
+            {filteredAttributes.length}{attrSearch ? ` of ${attributes.length}` : ""} fields
+          </span>
+        </div>
+        <div style={{ position: "relative", marginTop: 8 }}>
+          <Search size={12} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: "#9ca3af", pointerEvents: "none" }} />
+          <input
+            type="text"
+            placeholder="Search fields…"
+            value={attrSearch}
+            onChange={e => setAttrSearch(e.target.value)}
+            style={{ width: "100%", boxSizing: "border-box", paddingLeft: 26, paddingRight: attrSearch ? 26 : 8, paddingTop: 5, paddingBottom: 5, fontSize: 12, border: "1px solid #e5e7eb", borderRadius: 6, outline: "none", background: "#f9fafb", color: "#374151" }}
+          />
+          {attrSearch && (
+            <button onClick={() => setAttrSearch("")} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#9ca3af", padding: 0, display: "flex" }}>
+              <X size={12} />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="panel-body" onScroll={computeConnector}>
-        {attributes.map((attr) => {
+        {filteredAttributes.length === 0 && attrSearch && (
+          <div style={{ padding: "24px 16px", textAlign: "center", color: "#9ca3af", fontSize: 13 }}>
+            No fields match "{attrSearch}"
+          </div>
+        )}
+        {filteredAttributes.map((attr) => {
           const hasAiInsight = attr.values?.some(
             (v: any) =>
               v.attributeAiInsight &&
@@ -1655,7 +1682,7 @@ return (
 ].map(tab => (
     <div
       key={tab.key}
-      onClick={() => setActiveTab(tab.key as any)}
+      onClick={() => { setActiveTab(tab.key as any); setAttrSearch(""); }}
       className={`premium-tab${activeTab === tab.key ? " active" : ""}`}
     >
       {React.cloneElement(tab.icon, {
@@ -1933,14 +1960,36 @@ return (
             {/* LEFT: ATTRIBUTE LIST */}
             <div className="attr-list-panel">
               <div className="panel-header">
-                <span>Attribute Comparison</span>
-                <span style={{ fontSize: 12, fontWeight: 500, color: "#9ca3af" }}>
-                  {attributes.length} fields
-                </span>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span>Attribute Comparison</span>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: "#9ca3af" }}>
+                    {filteredAttributes.length}{attrSearch ? ` of ${attributes.length}` : ""} fields
+                  </span>
+                </div>
+                <div style={{ position: "relative", marginTop: 8 }}>
+                  <Search size={12} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: "#9ca3af", pointerEvents: "none" }} />
+                  <input
+                    type="text"
+                    placeholder="Search fields…"
+                    value={attrSearch}
+                    onChange={e => setAttrSearch(e.target.value)}
+                    style={{ width: "100%", boxSizing: "border-box", paddingLeft: 26, paddingRight: attrSearch ? 26 : 8, paddingTop: 5, paddingBottom: 5, fontSize: 12, border: "1px solid #e5e7eb", borderRadius: 6, outline: "none", background: "#f9fafb", color: "#374151" }}
+                  />
+                  {attrSearch && (
+                    <button onClick={() => setAttrSearch("")} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#9ca3af", padding: 0, display: "flex" }}>
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="panel-body" onScroll={computeConnector}>
-                {attributes.map((attr) => {
+                {filteredAttributes.length === 0 && attrSearch && (
+                  <div style={{ padding: "24px 16px", textAlign: "center", color: "#9ca3af", fontSize: 13 }}>
+                    No fields match "{attrSearch}"
+                  </div>
+                )}
+                {filteredAttributes.map((attr) => {
                   const isExpanded = expandedAttributes.includes(attr.attributeId);
                   const isSelected = selectedAttrId === attr.attributeId;
 
