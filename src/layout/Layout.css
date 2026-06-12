@@ -182,8 +182,8 @@
   background-size: 24px 24px;
 }
 
-/* all sidebar children sit above the grid texture — exclude the grid itself */
-.sidebar > *:not(.sidebar-grid) {
+/* all sidebar children sit above the grid texture — exclude grid and the collapse button */
+.sidebar > *:not(.sidebar-grid):not(.sidebar-collapse-btn) {
   position: relative;
   z-index: 1;
 }
