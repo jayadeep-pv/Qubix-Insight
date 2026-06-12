@@ -439,8 +439,8 @@
 
 /* ── Icon-only sidebar ────────────────────────────────── */
 .sidebar.icon-only {
-  width: 52px;
-  padding: 0 6px 12px;
+  width: 64px;
+  padding: 0 8px 16px;
 }
 
 /* hide all text labels */
@@ -453,17 +453,31 @@
   display: none;
 }
 
-/* centre the logo icon */
+/* centre the logo icon and float collapse button to top-right */
 .sidebar.icon-only .logo {
   justify-content: center;
   padding: 14px 0 12px;
 }
 
-/* centre all nav links */
+/* in icon-only, pull collapse button out of the flex flow and pin it top-right */
+.sidebar.icon-only .sidebar-collapse-btn {
+  position: absolute;
+  top: 10px;
+  right: 6px;
+  margin-left: 0;
+  padding: 3px;
+  opacity: 0.4;
+}
+.sidebar.icon-only .sidebar-collapse-btn:hover {
+  opacity: 1;
+  background: rgba(255,255,255,0.08);
+}
+
+/* centre all nav links with more vertical breathing room */
 .sidebar.icon-only a,
 .sidebar.icon-only .sidebar-support {
   justify-content: center;
-  padding: 8px 0;
+  padding: 10px 0;
 }
 
 /* remove left accent bar in icon mode */
@@ -472,20 +486,20 @@
 /* centre the user avatar */
 .sidebar.icon-only .sidebar-user {
   justify-content: center;
-  padding: 6px 0;
+  padding: 8px 0;
 }
 
 /* centre action buttons */
 .sidebar.icon-only .logout-btn {
   justify-content: center;
-  padding: 8px 0;
+  padding: 10px 0;
   border: none;
   background: transparent;
   width: 100%;
 }
 
-/* tighten group spacing */
+/* group spacing */
 .sidebar.icon-only .sidebar-group {
-  margin-top: 8px;
-  padding-top: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
 }
