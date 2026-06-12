@@ -4,6 +4,6 @@
   },
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/static/*", "/*.{css,js,mjs,ico,png,jpg,svg,woff,woff2,ttf,eot}", "/azure-ui/*"]
+    "exclude": ["/static/*", "/*.{css,js,mjs,ico,png,jpg,svg,woff,woff2,ttf,eot}"]
   }
 }
