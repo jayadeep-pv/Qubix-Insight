@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { Send, Bot } from "lucide-react";
+import { Send, BotMessageSquare } from "lucide-react";
 
 interface ChatMessage {
   role: "user" | "ai";
@@ -93,7 +93,7 @@ function BotAvatar({ size = 32 }: { size?: number }) {
       flexShrink: 0,
       boxShadow: "0 2px 8px rgba(250,70,22,0.3)",
     }}>
-      <Bot size={size * 0.5} color="#fff" />
+      <BotMessageSquare size={size * 0.5} color="#fff" />
     </div>
   );
 }
