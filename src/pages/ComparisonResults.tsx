@@ -1293,7 +1293,7 @@ const pdfViewer = pdfUrl ? (
           <Search size={12} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: "#9ca3af", pointerEvents: "none" }} />
           <input
             type="text"
-            placeholder="Search fields…"
+            placeholder="Search attributes…"
             value={attrSearch}
             onChange={e => setAttrSearch(e.target.value)}
             style={{ width: "100%", boxSizing: "border-box", paddingLeft: 26, paddingRight: attrSearch ? 26 : 8, paddingTop: 5, paddingBottom: 5, fontSize: 12, border: "1px solid #e5e7eb", borderRadius: 6, outline: "none", background: "#f9fafb", color: "#374151" }}
@@ -1970,7 +1970,7 @@ return (
                   <Search size={12} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: "#9ca3af", pointerEvents: "none" }} />
                   <input
                     type="text"
-                    placeholder="Search fields…"
+                    placeholder="Search attributes…"
                     value={attrSearch}
                     onChange={e => setAttrSearch(e.target.value)}
                     style={{ width: "100%", boxSizing: "border-box", paddingLeft: 26, paddingRight: attrSearch ? 26 : 8, paddingTop: 5, paddingBottom: 5, fontSize: 12, border: "1px solid #e5e7eb", borderRadius: 6, outline: "none", background: "#f9fafb", color: "#374151" }}
