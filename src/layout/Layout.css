@@ -419,8 +419,8 @@
 /* Collapse toggle — always pinned to top-right of the sidebar */
 .sidebar-collapse-btn {
   position: absolute;
-  top: 16px;
-  right: 12px;
+  top: 12px;
+  right: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
