@@ -40,6 +40,11 @@ public class UpdateTrialProfile
     {
         var userInfo = JwtTenantExtractor.GetUserInfo(req);
 
+        _logger.LogInformation(
+            "[UpdateTrialProfile] oid={Oid} tenantId={TenantId} issuer={Issuer} email={Email}",
+            userInfo?.Oid ?? "(null)", userInfo?.TenantId ?? "(null)",
+            userInfo?.Issuer ?? "(null)", userInfo?.Email ?? "(null)");
+
         if (userInfo?.Oid is null || userInfo.TenantId is null)
         {
             var bad = req.CreateResponse(HttpStatusCode.Unauthorized);

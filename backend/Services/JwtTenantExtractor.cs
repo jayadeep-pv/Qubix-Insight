@@ -51,6 +51,9 @@ public static class JwtTenantExtractor
 
             var tid    = root.TryGetProperty("tid",                out var t)   ? t.GetString()   : null;
             var oid    = root.TryGetProperty("oid",                out var o)   ? o.GetString()   : null;
+            // CIAM access tokens may omit 'oid' but always carry 'sub' (= user object ID in CIAM).
+            if (string.IsNullOrEmpty(oid))
+                oid = root.TryGetProperty("sub", out var sub) ? sub.GetString() : null;
             var issuer = root.TryGetProperty("iss",                out var i)   ? i.GetString()   : null;
             // email claim varies by token type: prefer 'upn' for AAD, 'email' for External ID
             var email  = root.TryGetProperty("upn",                out var upn) ? upn.GetString() :
