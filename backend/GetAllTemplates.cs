@@ -50,6 +50,7 @@ public class GetAllTemplates
                 "ilx_name",
                 "ilx_documenttype",
                 "ilx_templateaiprompt",
+                "ilx_suggestedprompts",
                 "ilx_aioutputstyle",
                 "ilx_version",
                 "ilx_isdefault",
@@ -86,6 +87,9 @@ public class GetAllTemplates
 
                 templateAiPrompt =
                     e.GetAttributeValue<string>("ilx_templateaiprompt"),
+
+                suggestedPrompts =
+                    e.GetAttributeValue<string>("ilx_suggestedprompts") ?? "",
 
                 aiOutputStyleId =
                     e.GetAttributeValue<OptionSetValue>("ilx_aioutputstyle")?.Value,

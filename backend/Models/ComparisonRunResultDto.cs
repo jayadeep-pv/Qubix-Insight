@@ -22,6 +22,7 @@ public class ComparisonRunResultDto
     public string RunName { get; set; }
     public string DocumentTypeName { get; set; }
     public string TemplateName { get; set; }
+    public string SuggestedPrompts { get; set; } = "";
 
 }
 

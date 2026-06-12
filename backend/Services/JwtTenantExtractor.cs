@@ -79,7 +79,13 @@ public static class JwtTenantExtractor
                 }
             }
 
-            return new JwtUserInfo(tid, oid, email, name, issuer, companyName);
+            // CIAM (External ID) users all share the same JWT tid — the ilogixidentity tenant GUID.
+            // Each trial user has their own ilx_tenantsetting keyed by their OID, so substitute
+            // OID as the effective tenant ID for all TenantResolverService lookups.
+            var isCiam = issuer?.IndexOf("ciamlogin.com", StringComparison.OrdinalIgnoreCase) >= 0;
+            var effectiveTenantId = (isCiam && oid != null) ? oid : tid;
+
+            return new JwtUserInfo(effectiveTenantId, oid, email, name, issuer, companyName);
         }
         catch
         {

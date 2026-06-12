@@ -53,13 +53,30 @@ public class UpdateTrialProfile
             var profile = JsonSerializer.Deserialize<ProfileRequest>(body ?? "{}",
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-            var tenant = _tenantResolver.ResolveTenant(userInfo.TenantId);
+            // Resolve the tenant for this user.
+            // For CIAM users, JwtTenantExtractor sets TenantId = OID so the lookup targets
+            // their personal ilx_tenantsetting row (keyed by OID in ilx_aadtenantid).
+            // On first sign-up that row does not exist yet — provision it now.
+            Guid tenantSettingId;
+            try
+            {
+                tenantSettingId = _tenantResolver.ResolveTenant(userInfo.TenantId!).TenantRecordId;
+            }
+            catch (Exception ex) when (ex.Message.Contains("Tenant not found or inactive"))
+            {
+                // New trial user — create their personal ilx_tenantsetting + blob container.
+                tenantSettingId = await _tenantUserService.ProvisionTrialTenantAsync(
+                    oid:         userInfo.Oid!,
+                    email:       userInfo.Email ?? "",
+                    companyName: profile?.CompanyName
+                );
+            }
 
             _tenantUserService.CreateOrUpdate(
                 oid:             userInfo.Oid,
                 email:           userInfo.Email,
                 displayName:     userInfo.Name,
-                tenantSettingId: tenant.TenantRecordId,
+                tenantSettingId: tenantSettingId,
                 firstName:       profile?.FirstName,
                 lastName:        profile?.LastName,
                 companyName:     profile?.CompanyName,

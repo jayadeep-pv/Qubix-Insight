@@ -11,6 +11,14 @@ const apiClient = axios.create();
 // One redirect at a time — prevents a cascade when multiple concurrent requests all get 401.
 let _loginRedirectInFlight = false;
 
+// Nuclear fallback when MSAL redirect fails (e.g. interaction_in_progress, network error).
+// Clears all MSAL auth state and reloads so App.tsx renders LoginPage.
+function _fallbackReload(): void {
+  sessionStorage.clear();
+  localStorage.clear();
+  window.location.reload();
+}
+
 /**
  * Resolves the active MSAL account and the instance that owns it.
  * Prefers the main Azure AD instance; falls back to External ID for trial users.
@@ -62,7 +70,8 @@ apiClient.interceptors.request.use(async (config) => {
     // Token missing or expired — force re-login
     if (!_loginRedirectInFlight) {
       _loginRedirectInFlight = true;
-      auth.instance.loginRedirect(auth.request);
+      setTimeout(() => { _loginRedirectInFlight = false; }, 10_000);
+      auth.instance.loginRedirect(auth.request).catch(_fallbackReload);
     }
     return config;
   }
@@ -74,9 +83,8 @@ apiClient.interceptors.request.use(async (config) => {
     config.headers["X-Aad-Tenant-Id"] = result.tenantId;
   } catch (error) {
     console.error("[Auth] acquireTokenSilent failed:", error);
-    if (error instanceof InteractionRequiredAuthError && !_loginRedirectInFlight) {
-      _loginRedirectInFlight = true;
-      auth.instance.acquireTokenRedirect({ ...auth.request, account: auth.account });
+    if (error instanceof InteractionRequiredAuthError) {
+      triggerLoginRedirect();
     }
   }
 
@@ -87,15 +95,32 @@ apiClient.interceptors.request.use(async (config) => {
  * Triggers a login redirect when a session has expired or a 401 is received.
  * Safe to call from raw fetch() handlers as well as the axios interceptor —
  * the _loginRedirectInFlight flag prevents cascading redirects.
+ *
+ * Uses full loginRedirect (not acquireTokenRedirect) so fully-expired sessions
+ * are handled reliably. Resets the flag after 10s so a failed/cancelled redirect
+ * does not permanently prevent future attempts.
+ * Falls back to clearing storage + reload if MSAL throws.
  */
 export function triggerLoginRedirect(): void {
   if (_loginRedirectInFlight) return;
   _loginRedirectInFlight = true;
-  const auth = resolveActiveAuth();
-  if (auth) {
-    auth.instance.acquireTokenRedirect({ ...auth.request, account: auth.account });
-  } else {
-    msalInstance.loginRedirect(loginRequest);
+
+  // Allow retries after 10 s in case the redirect was cancelled or failed silently
+  setTimeout(() => { _loginRedirectInFlight = false; }, 10_000);
+
+  try {
+    const auth = resolveActiveAuth();
+    // loginRedirect (full interactive) is more reliable than acquireTokenRedirect
+    // for sessions that are fully expired — the silent path can fail with no UI.
+    // .catch handles async failures (e.g. interaction_in_progress): clear storage
+    // and reload so App.tsx's !effectivelyAuthenticated path shows LoginPage.
+    if (auth) {
+      auth.instance.loginRedirect(auth.request).catch(_fallbackReload);
+    } else {
+      msalInstance.loginRedirect(loginRequest).catch(_fallbackReload);
+    }
+  } catch {
+    _fallbackReload();
   }
 }
 

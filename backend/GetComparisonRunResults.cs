@@ -83,6 +83,7 @@ public class GetComparisonRunResults
             string comparisonName    = null;
             string documentTypeName  = null;
             string templateName      = null;
+            string suggestedPrompts  = "";
 
             if (comparisonRef != null)
             {
@@ -106,8 +107,10 @@ public class GetComparisonRunResults
                 if (templateRef != null)
                 {
                     var template = service.Retrieve(
-                        "ilx_analysistemplate", templateRef.Id, new ColumnSet("ilx_name"));
+                        "ilx_analysistemplate", templateRef.Id,
+                        new ColumnSet("ilx_name", "ilx_suggestedprompts"));
                     templateName = template.GetAttributeValue<string>("ilx_name");
+                    suggestedPrompts = template.GetAttributeValue<string>("ilx_suggestedprompts") ?? "";
                 }
             }
 
@@ -526,8 +529,9 @@ foreach (var d in docEntities)
 
                     InsightName      = comparisonName,
                     RunName          = run.GetAttributeValue<string>("ilx_runid") ?? "",
-                    DocumentTypeName = documentTypeName,
-                    TemplateName     = templateName,
+                    DocumentTypeName  = documentTypeName,
+                    TemplateName      = templateName,
+                    SuggestedPrompts  = suggestedPrompts,
 
                     Candidates = candidateDtos,
                     Attributes = attributeDtos,

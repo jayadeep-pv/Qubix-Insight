@@ -224,8 +224,26 @@ function StartReview() {
   const [aiOptions, setAiOptions] = useState<string[]>(["executiveSummary", "attributeInsight"]);
 
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [comparisonRunId, setComparisonRunId] = useState<string | null>(null);
-  const [uploadComplete, setUploadComplete] = useState(false);
+
+  /* ── Scan progress ── */
+  const [scanning, setScanning]         = useState(false);
+  const [scanProgress, setScanProgress] = useState(0);
+  const [, setTick] = useState(0); // forces re-render for dot animation
+  useEffect(() => {
+    if (!scanning) return;
+    const t = setInterval(() => setTick(n => n + 1), 500);
+    return () => clearInterval(t);
+  }, [scanning]);
+  const [scanStageIdx, setScanStageIdx] = useState(0);
+  const scanProgressRef = useRef(0);
+  const scanTimerRef    = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const SCAN_STAGES = [
+    "Uploading document",
+    "Extracting attributes",
+    "Running AI profiles",
+    "Generating report",
+  ];
 
   /* ── Quick Extract specific state ── */
   const [extractedAttributes, setExtractedAttributes]       = useState<any[]>([]);
@@ -353,8 +371,8 @@ function StartReview() {
   /* ── Reset when switching modes ── */
   useEffect(() => {
     setUploadedFiles([]);
-    setUploadComplete(false);
-    setComparisonRunId(null);
+
+
     setExtractedAttributes([]);
     setExtractComplete(false);
     setStatus("");
@@ -394,8 +412,8 @@ function StartReview() {
       // Summarise / Extract: strict 1-document maximum
       setUploadedFiles([fileArray[0]]);
     }
-    setUploadComplete(false);
-    setComparisonRunId(null);
+
+
     setExtractedAttributes([]);
     setExtractComplete(false);
     setStatus("");
@@ -406,8 +424,8 @@ function StartReview() {
     const updated = [...uploadedFiles];
     updated.splice(index, 1);
     setUploadedFiles(updated);
-    setUploadComplete(false);
-    setComparisonRunId(null);
+
+
   };
 
   /* ── Validation ── */
@@ -501,19 +519,45 @@ function StartReview() {
     setLoading(false);
   };
 
-  /* ── Save as Template (Quick Extract exit path) ── */
+  /* ── Scan progress helpers ── */
+  const stageTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  /* ── Upload (Summarise / Compare) ── */
-  const startUpload = async () => {
+  const startProgressAnim = (to: number, durationMs: number) => {
+    const from = scanProgressRef.current;
+    const tickMs = 80;
+    const steps = Math.max(10, Math.ceil(durationMs / tickMs));
+    const stepSize = (to - from) / steps;
+    let step = 0;
+    if (scanTimerRef.current) clearInterval(scanTimerRef.current);
+    scanTimerRef.current = setInterval(() => {
+      step++;
+      const next = Math.min(from + stepSize * step, to);
+      scanProgressRef.current = next;
+      setScanProgress(Math.round(next));
+      if (step >= steps) { clearInterval(scanTimerRef.current!); scanTimerRef.current = null; }
+    }, tickMs);
+  };
+  const snapProgress = (pct: number) => {
+    if (scanTimerRef.current) { clearInterval(scanTimerRef.current); scanTimerRef.current = null; }
+    scanProgressRef.current = pct;
+    setScanProgress(pct);
+  };
+  const clearStageTimers = () => {
+    stageTimeoutsRef.current.forEach(t => clearTimeout(t));
+    stageTimeoutsRef.current = [];
+  };
+
+  /* ── Combined Start Analysis (replaces Upload + Generate Report) ── */
+  const startAnalysis = async () => {
     const err = validate();
     if (err) return setError(err);
-
     const token = await getToken();
     if (!token) return;
 
-    setLoading(true);
     setError("");
-    setStatus("Uploading documents…");
+    setScanning(true);
+    snapProgress(0);
+    setScanStageIdx(0);
 
     const formData = new FormData();
     formData.append("comparisonName", insightName);
@@ -522,11 +566,12 @@ function StartReview() {
     formData.append("mode", mode === "summarise" ? "Summarise" : mode === "compare-scoring" ? "Scoring" : "Compare");
     formData.append("aiScope", "Hybrid");
     uploadedFiles.forEach((file) => formData.append("files", file));
-
     const user = getCurrentUser();
 
     try {
-      const response = await fetch(UPLOAD_FUNCTION_URL(), {
+      // ── Stage 0: Upload (animate 0→30% while real upload runs) ──
+      startProgressAnim(30, 9000);
+      const uploadResp = await fetch(UPLOAD_FUNCTION_URL(), {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -536,64 +581,75 @@ function StartReview() {
         },
         body: formData,
       });
+      if (uploadResp.status === 401) { triggerLoginRedirect(); return; }
+      if (!uploadResp.ok) throw new Error(await uploadResp.text() || `HTTP ${uploadResp.status}`);
+      const { runRecordId } = await uploadResp.json();
 
-      if (!response.ok) throw new Error(await response.text() || `HTTP ${response.status}`);
+      // ── Stages 1–3: all timer-based, run concurrently with the execute fetch ──
+      // Timing tuned so extracting fills ~half the total run time (~60s):
+      //   Stage 1  Extracting attributes  0–30s  → 30→62%
+      //   Stage 2  Running AI profiles   30–50s  → 62→82%
+      //   Stage 3  Generating report     50–62s  → 82→95%  (execute finishes → 100%)
+      snapProgress(30); setScanStageIdx(1);
+      startProgressAnim(62, 30000);                                      // stage 1: 30s
 
-      const result = await response.json();
-      setComparisonRunId(result.runRecordId);
-      setUploadComplete(true);
-      setStatus("Upload complete. Ready to generate report.");
-    } catch (ex: any) {
-      setError(parseFriendlyError(ex?.message ?? ""));
-    }
+      stageTimeoutsRef.current.push(setTimeout(() => {
+        snapProgress(62); setScanStageIdx(2);
+        startProgressAnim(82, 20000);                                    // stage 2: 20s
+      }, 30000));
 
-    setLoading(false);
-  };
+      stageTimeoutsRef.current.push(setTimeout(() => {
+        snapProgress(82); setScanStageIdx(3);
+        startProgressAnim(95, 14000);                                    // stage 3: 14s
+      }, 50000));
 
-  /* ── Generate Report ── */
-  const executeReview = async () => {
-    const token = await getToken();
-    if (!token || !comparisonRunId) return;
+      // Create AI insight records (fire-and-forget alongside execute)
+      const includeExecutiveSummary = aiOptions.includes("executiveSummary");
+      const includeAttributeInsight = aiOptions.includes("attributeInsight");
+      if (selectedProfiles.length > 0) {
+        fetch(CREATE_INSIGHTS_URL(), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ comparisonRunId: runRecordId, selectedProfileIds: selectedProfiles }),
+        }).catch(() => {}); // non-critical — execute proceeds regardless
+      }
 
-    setLoading(true);
-    setStatus("Generating report…");
-    await new Promise((resolve) => setTimeout(resolve, 50));
-
-    const includeExecutiveSummary = aiOptions.includes("executiveSummary");
-    const includeAttributeInsight = aiOptions.includes("attributeInsight");
-
-    if (selectedProfiles.length > 0) {
-      await fetch(CREATE_INSIGHTS_URL(), {
+      const execResp = await fetch(EXECUTE_FUNCTION_URL(), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          "x-user-email": user?.email ?? "",
+          "x-user-name": user?.name ?? "",
+          "x-user-id": user?.aadObjectId ?? "",
         },
-        body: JSON.stringify({ comparisonRunId, selectedProfileIds: selectedProfiles }),
+        body: JSON.stringify({
+          comparisonRunId: runRecordId,
+          includeExecutiveSummary,
+          includeAttributeInsight,
+          includeScoring: mode === "compare-scoring",
+        }),
       });
+      if (execResp.status === 401) { clearStageTimers(); triggerLoginRedirect(); return; }
+
+      // ── Done ──
+      clearStageTimers();
+      setScanStageIdx(4);
+      snapProgress(100);
+      await new Promise(r => setTimeout(r, 700));
+      navigate(`/results/${runRecordId}`);
+
+    } catch (ex: any) {
+      clearStageTimers();
+      snapProgress(0);
+      setScanning(false);
+      setScanStageIdx(0);
+      setError(parseFriendlyError(ex?.message ?? ""));
     }
-
-    const user = getCurrentUser();
-
-    await fetch(EXECUTE_FUNCTION_URL(), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-        "x-user-email": user?.email ?? "",
-        "x-user-name": user?.name ?? "",
-        "x-user-id": user?.aadObjectId ?? "",
-      },
-      body: JSON.stringify({
-        comparisonRunId,
-        includeExecutiveSummary,
-        includeAttributeInsight,
-        includeScoring: mode === "compare-scoring",
-      }),
-    });
-
-    navigate(`/results/${comparisonRunId}`);
   };
+
+  /* ── Save as Template (Quick Extract exit path) ── */
+
 
   /* ── Save Quick Extract result as an Insight ── */
   const saveAsInsight = async () => {
@@ -990,46 +1046,19 @@ function StartReview() {
       {needsTemplate && (
         <div className="dc-card sr-action-card">
           {error && <ErrorPanel message={error} />}
-          {status && <div className="flow-status sr-action-msg">{status}</div>}
           <div className="action-flow-horizontal">
-            {!uploadComplete ? (
-              <button
-                type="button"
-                className="primary-btn"
-                onClick={startUpload}
-                disabled={
-                  loading ||
-                  uploadedFiles.length === 0 ||
-                  (isCompare && uploadedFiles.length < 2)
-                }
-              >
-                {loading ? "Uploading…" : isCompare ? "Upload Documents" : "Upload Document"}
-              </button>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  className="secondary-btn"
-                  onClick={() => {
-                    setUploadComplete(false);
-                    setComparisonRunId(null);
-                    setStatus("");
-                    setError("");
-                  }}
-                  disabled={loading}
-                >
-                  ← Re-upload
-                </button>
-                <button
-                  type="button"
-                  className={`primary-btn sr-action-btn--${mode}`}
-                  onClick={executeReview}
-                  disabled={loading}
-                >
-                  {loading ? "Generating…" : "Generate Report →"}
-                </button>
-              </>
-            )}
+            <button
+              type="button"
+              className="primary-btn"
+              onClick={startAnalysis}
+              disabled={
+                scanning ||
+                uploadedFiles.length === 0 ||
+                (isCompare && uploadedFiles.length < 2)
+              }
+            >
+              Start Analysis →
+            </button>
           </div>
         </div>
       )}
@@ -1326,16 +1355,82 @@ function StartReview() {
       )}
 
 
-      {loading && (
+      {(loading || scanning) && (
         <div className="page-loader-overlay">
           <div className={`sr-processing-card sr-processing-card--${mode}`}>
             <div className="sr-processing-mode-badge">
               {activeMeta.icon}
               {activeMeta.label}
             </div>
-            <div className="sr-processing-spinner" />
-            <div className="sr-processing-title">{status || "Processing…"}</div>
-            <div className="sr-processing-hint">This may take a moment</div>
+
+            {scanning ? (
+              /* ── Multi-stage progress ── */
+              <div style={{ width: "100%", marginTop: 8 }}>
+                {/* Progress bar */}
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
+                      {scanStageIdx < SCAN_STAGES.length ? SCAN_STAGES[scanStageIdx] : "Complete!"}
+                    </span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#FA4616" }}>
+                      {scanProgress}%
+                    </span>
+                  </div>
+                  <div style={{ height: 8, background: "#e2e8f0", borderRadius: 99, overflow: "hidden" }}>
+                    <div style={{
+                      height: "100%",
+                      width: `${scanProgress}%`,
+                      background: scanProgress === 100
+                        ? "linear-gradient(90deg,#16a34a,#22c55e)"
+                        : "linear-gradient(90deg,#FA4616,#f97316)",
+                      borderRadius: 99,
+                      transition: "width 0.4s ease",
+                    }} />
+                  </div>
+                </div>
+
+                {/* Stage list */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {SCAN_STAGES.map((stage, i) => {
+                    const done    = i < scanStageIdx || scanProgress === 100;
+                    const current = i === scanStageIdx && scanProgress < 100;
+                    return (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{
+                          width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 11, fontWeight: 700,
+                          background: done ? "#dcfce7" : current ? "#fff7ed" : "#f1f5f9",
+                          border: `2px solid ${done ? "#22c55e" : current ? "#FA4616" : "#e2e8f0"}`,
+                          color: done ? "#16a34a" : current ? "#FA4616" : "#94a3b8",
+                        }}>
+                          {done ? "✓" : current ? "⟳" : "○"}
+                        </div>
+                        <span style={{
+                          fontSize: 13,
+                          fontWeight: current ? 600 : 400,
+                          color: done ? "#16a34a" : current ? "#0f172a" : "#94a3b8",
+                        }}>
+                          {stage}
+                          {current && (
+                            <span style={{ color: "#FA4616" }}>
+                              {"·".repeat(Math.floor(Date.now() / 500) % 4 + 1)}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              /* ── Simple spinner (Quick Extract / other flows) ── */
+              <>
+                <div className="sr-processing-spinner" />
+                <div className="sr-processing-title">{status || "Processing…"}</div>
+                <div className="sr-processing-hint">This may take a moment</div>
+              </>
+            )}
           </div>
         </div>
       )}

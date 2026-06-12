@@ -362,6 +362,15 @@ public class UploadAndStartComparison
         BlobClient blobClient,
         int expiryMinutes)
     {
+        // Local dev: connection string gives account-key credentials — generate SAS directly.
+        if (blobClient.CanGenerateSasUri)
+        {
+            return blobClient.GenerateSasUri(
+                BlobSasPermissions.Read,
+                DateTimeOffset.UtcNow.AddMinutes(expiryMinutes)).ToString();
+        }
+
+        // Production: Managed Identity — use user-delegation key.
         var delegationKey = await serviceClient.GetUserDelegationKeyAsync(
             new Azure.Storage.Blobs.Models.BlobGetUserDelegationKeyOptions(
                 DateTimeOffset.UtcNow.AddMinutes(expiryMinutes))

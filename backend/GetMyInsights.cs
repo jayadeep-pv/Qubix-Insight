@@ -113,10 +113,17 @@ public class GetMyInsights
         docTypeLink.EntityAlias = "doctype";
 
         /* ======================================
-           Filter by User
+           Filter by User (email OR oid)
+           CIAM access tokens often omit the email claim so oid is the fallback.
         ====================================== */
 
-        query.Criteria.AddCondition("ilx_executedbyemail", ConditionOperator.Equal, userEmail);
+        var userFilter = new FilterExpression(LogicalOperator.Or);
+        if (!string.IsNullOrWhiteSpace(userEmail))
+            userFilter.AddCondition("ilx_executedbyemail", ConditionOperator.Equal, userEmail);
+        if (!string.IsNullOrWhiteSpace(userInfo.Oid))
+            userFilter.AddCondition("ilx_executedbyaadobjectid", ConditionOperator.Equal, userInfo.Oid);
+        query.Criteria.Filters.Add(userFilter);
+
         query.Criteria.AddCondition("statecode", ConditionOperator.LessThan, 2); // include Active (0) and Inactive (1)
         TenantQueryHelper.AddTenantFilter(query, tenant.TenantRecordId.ToString());
         query.AddOrder("createdon", OrderType.Descending);

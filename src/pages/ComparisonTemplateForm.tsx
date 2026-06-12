@@ -26,6 +26,7 @@ export default function ComparisonTemplateForm() {
   const [form, setForm] = useState({
     name: "",
     templateAiPrompt: "",
+    suggestedPrompts: "",
     documentTypeId: "",
     aiOutputStyleId: "",
     isDefault: false,
@@ -126,6 +127,7 @@ export default function ComparisonTemplateForm() {
       setForm({
         name: item.name ?? "",
         templateAiPrompt: item.templateAiPrompt ?? "",
+        suggestedPrompts: item.suggestedPrompts ?? "",
         documentTypeId: item.documentTypeId ?? "",
         aiOutputStyleId: item.aiOutputStyleId?.toString() ?? "",
         isDefault: item.isDefault ?? false,
@@ -159,6 +161,7 @@ export default function ComparisonTemplateForm() {
       await configApi.updateTemplate(id, {
         name: form.name,
         templateAiPrompt: form.templateAiPrompt,
+        suggestedPrompts: form.suggestedPrompts,
         documentTypeId: form.documentTypeId,
         aiOutputStyleId: form.aiOutputStyleId || null,
         isDefault: form.isDefault,
@@ -273,6 +276,19 @@ export default function ComparisonTemplateForm() {
               value={form.templateAiPrompt}
               onChange={e => setForm({ ...form, templateAiPrompt: e.target.value })}
             />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="suggestedPrompts">Qubix Bot — Suggested Questions</label>
+            <textarea
+              id="suggestedPrompts"
+              className="form-input"
+              rows={5}
+              placeholder={"One question per line, e.g.:\nWho are the parties involved?\nIs there a break clause?\nWhat are the key obligations?"}
+              value={form.suggestedPrompts}
+              onChange={e => setForm({ ...form, suggestedPrompts: e.target.value })}
+            />
+            <span className="form-hint">Each line becomes a suggestion chip in the chat panel.</span>
           </div>
 
           <div className="form-group">

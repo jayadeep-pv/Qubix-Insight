@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using QubixInsight.Models;
 using QubixInsight.Services;
 
 namespace QubixInsight.Functions;
@@ -49,7 +50,25 @@ public class GetCurrentUser
 
         try
         {
-            var tenant = _tenantResolver.ResolveTenant(userInfo.TenantId);
+            TenantSettings tenant;
+            try
+            {
+                tenant = _tenantResolver.ResolveTenant(userInfo.TenantId!);
+            }
+            catch (Exception ex) when (
+                ex.Message.Contains("Tenant not found or inactive") &&
+                userInfo.Issuer?.IndexOf("ciamlogin.com", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                // CIAM user whose personal ilx_tenantsetting hasn't been provisioned yet.
+                // UpdateTrialProfile (called from index.tsx after redirect) creates it —
+                // this can happen if that call is still in-flight or failed transiently.
+                // Return a minimal response so the frontend knows to wait/retry.
+                _logger.LogWarning("CIAM user {Oid} has no tenant record yet — UpdateTrialProfile may be pending.", userInfo.Oid);
+                var pending = req.CreateResponse(HttpStatusCode.OK);
+                pending.Headers.Add("Content-Type", "application/json");
+                await pending.WriteStringAsync(JsonSerializer.Serialize(new { isTrial = true, profileComplete = false }));
+                return pending;
+            }
 
             // Block personal email domains for trial accounts
             if (tenant.IsTrial)

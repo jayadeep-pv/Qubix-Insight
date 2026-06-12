@@ -1226,9 +1226,9 @@ private static bool TryParseDecimalSafe(object input, out decimal value)
             var runEntity = service.Retrieve(
                 "ilx_analysisrun",
                 runId,
-                new ColumnSet("ilx_name"));
+                new ColumnSet("ilx_runid"));
 
-            runName = runEntity.GetAttributeValue<string>("ilx_name") ?? runName;
+            runName = runEntity.GetAttributeValue<string>("ilx_runid") ?? runName;
         }
         catch
         {
@@ -1240,7 +1240,8 @@ private static bool TryParseDecimalSafe(object input, out decimal value)
             var attrAiSw = Stopwatch.StartNew();
 
             var attributeName = attr.GetAttributeValue<string>("ilx_name");
-            var expectation = attr.GetAttributeValue<string>("ilx_attributenarrative");
+            var expectation = attr.GetAttributeValue<string>("ilx_aiextractionhint")
+                          ?? attr.GetAttributeValue<string>("ilx_attributenarrative");
             var enableAiInsight = attr.GetAttributeValue<bool?>("ilx_enableaiinsight") ?? true;
 
             _logger.LogWarning($"➡️ Processing attribute: {attributeName}");

@@ -13,13 +13,15 @@ export async function getAccessToken(
   inProgress?: InteractionStatus
 ): Promise<string | null> {
   const extId = getExternalIdInstance();
+  const fallbackReload = () => { sessionStorage.clear(); localStorage.clear(); window.location.reload(); };
+
   if (extId && extId.getAllAccounts().length > 0) {
     const stored = sessionStorage.getItem("extid_token");
     const parsed = stored ? JSON.parse(stored) : null;
     if (parsed && (!parsed.expiresOn || new Date(parsed.expiresOn) > new Date())) {
       return parsed.accessToken;
     }
-    extId.loginRedirect({ scopes: ["openid", "profile", "email"] });
+    extId.loginRedirect({ scopes: ["openid", "profile", "email"] }).catch(fallbackReload);
     return null;
   }
 
@@ -30,7 +32,11 @@ export async function getAccessToken(
     const response = await instance.acquireTokenSilent({ ...loginRequest, account });
     return response.accessToken;
   } catch {
-    await instance.acquireTokenRedirect({ ...loginRequest, account });
+    try {
+      await instance.acquireTokenRedirect({ ...loginRequest, account });
+    } catch {
+      fallbackReload();
+    }
     return null;
   }
 }

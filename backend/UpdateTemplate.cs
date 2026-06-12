@@ -33,6 +33,7 @@ public class UpdateTemplate
         public JsonElement? AiOutputStyleId { get; set; }
         public string Version { get; set; }
         public bool IsActive { get; set; }
+        public string SuggestedPrompts { get; set; }
     }
 
     [Function("UpdateTemplate")]
@@ -86,6 +87,8 @@ public class UpdateTemplate
             entity["ilx_templateaiprompt"] = data.TemplateAiPrompt ?? "";
 
             entity["ilx_version"] = data.Version;
+
+            entity["ilx_suggestedprompts"] = data.SuggestedPrompts ?? "";
 
             if (data.AiOutputStyleId.HasValue)
             {

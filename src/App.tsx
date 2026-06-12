@@ -1,8 +1,8 @@
-import { useState, useEffect, type ReactNode } from "react";
+import React, { useState, useEffect, type ReactNode } from "react";
 import { useMsal, useIsAuthenticated } from "@azure/msal-react";
 import { InteractionStatus } from "@azure/msal-browser";
 import { loginRequest, trialLoginRequest, getExternalIdInstance } from "./authConfig";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useUser } from "./context/UserContext";
 import Layout from "./layout/Layout";
 import StartReview from "./pages/StartReview";
@@ -27,6 +27,17 @@ import AllInsights from "./pages/AllInsights";
 import HomePage from "./pages/HomePage";
 import TenantSettings from "./pages/TenantSettings";
 import SupportPage from "./pages/SupportPage";
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    // The main scroll container is .content (overflow:auto), not the window
+    const el = document.querySelector(".content") as HTMLElement | null;
+    if (el) el.scrollTop = 0;
+    else window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
 
 function TrialGuard({ children }: { children: ReactNode }) {
   const { isTrial, loading } = useUser();
@@ -153,8 +164,10 @@ function App() {
      AUTHENTICATED ROUTES
   ======================================================= */
   return (
-    <Routes>
-      <Route path="/" element={<Layout onLogout={handleLogout} />}>
+    <React.Fragment>
+      <ScrollToTop />
+      <Routes>
+        <Route path="/" element={<Layout onLogout={handleLogout} />}>
 
         {/* Default landing page */}
         <Route index element={<HomePage />} />
@@ -180,24 +193,24 @@ function App() {
 
         {/* List pages — trial users can view but not create/edit */}
         <Route path="document-types" element={<DocumentTypes />} />
-        <Route path="document-types/new" element={<TrialGuard><DocumentTypeForm /></TrialGuard>} />
-        <Route path="document-types/:id" element={<TrialGuard><DocumentTypeForm /></TrialGuard>} />
+        <Route path="document-types/new" element={<DocumentTypeForm />} />
+        <Route path="document-types/:id" element={<DocumentTypeForm />} />
 
         <Route path="/comparison-templates" element={<ComparisonTemplate />} />
-        <Route path="/comparison/new" element={<TrialGuard><ComparisonTemplateForm /></TrialGuard>} />
-        <Route path="/comparison/:id" element={<TrialGuard><ComparisonTemplateForm /></TrialGuard>} />
+        <Route path="/comparison/new" element={<ComparisonTemplateForm />} />
+        <Route path="/comparison/:id" element={<ComparisonTemplateForm />} />
 
         <Route path="/admin/template-attributes" element={<TemplateAttributes />} />
-        <Route path="/admin/template-attributes/new" element={<TrialGuard><TemplateAttributeForm /></TrialGuard>} />
-        <Route path="/admin/template-attributes/:id" element={<TrialGuard><TemplateAttributeForm /></TrialGuard>} />
+        <Route path="/admin/template-attributes/new" element={<TemplateAttributeForm />} />
+        <Route path="/admin/template-attributes/:id" element={<TemplateAttributeForm />} />
 
         <Route path="/admin/rules" element={<RulesList />} />
-        <Route path="/admin/rules/new" element={<TrialGuard><RuleForm /></TrialGuard>} />
-        <Route path="/admin/rules/:id" element={<TrialGuard><RuleForm /></TrialGuard>} />
+        <Route path="/admin/rules/new" element={<RuleForm />} />
+        <Route path="/admin/rules/:id" element={<RuleForm />} />
 
         <Route path="/admin/ai-insight-profiles" element={<AiInsightProfiles />} />
-        <Route path="/admin/ai-insight-profiles/new" element={<TrialGuard><AiInsightProfileForm /></TrialGuard>} />
-        <Route path="/admin/ai-insight-profiles/:id" element={<TrialGuard><AiInsightProfileForm /></TrialGuard>} />
+        <Route path="/admin/ai-insight-profiles/new" element={<AiInsightProfileForm />} />
+        <Route path="/admin/ai-insight-profiles/:id" element={<AiInsightProfileForm />} />
 
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/my-insights" element={<MyInsights />} />
@@ -211,7 +224,8 @@ function App() {
         <Route path="/support" element={<SupportPage />} />
 
       </Route>
-    </Routes>
+      </Routes>
+    </React.Fragment>
   );
 }
 

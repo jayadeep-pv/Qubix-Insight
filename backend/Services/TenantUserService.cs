@@ -1,7 +1,10 @@
+using Azure.Storage.Blobs;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.PowerPlatform.Dataverse.Client;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Query;
+using System.Text.RegularExpressions;
 
 namespace QubixInsight.Services;
 
@@ -24,10 +27,12 @@ public record TenantUserRecord(
 public class TenantUserService
 {
     private readonly IConfiguration _config;
+    private readonly ILogger<TenantUserService> _logger;
 
-    public TenantUserService(IConfiguration config)
+    public TenantUserService(IConfiguration config, ILogger<TenantUserService> logger)
     {
         _config = config;
+        _logger = logger;
     }
 
     private ServiceClient CreateClient()
@@ -131,6 +136,109 @@ public class TenantUserService
             entity.Id = existing.Id;
             svc.Update(entity);
         }
+    }
+
+    /// <summary>
+    /// Called on first CIAM sign-up. Creates a personal ilx_tenantsetting row for the trial
+    /// user (keyed by OID so TenantResolverService can find it) and provisions their blob
+    /// container in the shared storage account. Idempotent — safe to call twice.
+    /// </summary>
+    public async Task<Guid> ProvisionTrialTenantAsync(string oid, string email, string? companyName)
+    {
+        using var svc = CreateClient();
+
+        // Idempotency: if a record already exists for this OID, return its GUID.
+        var existing = svc.RetrieveMultiple(new QueryExpression("ilx_tenantsetting")
+        {
+            ColumnSet = new ColumnSet("ilx_tenantsettingid"),
+            Criteria  = { Conditions = { new ConditionExpression("ilx_aadtenantid", ConditionOperator.Equal, oid) } }
+        }).Entities.FirstOrDefault();
+
+        if (existing != null)
+            return existing.Id;
+
+        var storageAccount = _config["Qubix_StorageAccountName"] ?? "";
+        var trialTierValue = ResolveTrialTierOptionValue(svc);
+
+        // Build unique, URL-safe identifiers from the OID prefix.
+        var oidPrefix     = oid.Replace("-", "")[..8];
+        var slug          = SanitizeSlug(companyName ?? "trial");
+        var tenantKey     = $"{slug}-{oidPrefix}";        // ilx_tenantid  (primary name)
+        var containerName = $"trial-{oidPrefix}";         // blob container
+        var tenantName    = string.IsNullOrWhiteSpace(companyName)
+                            ? "Trial User"
+                            : $"{companyName} (Trial)";
+        var emailDomain   = email.Split('@').LastOrDefault() ?? "";
+
+        var entity = new Entity("ilx_tenantsetting");
+        entity["ilx_tenantid"]             = tenantKey;
+        entity["ilx_tenantname"]           = tenantName;
+        entity["ilx_aadtenantid"]          = oid;          // OID is the CIAM lookup key
+        entity["ilx_alloweddomains"]       = emailDomain;
+        entity["ilx_dataverseurl"]         = "";           // blank → TenantDataverseService uses Qubix_MainDataverseUrl
+        entity["ilx_storagecontainername"] = containerName;
+        entity["ilx_storageaccountname"]   = storageAccount;
+        entity["ilx_storagesassecretref"]  = "";
+        entity["ilx_subscriptiontier"]     = new OptionSetValue(trialTierValue);
+        entity["ilx_onboardeddate"]        = DateTime.UtcNow;
+        entity["ilx_isactive"]             = true;
+
+        var newId = svc.Create(entity);
+        _logger.LogInformation("Provisioned trial tenant {TenantKey} (container: {Container}) for OID {Oid}",
+            tenantKey, containerName, oid);
+
+        await EnsureBlobContainerAsync(containerName);
+
+        return newId;
+    }
+
+    /// <summary>
+    /// Reads the Trial subscription tier option-set integer from any existing Trial
+    /// ilx_tenantsetting record so we never hard-code a Dataverse-specific value.
+    /// Falls back to Qubix_TrialTierOptionValue config, then to 857270000.
+    /// </summary>
+    private int ResolveTrialTierOptionValue(ServiceClient svc)
+    {
+        var configured = _config["Qubix_TrialTierOptionValue"];
+        if (!string.IsNullOrWhiteSpace(configured) && int.TryParse(configured, out var parsed))
+            return parsed;
+
+        // Read from any existing Trial record — avoids hard-coding the Dataverse integer.
+        var q = new QueryExpression("ilx_tenantsetting")
+        {
+            ColumnSet  = new ColumnSet("ilx_subscriptiontier"),
+            TopCount   = 1,
+            Criteria   = { Conditions = { new ConditionExpression("ilx_isactive", ConditionOperator.Equal, true) } }
+        };
+        // Filter by formatted value not possible in QueryExpression; we read candidates and
+        // pick the first whose formatted value label is "Trial".
+        var records = svc.RetrieveMultiple(q).Entities;
+        foreach (var r in records)
+        {
+            if (r.FormattedValues.TryGetValue("ilx_subscriptiontier", out var label)
+                && label.Equals("Trial", StringComparison.OrdinalIgnoreCase))
+            {
+                return r.GetAttributeValue<OptionSetValue>("ilx_subscriptiontier")?.Value ?? 857270000;
+            }
+        }
+
+        _logger.LogWarning("Could not resolve Trial tier option value from Dataverse. " +
+            "Set Qubix_TrialTierOptionValue in app settings to avoid this lookup.");
+        return 857270000;
+    }
+
+    private static async Task EnsureBlobContainerAsync(string containerName)
+    {
+        var blobService = BlobHelper.CreateServiceClient();
+        var container   = blobService.GetBlobContainerClient(containerName);
+        await container.CreateIfNotExistsAsync();
+    }
+
+    private static string SanitizeSlug(string input)
+    {
+        var slug = Regex.Replace(input.ToLowerInvariant().Trim(), @"[^a-z0-9]+", "-").Trim('-');
+        if (slug.Length > 20) slug = slug[..20].TrimEnd('-');
+        return string.IsNullOrEmpty(slug) ? "trial" : slug;
     }
 
     public void UpdateLastLogin(string oid)

@@ -30,6 +30,7 @@ public class CreateTemplate
         public string AiOutputStyleId { get; set; }
         public bool IsActive { get; set; }
         public string Version { get; set; }
+        public string SuggestedPrompts { get; set; }
     }
 
     [Function("CreateTemplate")]
@@ -75,6 +76,9 @@ public class CreateTemplate
             entity["ilx_templateaiprompt"] = data.TemplateAiPrompt;
 
             entity["ilx_version"] = data.Version;
+
+            if (!string.IsNullOrWhiteSpace(data.SuggestedPrompts))
+                entity["ilx_suggestedprompts"] = data.SuggestedPrompts;
 
             if (!string.IsNullOrEmpty(data.AiOutputStyleId))
             {

@@ -224,6 +224,7 @@ export default function ComparisonResults() {
   const [comparisonName, setComparisonName] = useState<string>("");
   const [documentTypeName, setDocumentTypeName] = useState<string>("");
   const [templateName, setTemplateName] = useState<string>("");
+  const [suggestedPrompts, setSuggestedPrompts] = useState<string[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [attributes, setAttributes] = useState<AttributeValue[]>([]);
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
@@ -238,7 +239,6 @@ export default function ComparisonResults() {
   const [expandedAiAttributes, setExpandedAiAttributes] = useState<string[]>([]);
   const [error, setError] = useState("");
 
-  const [includeExecutiveSummary, setIncludeExecutiveSummary] = useState(true);
 
   const navigate = useNavigate();
 
@@ -513,14 +513,6 @@ export default function ComparisonResults() {
     return { executiveSummary, keyInsights, confidenceLevel };
   };
 
-  const isLikelyRunMetaSummary = (obj: any) => {
-    return (
-      obj &&
-      typeof obj === "object" &&
-      (obj.mode || obj.Mode) &&
-      (obj.documentsProcessed || obj.DocumentsProcessed || obj.documents)
-    );
-  };
 
 
 const sendChatQuestion = async () => {
@@ -625,11 +617,17 @@ const sendChatQuestion = async () => {
 
         console.log("Resolved Documents:", docs);
 
-        setIncludeExecutiveSummary(raw.includeExecutiveSummary ?? true);
-
         setComparisonName(raw.InsightName || "");
         setDocumentTypeName(raw.DocumentTypeName || "");
         setTemplateName(raw.TemplateName || "");
+        if (raw.SuggestedPrompts) {
+          setSuggestedPrompts(
+            (raw.SuggestedPrompts as string)
+              .split("\n")
+              .map((p: string) => p.trim())
+              .filter((p: string) => p.length > 0)
+          );
+        }
 
         console.log("RAW RESPONSE:", raw);
         console.log("SummaryJson:", raw.SummaryJson);
@@ -803,6 +801,14 @@ const sendChatQuestion = async () => {
     return () => clearTimeout(timer);
   }, [selectedAttrId, highlight, pageNumber, activeTab, computeConnector]);
 
+  // Scroll the layout content container to top once results finish loading
+  useEffect(() => {
+    if (!loading && attributes.length > 0) {
+      const el = document.querySelector(".content") as HTMLElement | null;
+      if (el) el.scrollTop = 0;
+    }
+  }, [loading]);
+
 
   /* =====================================================
      Helpers
@@ -812,24 +818,32 @@ const sendChatQuestion = async () => {
     (a, b) => b.totalScore - a.totalScore
   );
 
-  const formatValue = (attributeName: string, value?: string) => {
+  const formatValue = (attributeName: string, value?: string): string => {
     if (!value) return "-";
-
     const numeric = Number(value);
-
     if (!isNaN(numeric) && attributeName.toLowerCase().includes("price")) {
-      return new Intl.NumberFormat("en-GB", {
-        style: "currency",
-        currency: "GBP",
-        minimumFractionDigits: 0,
-      }).format(numeric);
+      return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", minimumFractionDigits: 0 }).format(numeric);
     }
-
-    if (!isNaN(numeric)) {
-      return new Intl.NumberFormat("en-GB").format(numeric);
-    }
-
+    if (!isNaN(numeric)) return new Intl.NumberFormat("en-GB").format(numeric);
     return value;
+  };
+
+  // Renders a value as a bulleted list when it's a JSON array, otherwise plain text.
+  const FormatValue = ({ name, value }: { name: string; value?: string }) => {
+    if (!value) return <span>—</span>;
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return (
+          <ul style={{ margin: "4px 0 0 0", paddingLeft: 16, display: "flex", flexDirection: "column", gap: 2 }}>
+            {parsed.map((item, i) => (
+              <li key={i} style={{ fontSize: "inherit", lineHeight: 1.5 }}>{String(item)}</li>
+            ))}
+          </ul>
+        );
+      }
+    } catch {}
+    return <span>{formatValue(name, value)}</span>;
   };
 
 
@@ -1071,7 +1085,7 @@ const pdfViewer = pdfUrl ? (
 
       <PageBreadcrumb
         items={[
-          { label: "My Insights", onClick: () => navigate("/my-insights") },
+          { label: "Back", onClick: () => navigate(-1) },
           { label: "Summarise Results" },
         ]}
         actions={
@@ -1325,7 +1339,7 @@ const pdfViewer = pdfUrl ? (
                     >
                       {documents.length > 1 && <span className="val-chip-label">{displayLabel}:</span>}
                       <span className="val-chip-value" style={isExpanded ? { whiteSpace: "normal", overflow: "visible", textOverflow: "unset" } : {}}>
-                        {formatValue(attr.attributeName, v.value) || "\u2014"}
+                        <FormatValue name={attr.attributeName} value={v.value} />
                       </span>
                     </span>
                   );
@@ -1335,12 +1349,16 @@ const pdfViewer = pdfUrl ? (
               {/* META ROW */}
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
                 {attr.riskLevel && (
-                  <span className={`badge badge-risk-${attr.riskLevel.toLowerCase()}`}>
-                    {attr.riskLevel} Risk
-                  </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+                    <span style={{ color: "#6b7280", fontWeight: 600 }}>Risk:</span>
+                    <span className={`badge badge-risk-${attr.riskLevel.toLowerCase()}`}>
+                      {attr.riskLevel}
+                    </span>
+                  </div>
                 )}
                 {attr.values?.[0]?.confidenceScore !== undefined && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 5, flex: 1, minWidth: 60 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, flex: 1, minWidth: 80 }}>
+                    <span style={{ fontSize: 12, color: "#6b7280", fontWeight: 600, flexShrink: 0 }}>Confidence:</span>
                     <div style={{ flex: 1, height: 3, background: "#f1f5f9", borderRadius: 2, overflow: "hidden" }}>
                       <div style={{
                         height: "100%",
@@ -1424,10 +1442,15 @@ const pdfViewer = pdfUrl ? (
 
 {activeTab === "ai" && (
   <div className="rr-tab-scroll">
-  <div className="results-card">
-    <h2>Attribute AI Insights</h2>
+  <div className="results-card" style={{ padding: 0 }}>
+    <div className="panel-header">
+      <span>Attribute AI Insights</span>
+      <span style={{ fontSize: 12, fontWeight: 500, color: "#9ca3af" }}>
+        {attributes.filter(a => hasValidAiInsight(a)).length} fields
+      </span>
+    </div>
 
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "12px 16px" }}>
       {attributes.map(attr => {
 
         const insight = attr.values
@@ -1437,6 +1460,10 @@ const pdfViewer = pdfUrl ? (
         if (!insight) return null;
 
         const ai = safeParseInsight(insight);
+
+        const confidenceScore = attr.values
+          ?.map(v => v.confidenceScore)
+          .find(s => s != null) ?? null;
 
         return (
           <div
@@ -1459,18 +1486,34 @@ const pdfViewer = pdfUrl ? (
             )}
 
             {ai?.description && (
-              <div style={{ marginTop: 4 }}>
+              <div style={{ marginTop: 4, fontSize: 13, color: "#374151", lineHeight: 1.6 }}>
                 {ai.description}
               </div>
             )}
 
-            {ai?.impact && (
-              <div style={{ marginTop: 6 }}>
-                <span className={`badge ${getRiskLevelClass(ai.impact)}`}>
-                  {ai.impact}
-                </span>
+            <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              {ai?.impact && (
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+                  <span style={{ color: "#6b7280", fontWeight: 600 }}>Impact:</span>
+                  <span className={`badge ${getRiskLevelClass(ai.impact)}`}>
+                    {ai.impact}
+                  </span>
+                </div>
+              )}
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+                <span style={{ color: "#6b7280", fontWeight: 600 }}>Confidence:</span>
+                {confidenceScore != null ? (
+                  <span style={{
+                    fontWeight: 700,
+                    color: confidenceScore >= 0.8 ? "#16a34a" : confidenceScore >= 0.5 ? "#d97706" : "#dc2626"
+                  }}>
+                    {Math.round(Number(confidenceScore) * 100)}%
+                  </span>
+                ) : (
+                  <span style={{ color: "#9ca3af", fontWeight: 600 }}>N/A</span>
+                )}
               </div>
-            )}
+            </div>
           </div>
         );
       })}
@@ -1501,6 +1544,7 @@ const pdfViewer = pdfUrl ? (
       </div>
       <div className="rr-chat-pane">
         <ChatTab
+          suggestedPrompts={suggestedPrompts}
           chatMessages={chatMessages}
           chatInput={chatInput}
           setChatInput={setChatInput}
@@ -1545,7 +1589,7 @@ return (
 
       <PageBreadcrumb
         items={[
-          { label: "My Insights", onClick: () => navigate("/my-insights") },
+          { label: "Back", onClick: () => navigate(-1) },
           { label: "Comparison Results" },
         ]}
         actions={
@@ -1796,7 +1840,7 @@ return (
                 <span>{c.label}</span>
 
                 <span>
-                  {formatValue(attr.attributeName, match?.value)}
+                  <FormatValue name={attr.attributeName} value={match?.value} />
 
                   {isWinner && (
                     <span className="badge badge-positive" style={{ marginLeft: 6 }}>
@@ -1938,7 +1982,7 @@ return (
                             >
                               {documents.length > 1 && <span className="val-chip-label">{displayLabel}:</span>}
                               <span className="val-chip-value" style={isExpanded ? { whiteSpace: "normal", overflow: "visible", textOverflow: "unset" } : {}}>
-                                {formatValue(attr.attributeName, v.value) || "\u2014"}
+                                <FormatValue name={attr.attributeName} value={v.value} />
                               </span>
                             </span>
                           );
@@ -1974,7 +2018,7 @@ return (
                                   {isWinner && <span className="badge badge-positive">Winner</span>}
                                 </div>
                                 <div style={{ marginTop: 4, fontSize: 14 }}>
-                                  {formatValue(attr.attributeName, v.value) || "—"}
+                                  <FormatValue name={attr.attributeName} value={v.value} />
                                 </div>
                                 <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
                                   {v.confidenceScore !== undefined && (
@@ -2252,7 +2296,7 @@ return (
 
                         {/* VALUE */}
                         <div style={{ marginBottom: 6 }}>
-                          {formatValue(attr.attributeName, match?.value)}
+                          <FormatValue name={attr.attributeName} value={match?.value} />
                         </div>
 
                         {/* META */}
