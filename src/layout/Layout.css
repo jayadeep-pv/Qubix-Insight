@@ -416,25 +416,27 @@
   color: white;
 }
 
-/* Collapse toggle button — sits in the logo row, pushed to the right */
+/* Collapse toggle — always pinned to top-right of the sidebar */
 .sidebar-collapse-btn {
+  position: absolute;
+  top: 16px;
+  right: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: auto;
-  margin-left: auto;
-  flex-shrink: 0;
-  padding: 4px;
+  width: 24px;
+  height: 24px;
   border-radius: 6px;
   background: transparent;
   color: rgba(255,255,255,0.35);
   border: none;
   cursor: pointer;
   transition: all 0.15s ease;
+  z-index: 2;
 }
 .sidebar-collapse-btn:hover {
   color: rgba(255,255,255,0.85);
-  background: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.1);
 }
 
 /* ── Icon-only sidebar ────────────────────────────────── */
@@ -457,20 +459,6 @@
 .sidebar.icon-only .logo {
   justify-content: center;
   padding: 14px 0 12px;
-}
-
-/* in icon-only, pull collapse button out of the flex flow and pin it top-right */
-.sidebar.icon-only .sidebar-collapse-btn {
-  position: absolute;
-  top: 10px;
-  right: 6px;
-  margin-left: 0;
-  padding: 3px;
-  opacity: 0.4;
-}
-.sidebar.icon-only .sidebar-collapse-btn:hover {
-  opacity: 1;
-  background: rgba(255,255,255,0.08);
 }
 
 /* centre all nav links with more vertical breathing room */

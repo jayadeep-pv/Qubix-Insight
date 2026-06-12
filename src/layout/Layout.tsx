@@ -63,22 +63,24 @@ export default function Layout({ onLogout }: LayoutProps) {
       <aside className={`sidebar${iconOnly ? " icon-only" : ""}`}>
         <div className="sidebar-grid" />
 
-        {/* Logo + collapse toggle */}
+        {/* Logo */}
         <div className="logo" title={iconOnly ? "Qubix Insight" : undefined}>
           <div className="logo-icon"><Layers size={16} /></div>
           <div className="logo-text">
             <span className="logo-name">Qubix Insight</span>
             <span className="logo-sub">iLogix Global</span>
           </div>
-          <button
-            type="button"
-            className="sidebar-collapse-btn"
-            onClick={() => setIconOnly(v => !v)}
-            title={iconOnly ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {iconOnly ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
-          </button>
         </div>
+
+        {/* Collapse toggle — absolutely pinned top-right in both modes */}
+        <button
+          type="button"
+          className="sidebar-collapse-btn"
+          onClick={() => setIconOnly(v => !v)}
+          title={iconOnly ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {iconOnly ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
+        </button>
 
         <nav>
           <NavLink to="/" end title={iconOnly ? "Home" : undefined}>
