@@ -1,11 +1,46 @@
 /* ============================================================
    Qubix Insight — Entra External ID Company Branding CSS
-   NOTE: External ID CIAM only allows body-level CSS.
-   All other branding (logo, colours, buttons) is configured
-   directly in the Azure Portal Company Branding UI settings.
+   Uses only simple element selectors — no @import, no
+   attribute selectors, no Microsoft internal class names.
    ============================================================ */
 
+/* Page background */
 body {
   background: linear-gradient(160deg, #f0f4ff 0%, #e8edf8 100%);
   font-family: -apple-system, 'Segoe UI', 'Helvetica Neue', sans-serif;
+}
+
+/* Primary action button (Sign in, Continue, Send code) */
+button {
+  background-color: #1e293b !important;
+  border-color: #1e293b !important;
+  color: #ffffff !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+}
+
+button:hover {
+  background-color: #0f172a !important;
+  border-color: #0f172a !important;
+}
+
+/* Input fields */
+input {
+  border-radius: 10px !important;
+  border-color: #b8c4d0 !important;
+  background-color: #f8fafc !important;
+}
+
+input:focus {
+  border-color: #1e293b !important;
+  outline: none !important;
+}
+
+/* Links (Forgot password, Create account) */
+a {
+  color: #FA4616 !important;
+}
+
+a:hover {
+  color: #c7340f !important;
 }
