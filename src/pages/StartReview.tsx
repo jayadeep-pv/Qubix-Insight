@@ -239,13 +239,6 @@ function StartReview() {
   const scanProgressRef = useRef(0);
   const scanTimerRef    = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const SCAN_STAGES = [
-    "Uploading document",
-    "Extracting attributes",
-    "Running AI profiles",
-    "Generating report",
-  ];
-
   /* ── Quick Extract specific state ── */
   const [extractedAttributes, setExtractedAttributes]       = useState<any[]>([]);
   const [discoveredAttributes, setDiscoveredAttributes]     = useState<any[]>([]);
@@ -261,6 +254,12 @@ function StartReview() {
   const [insightSaving, setInsightSaving] = useState(false);
   const [insightError,  setInsightError]  = useState("");
 
+  // Quick Scan is a single AI call — 2 stages.
+  // Save as Insight and the other 3 modes are multi-step — 4 stages.
+  const SCAN_STAGES = (mode === "extract" && !insightSaving)
+    ? ["Uploading document", "Detecting attributes"]
+    : ["Uploading document", "Extracting attributes", "Running AI profiles", "Generating report"];
+
   /* ── Template builder inline state (used after scan completes) ── */
   type ExtractStage = "results" | TemplateStage;
   const [extractStage, setExtractStage]         = useState<ExtractStage>("results");
@@ -274,7 +273,6 @@ function StartReview() {
   /* ── UI state ── */
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
   const [screen, setScreen] = useState<string>(
     locationMode && VALID_MODES.includes(locationMode) ? "form" : "pick"
   );
@@ -456,18 +454,16 @@ function StartReview() {
     const token = await getToken();
     if (!token) return;
 
-    setLoading(true);
+    setScanning(true);
+    snapProgress(0);
+    setScanStageIdx(0);
     setError("");
     setContextConfirmed(false);
-
-    if (contextOverride) {
-      setRerunningWithContext(true);
-      setStatus(`Re-scanning as "${contextOverride}"…`);
-    } else {
-      setStatus("Detecting document type…");
-    }
+    if (contextOverride) setRerunningWithContext(true);
 
     try {
+      startProgressAnim(28, 4000);  // stage 0: uploading
+
       const params = new URLSearchParams();
       if (contextOverride)   params.set("context",    contextOverride);
       if (extractTemplateId) params.set("templateId", extractTemplateId);
@@ -483,6 +479,11 @@ function StartReview() {
       });
 
       if (!response.ok) throw new Error(await response.text() || `HTTP ${response.status}`);
+
+      // Upload done — switch to detecting stage
+      snapProgress(32);
+      setScanStageIdx(1);
+      startProgressAnim(95, 18000);  // stage 1: AI detection
 
       const result   = await response.json();
       const attrs: any[] = result.attributes ?? result;
@@ -507,17 +508,25 @@ function StartReview() {
       const noSplit     = attrs.filter((a: any) =>
         a.IsConfigured === undefined && a.isConfigured === undefined);
 
+      clearStageTimers();
+      snapProgress(100);
+      setScanStageIdx(2);  // past last stage → "Complete!"
+      await new Promise(r => setTimeout(r, 600));
+
       setConfirmedContext(ctx);
       setExtractedAttributes(configured.length > 0 ? configured : noSplit);
       setDiscoveredAttributes(discovered);
       setExtractComplete(true);
       setStatus(`${attrs.length} attributes detected${tmpl ? ` (${configured.length} from template, ${discovered.length} new)` : ""}`);
     } catch (ex: any) {
+      clearStageTimers();
+      snapProgress(0);
+      setScanStageIdx(0);
       setError(parseFriendlyError(ex?.message ?? ""));
     }
 
     setRerunningWithContext(false);
-    setLoading(false);
+    setScanning(false);
   };
 
   /* ── Scan progress helpers ── */
@@ -659,8 +668,14 @@ function StartReview() {
 
     setInsightSaving(true);
     setInsightError("");
+    setScanning(true);
+    snapProgress(0);
+    setScanStageIdx(0);
 
     try {
+      // Stage 0: Upload (0→28%)
+      startProgressAnim(28, 6000);
+
       const formData = new FormData();
       formData.append("comparisonName", insightName || templateName);
       formData.append("documentTypeId", extractSave.savedDocTypeId);
@@ -686,6 +701,11 @@ function StartReview() {
 
       const { runRecordId } = await uploadRes.json();
 
+      // Stage 1: Extracting attributes (30→62%)
+      snapProgress(30);
+      setScanStageIdx(1);
+      startProgressAnim(62, 30000);
+
       // Fetch mandatory/default profiles and create insights before executing
       let profileIds: string[] = [];
       try {
@@ -696,6 +716,11 @@ function StartReview() {
           .filter(Boolean);
 
         if (profileIds.length > 0) {
+          // Stage 2: Running AI profiles (62→82%)
+          snapProgress(62);
+          setScanStageIdx(2);
+          startProgressAnim(82, 20000);
+
           await fetch(CREATE_INSIGHTS_URL(), {
             method: "POST",
             headers: {
@@ -708,6 +733,11 @@ function StartReview() {
       } catch {
         // non-critical — continue to execute even if insight creation fails
       }
+
+      // Stage 3: Generating report (82→95%)
+      snapProgress(82);
+      setScanStageIdx(3);
+      startProgressAnim(95, 14000);
 
       const execRes = await fetch(EXECUTE_FUNCTION_URL(), {
         method: "POST",
@@ -727,16 +757,22 @@ function StartReview() {
       });
 
       if (!execRes.ok) {
-        // Log the issue but still navigate — the backend may have completed the run
-        // before the HTTP response failed (e.g. connection drop, infrastructure timeout).
-        // The results page will reflect the actual run state.
         console.warn(`[SaveInsight] Execute returned ${execRes.status} — navigating to results anyway`);
       }
 
+      clearStageTimers();
+      snapProgress(100);
+      setScanStageIdx(4);
+      await new Promise(r => setTimeout(r, 700));
+
       navigate(`/runs/${runRecordId}`);
     } catch (ex: any) {
+      clearStageTimers();
+      snapProgress(0);
+      setScanStageIdx(0);
       setInsightError(parseFriendlyError(ex?.message ?? ""));
       setInsightSaving(false);
+      setScanning(false);
     }
   };
 
@@ -978,8 +1014,8 @@ function StartReview() {
               )}
             </div>
           ) : (
-            <div className={`dc-dropzone ${loading ? "disabled-zone" : ""}`} style={{ minHeight:80 }}
-              onClick={() => !loading && fileInputRef.current?.click()}>
+            <div className={`dc-dropzone ${scanning ? "disabled-zone" : ""}`} style={{ minHeight:80 }}
+              onClick={() => !scanning && fileInputRef.current?.click()}>
               <div className="dropzone-inner">
                 <div className="dropzone-icon">
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
@@ -1003,8 +1039,8 @@ function StartReview() {
           <div style={{ marginTop: 16 }}>
             <div className="action-flow-horizontal">
               <button className="primary-btn" onClick={() => runExtract()}
-                disabled={loading || uploadedFiles.length === 0}>
-                {loading ? "Scanning…" : "Scan Document"}
+                disabled={scanning || uploadedFiles.length === 0}>
+                {scanning ? "Scanning…" : "Scan Document"}
               </button>
             </div>
             <div className="flow-status">{status}</div>
@@ -1124,7 +1160,7 @@ function StartReview() {
                       <button className="sr-context-btn sr-context-btn--confirm" onClick={()=>setContextConfirmed(true)}>✓ Confirm</button>
                       <button className="sr-context-btn sr-context-btn--rerun"
                         onClick={()=>runExtract(confirmedContext)}
-                        disabled={rerunningWithContext||!confirmedContext.trim()}>
+                        disabled={scanning||rerunningWithContext||!confirmedContext.trim()}>
                         {rerunningWithContext?"Re-scanning…":"↻ Re-scan"}
                       </button>
                     </>
@@ -1326,42 +1362,28 @@ function StartReview() {
                     type="button"
                     className="primary-btn qe-insight-save-btn"
                     onClick={saveAsInsight}
-                    disabled={insightSaving}
+                    disabled={scanning}
                   >
-                    {insightSaving ? "Saving…" : "Yes, Save Insight →"}
+                    Yes, Save Insight →
                   </button>
                   <button
                     type="button"
                     className="primary-btn tbs-back-btn qe-insight-skip-btn"
                     onClick={() => navigate("/my-insights")}
-                    disabled={insightSaving}
+                    disabled={scanning}
                   >
                     Skip
                   </button>
                 </div>
               </div>
 
-              {/* Full-screen processing overlay when saving insight */}
-              {insightSaving && (
-                <div className="page-loader-overlay">
-                  <div className="sr-processing-card sr-processing-card--extract">
-                    <div className="sr-processing-mode-badge">
-                      {MODES.find(m => m.id === "extract")?.icon}
-                      Quick Extract
-                    </div>
-                    <div className="sr-processing-spinner" />
-                    <div className="sr-processing-title">Generating Insight…</div>
-                    <div className="sr-processing-hint">Running AI extraction against your new template</div>
-                  </div>
-                </div>
-              )}
             </>
           )}
         </>
       )}
 
 
-      {(loading || scanning) && (
+      {scanning && (
         <div className="page-loader-overlay">
           <div className={`sr-processing-card sr-processing-card--${mode}`}>
             <div className="sr-processing-mode-badge">
