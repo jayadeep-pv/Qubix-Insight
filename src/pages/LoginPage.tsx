@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Layers, FileSearch, ShieldCheck, BrainCircuit, ArrowLeft } from "lucide-react";
+import { Layers, ArrowLeft } from "lucide-react";
 import "./LoginPage.css";
 
 export interface TrialProfileData {
@@ -110,7 +110,7 @@ export default function LoginPage({ onLogin, onTrialLogin, onTrialSignIn, loadin
                     onClick={() => onTrialSignIn?.()}
                     disabled={loading}
                   >
-                    Already have a trial account? Sign in
+                    Already registered? <strong>Sign in to trial</strong>
                   </button>
                 </div>
               </>
@@ -216,34 +216,11 @@ export default function LoginPage({ onLogin, onTrialLogin, onTrialSignIn, loadin
         </p>
       </div>
 
-      {/* ── Right panel — hero with grid background ── */}
+      {/* ── Right panel — feature network ── */}
       <div className="login-hero">
-        <div className="login-hero-inner">
-          <h1 className="login-hero-title">
-            Intelligent document<br />comparison at scale
-          </h1>
-          <p className="login-hero-subtitle">
-            Extract, compare and summarise complex documents in seconds
-            using AI — so your team can focus on decisions, not data entry.
-          </p>
-          <ul className="login-feature-list">
-            <li>
-              <span className="login-feature-icon"><FileSearch size={16} /></span>
-              <span>Side-by-side document comparison with scoring</span>
-            </li>
-            <li>
-              <span className="login-feature-icon"><BrainCircuit size={16} /></span>
-              <span>AI-powered insight extraction and executive summaries</span>
-            </li>
-            <li>
-              <span className="login-feature-icon"><ShieldCheck size={16} /></span>
-              <span>Risk flagging and configurable compliance rules</span>
-            </li>
-          </ul>
-          <p className="login-hero-footer">Secure · Multi-tenant · Enterprise-ready</p>
-        </div>
-        <div className="login-decor login-decor--1" />
-        <div className="login-decor login-decor--2" />
+        <p className="login-hero-tagline">Document intelligence, connected</p>
+        <FeatureNetwork />
+        <p className="login-hero-footer">Secure · Multi-tenant · Enterprise-ready</p>
       </div>
 
     </div>
@@ -257,6 +234,92 @@ function MicrosoftLogo() {
       <rect x="11" y="1"  width="9" height="9" fill="#7fba00" />
       <rect x="1"  y="11" width="9" height="9" fill="#00a4ef" />
       <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
+    </svg>
+  );
+}
+
+function FeatureNetwork() {
+  const cx = 280, cy = 250;
+  const R  = 152;
+
+  // 6 satellite nodes at 60° intervals starting from top
+  const nodes = [
+    { angle: 270, label: "AI Insights",      sub: "Smart extraction",   color: "#a78bfa" },
+    { angle: 330, label: "Compare",          sub: "Side-by-side",       color: "#60a5fa" },
+    { angle:  30, label: "Scoring",          sub: "Ranked results",     color: "#fbbf24" },
+    { angle:  90, label: "Summarise",        sub: "Key highlights",     color: "#34d399" },
+    { angle: 150, label: "Quick Scan",       sub: "Instant analysis",   color: "#818cf8" },
+    { angle: 210, label: "Risk Analysis",    sub: "Flag & comply",      color: "#f87171" },
+  ].map(n => {
+    const rad = (n.angle * Math.PI) / 180;
+    return { ...n, x: cx + R * Math.cos(rad), y: cy + R * Math.sin(rad) };
+  });
+
+  return (
+    <svg viewBox="0 0 560 500" className="login-network-svg" aria-hidden="true">
+      <defs>
+        {/* subtle glow filter for center node */}
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="6" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
+
+      {/* ── Ring connections between adjacent nodes ── */}
+      {nodes.map((n, i) => {
+        const next = nodes[(i + 1) % nodes.length];
+        return (
+          <line key={`ring-${i}`}
+            x1={n.x} y1={n.y} x2={next.x} y2={next.y}
+            stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+        );
+      })}
+
+      {/* ── Spoke lines from center to each node ── */}
+      {nodes.map((n, i) => (
+        <line key={`spoke-${i}`}
+          x1={cx} y1={cy} x2={n.x} y2={n.y}
+          stroke="rgba(255,255,255,0.1)" strokeWidth="1"
+          strokeDasharray="4 4" />
+      ))}
+
+      {/* ── Satellite nodes ── */}
+      {nodes.map((n, i) => (
+        <g key={i} transform={`translate(${n.x},${n.y})`}>
+          {/* outer glow ring */}
+          <circle r="40" fill="none" stroke={n.color} strokeWidth="1" strokeOpacity="0.2" />
+          {/* filled circle */}
+          <circle r="34" fill={n.color} fillOpacity="0.1" stroke={n.color} strokeWidth="1.2" strokeOpacity="0.5" />
+          {/* label */}
+          <text y="-6" textAnchor="middle"
+            fill="white" fontSize="10.5" fontWeight="600"
+            fontFamily="'DM Sans', sans-serif" opacity="0.92">
+            {n.label}
+          </text>
+          <text y="9" textAnchor="middle"
+            fill={n.color} fontSize="9" fontWeight="500"
+            fontFamily="'DM Sans', sans-serif" opacity="0.75">
+            {n.sub}
+          </text>
+          {/* dot in center */}
+          <circle r="3.5" fill={n.color} fillOpacity="0.7" />
+        </g>
+      ))}
+
+      {/* ── Centre node ── */}
+      <g transform={`translate(${cx},${cy})`} filter="url(#glow)">
+        <circle r="56" fill="rgba(250,70,22,0.08)" stroke="rgba(250,70,22,0.3)" strokeWidth="1.5" />
+        <circle r="42" fill="rgba(250,70,22,0.15)" stroke="#FA4616" strokeWidth="1.5" strokeOpacity="0.6" />
+        {/* Layers icon paths drawn manually */}
+        <polygon points="0,-10 10,-5 0,0 -10,-5" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="1.5" strokeLinejoin="round" />
+        <polyline points="-10,-1 0,4 10,-1" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5" strokeLinejoin="round" />
+        <polyline points="-10,3 0,8 10,3" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" strokeLinejoin="round" />
+        <text y="24" textAnchor="middle"
+          fill="white" fontSize="11" fontWeight="700"
+          fontFamily="'Syne', sans-serif" letterSpacing="-0.3" opacity="0.9">
+          Qubix Insight
+        </text>
+      </g>
     </svg>
   );
 }
