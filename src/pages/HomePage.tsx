@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { configApi } from "../services/configApi";
 import { useUser } from "../context/UserContext";
-import { Zap, AlignLeft, GitCompare, Star, ChevronRight, BarChart2, FileText, AlertTriangle, Activity } from "lucide-react";
+import { Zap, AlignLeft, GitCompare, Star, ChevronRight, BarChart2, FileText, AlertTriangle, Activity, Search } from "lucide-react";
 
 /* ── helpers ── */
 function getGreeting(): string {
@@ -23,6 +23,21 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+function isToday(dateStr: string): boolean {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  const now = new Date();
+  return d.toDateString() === now.toDateString();
+}
+
+function isThisWeek(dateStr: string): boolean {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  return d > weekAgo && d.toDateString() !== now.toDateString();
+}
+
 interface Stats {
   totalInsights: number;
   totalDocs: number;
@@ -38,7 +53,6 @@ interface RecentRun {
   createdOn: string;
   documentCount: number;
 }
-
 
 interface CardProps {
   icon: React.ReactNode;
@@ -57,9 +71,45 @@ function ActionCard({ icon, iconCls, cardCls, pillCls, pillLabel, title, descrip
       <div className={`hp-card-icon ${iconCls}`}>{icon}</div>
       <div className="hp-card-title">{title}</div>
       <div className="hp-card-desc">{description}</div>
-      <span className={`hp-card-pill ${pillCls}`}>{pillLabel}</span>
-      <ChevronRight size={14} className="hp-card-chevron" />
+      <div className="hp-card-footer">
+        <span className={`hp-card-pill ${pillCls}`}>{pillLabel}</span>
+        <span className={`hp-card-cta ${pillCls}`}>
+          Start <ChevronRight size={11} strokeWidth={2.5} />
+        </span>
+      </div>
     </button>
+  );
+}
+
+const riskLabel: Record<string, string> = { high: "High risk", medium: "Med risk", low: "Low risk" };
+
+function RunRow({ run, onClick }: { run: RecentRun; onClick: () => void }) {
+  return (
+    <div
+      className={`hp-insight-card hp-insight-card--${run.riskLevel}`}
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === "Enter" && onClick()}
+    >
+      <div className="hp-ic-body">
+        <div className="hp-ic-name">{run.name}</div>
+        <div className="hp-ic-meta">
+          {run.documentType}
+          {run.documentCount > 0 ? ` · ${run.documentCount} doc${run.documentCount !== 1 ? "s" : ""}` : ""}
+          {" · "}{timeAgo(run.createdOn)}
+        </div>
+      </div>
+      <div className="hp-ic-badges">
+        <span className={`hp-ic-mode hp-ic-mode--${run.mode?.toLowerCase() === "summarise" ? "sum" : "cmp"}`}>
+          {run.mode}
+        </span>
+        <span className={`hp-ic-risk hp-ic-risk--${run.riskLevel}`}>
+          {riskLabel[run.riskLevel] ?? run.riskLevel}
+        </span>
+      </div>
+      <ChevronRight size={13} className="hp-ic-chevron" />
+    </div>
   );
 }
 
@@ -71,22 +121,20 @@ const HomePage: React.FC = () => {
   const [recentRuns, setRecentRuns] = useState<RecentRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<Stats>({ totalInsights: 0, totalDocs: 0, highRisk: 0 });
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     configApi
       .getInsightsDashboard("7d")
       .then((data: any) => {
         const allRuns: any[] = data.recentRuns || [];
-
         setStats({
           totalInsights: data.totalRuns ?? allRuns.length,
-          totalDocs: data.totalDocs ?? allRuns.reduce((sum: number, r: any) => sum + (r.documentCount ?? 0), 0),
+          totalDocs: data.totalDocs ?? allRuns.reduce((s: number, r: any) => s + (r.documentCount ?? 0), 0),
           highRisk: data.totalHighRisk ?? 0,
         });
-
-        const runs: RecentRun[] = allRuns
-          .slice(0, 5)
-          .map((r: any) => ({
+        setRecentRuns(
+          allRuns.slice(0, 10).map((r: any) => ({
             id:            r.id,
             name:          r.insightName || r.runName || "Untitled",
             documentType:  r.documentType || "Document",
@@ -94,30 +142,41 @@ const HomePage: React.FC = () => {
             riskLevel:     (r.riskLevel || "low").toLowerCase(),
             createdOn:     r.createdOn || "",
             documentCount: r.documentCount ?? 0,
-          }));
-        setRecentRuns(runs);
+          }))
+        );
       })
       .catch(() => setRecentRuns([]))
       .finally(() => setLoading(false));
   }, []);
 
-  const riskLabel: Record<string, string> = { high: "High risk", medium: "Med risk", low: "Low risk" };
+  const filteredRuns = search
+    ? recentRuns.filter(r =>
+        r.name.toLowerCase().includes(search.toLowerCase()) ||
+        r.documentType.toLowerCase().includes(search.toLowerCase()) ||
+        r.mode.toLowerCase().includes(search.toLowerCase())
+      )
+    : recentRuns;
+
+  const todayRuns    = filteredRuns.filter(r => isToday(r.createdOn));
+  const thisWeekRuns = filteredRuns.filter(r => isThisWeek(r.createdOn));
+  const olderRuns    = filteredRuns.filter(r => !isToday(r.createdOn) && !isThisWeek(r.createdOn));
 
   return (
     <div className="hp-root">
 
-      {/* ══ GREETING + KPI ROW ══ */}
+      {/* ══ GREETING CARD + KPI ROW ══ */}
       <div className="hp-header">
+
         <div className="hp-greeting">
-          <h1 className="hp-greeting-title">{getGreeting()}, {userName} 👋</h1>
-          <p className="hp-greeting-sub">Your document intelligence workspace</p>
+          <div>
+            <h1 className="hp-greeting-title">{getGreeting()}, {userName} 👋</h1>
+            <p className="hp-greeting-sub">Your document intelligence workspace</p>
+          </div>
         </div>
 
         <div className="hp-kpi-row">
           <div className="hp-kpi hp-kpi--blue">
-            <div className="hp-kpi-icon-wrap hp-kpi-icon-wrap--blue">
-              <BarChart2 size={18} />
-            </div>
+            <div className="hp-kpi-icon-wrap hp-kpi-icon-wrap--blue"><BarChart2 size={18} /></div>
             <div className="hp-kpi-body">
               <span className="hp-kpi-label">Total Insights</span>
               <span className="hp-kpi-value">{loading ? "—" : stats.totalInsights}</span>
@@ -126,9 +185,7 @@ const HomePage: React.FC = () => {
           </div>
 
           <div className="hp-kpi hp-kpi--teal">
-            <div className="hp-kpi-icon-wrap hp-kpi-icon-wrap--teal">
-              <FileText size={18} />
-            </div>
+            <div className="hp-kpi-icon-wrap hp-kpi-icon-wrap--teal"><FileText size={18} /></div>
             <div className="hp-kpi-body">
               <span className="hp-kpi-label">Documents</span>
               <span className="hp-kpi-value">{loading ? "—" : stats.totalDocs}</span>
@@ -148,9 +205,7 @@ const HomePage: React.FC = () => {
           </div>
 
           <div className="hp-kpi hp-kpi--green">
-            <div className="hp-kpi-icon-wrap hp-kpi-icon-wrap--green">
-              <Activity size={18} />
-            </div>
+            <div className="hp-kpi-icon-wrap hp-kpi-icon-wrap--green"><Activity size={18} /></div>
             <div className="hp-kpi-body">
               <span className="hp-kpi-label">System Status</span>
               <span className="hp-kpi-value hp-kpi-value--green">Active</span>
@@ -163,61 +218,45 @@ const HomePage: React.FC = () => {
       {/* ══ SPLIT ══ */}
       <div className="hp-split">
 
-        {/* LEFT — 4 action cards inside a matching panel */}
+        {/* LEFT — quick actions */}
         <div className="hp-left">
           <div className="hp-panel hp-panel--left">
-
             <div className="hp-panel-hd">
               <div className="hp-panel-hd-left">
                 <span className="hp-panel-title">Quick Actions</span>
                 <span className="hp-panel-sub">Pick a workflow to begin</span>
               </div>
             </div>
-
             <div className="hp-panel-body">
               <div className="hp-grid">
-
                 <ActionCard
-                  icon={<Zap size={22} />}
-                  iconCls="hp-icon--orange"
-                  cardCls="hp-card--orange"
-                  pillCls="hp-pill--orange"
-                  pillLabel="Any document · no template"
+                  icon={<Zap size={22} />} iconCls="hp-icon--orange" cardCls="hp-card--orange"
+                  pillCls="hp-pill--orange" pillLabel="Any document · no template"
                   title="Quick Scan"
                   description="AI detects and builds a template from your document instantly"
                   onClick={() => navigate("/new", { state: { mode: "extract", from: "home" } })}
                 />
                 <ActionCard
-                  icon={<AlignLeft size={22} />}
-                  iconCls="hp-icon--teal"
-                  cardCls="hp-card--teal"
-                  pillCls="hp-pill--teal"
-                  pillLabel="1 document · template required"
+                  icon={<AlignLeft size={22} />} iconCls="hp-icon--teal" cardCls="hp-card--teal"
+                  pillCls="hp-pill--teal" pillLabel="1 document · template required"
                   title="Summarise Document"
                   description="Extract key insights and attributes from a single document"
                   onClick={() => navigate("/new", { state: { mode: "summarise", from: "home" } })}
                 />
                 <ActionCard
-                  icon={<GitCompare size={22} />}
-                  iconCls="hp-icon--blue"
-                  cardCls="hp-card--blue"
-                  pillCls="hp-pill--blue"
-                  pillLabel="2+ documents · template required"
+                  icon={<GitCompare size={22} />} iconCls="hp-icon--blue" cardCls="hp-card--blue"
+                  pillCls="hp-pill--blue" pillLabel="2+ documents · template required"
                   title="Compare Documents"
                   description="Extract and compare fields across two or more documents side by side"
                   onClick={() => navigate("/new", { state: { mode: "compare", from: "home" } })}
                 />
                 <ActionCard
-                  icon={<Star size={22} />}
-                  iconCls="hp-icon--purple"
-                  cardCls="hp-card--purple"
-                  pillCls="hp-pill--purple"
-                  pillLabel="2+ documents · template + rules"
+                  icon={<Star size={22} />} iconCls="hp-icon--purple" cardCls="hp-card--purple"
+                  pillCls="hp-pill--purple" pillLabel="2+ documents · template + rules"
                   title="Scoring"
                   description="Rank documents against weighted criteria with a scored winner"
                   onClick={() => navigate("/new", { state: { mode: "compare-scoring", from: "home" } })}
                 />
-
               </div>
             </div>
           </div>
@@ -230,7 +269,16 @@ const HomePage: React.FC = () => {
             <div className="hp-panel-hd">
               <div className="hp-panel-hd-left">
                 <span className="hp-panel-title">Recent Insights</span>
-                <span className="hp-panel-sub">Your last 8 runs</span>
+                <span className="hp-panel-sub">Your last 10 runs</span>
+              </div>
+              <div className="hp-ri-search">
+                <Search size={12} className="hp-ri-search-icon" />
+                <input
+                  className="hp-ri-search-input"
+                  placeholder="Search runs…"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                />
               </div>
               <button type="button" className="hp-viewall" onClick={() => navigate("/my-insights")}>
                 View all →
@@ -239,7 +287,8 @@ const HomePage: React.FC = () => {
 
             <div className="hp-feed">
 
-              {loading && [...Array(7)].map((_, i) => (
+              {/* ── Loading skeletons ── */}
+              {loading && [...Array(8)].map((_, i) => (
                 <div key={i} className="hp-ic-skel">
                   <div className="hp-skel-body">
                     <div className="hp-skel hp-skel--line1" />
@@ -252,42 +301,46 @@ const HomePage: React.FC = () => {
                 </div>
               ))}
 
-              {!loading && recentRuns.length === 0 && (
+              {/* ── Empty state ── */}
+              {!loading && filteredRuns.length === 0 && (
                 <div className="hp-empty">
                   <div className="hp-empty-icon"><AlignLeft size={28} /></div>
-                  <p className="hp-empty-title">No insights yet</p>
-                  <p className="hp-empty-sub">Run your first comparison above to get started</p>
+                  <p className="hp-empty-title">{search ? "No matching runs" : "No insights yet"}</p>
+                  <p className="hp-empty-sub">
+                    {search ? "Try a different search term" : "Run your first comparison above to get started"}
+                  </p>
                 </div>
               )}
 
-              {!loading && recentRuns.map((run) => (
-                <div
-                  key={run.id}
-                  className={`hp-insight-card hp-insight-card--${run.riskLevel}`}
-                  onClick={() => navigate(`/runs/${run.id}`)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === "Enter" && navigate(`/runs/${run.id}`)}
-                >
-                  <div className="hp-ic-body">
-                    <div className="hp-ic-name">{run.name}</div>
-                    <div className="hp-ic-meta">
-                      {run.documentType}
-                      {run.documentCount > 0 ? ` · ${run.documentCount} doc${run.documentCount !== 1 ? "s" : ""}` : ""}
-                      {" · "}{timeAgo(run.createdOn)}
-                    </div>
-                  </div>
-                  <div className="hp-ic-badges">
-                    <span className={`hp-ic-mode hp-ic-mode--${run.mode?.toLowerCase() === "summarise" ? "sum" : "cmp"}`}>
-                      {run.mode}
-                    </span>
-                    <span className={`hp-ic-risk hp-ic-risk--${run.riskLevel}`}>
-                      {riskLabel[run.riskLevel] ?? run.riskLevel}
-                    </span>
-                  </div>
-                  <ChevronRight size={14} className="hp-ic-chevron" />
-                </div>
-              ))}
+              {/* ── TODAY ── */}
+              {!loading && todayRuns.length > 0 && (
+                <>
+                  <div className="hp-feed-group">Today</div>
+                  {todayRuns.map(run => (
+                    <RunRow key={run.id} run={run} onClick={() => navigate(`/runs/${run.id}`)} />
+                  ))}
+                </>
+              )}
+
+              {/* ── THIS WEEK ── */}
+              {!loading && thisWeekRuns.length > 0 && (
+                <>
+                  <div className="hp-feed-group">This week</div>
+                  {thisWeekRuns.map(run => (
+                    <RunRow key={run.id} run={run} onClick={() => navigate(`/runs/${run.id}`)} />
+                  ))}
+                </>
+              )}
+
+              {/* ── OLDER ── */}
+              {!loading && olderRuns.length > 0 && (
+                <>
+                  <div className="hp-feed-group">Earlier</div>
+                  {olderRuns.map(run => (
+                    <RunRow key={run.id} run={run} onClick={() => navigate(`/runs/${run.id}`)} />
+                  ))}
+                </>
+              )}
 
             </div>
           </div>
@@ -300,28 +353,41 @@ const HomePage: React.FC = () => {
         .hp-root {
           display: flex;
           flex-direction: column;
+          padding-top: 10px;
+          box-sizing: border-box;
         }
 
-        /* ══ GREETING + KPI ROW ══ */
+        /* ══ GREETING CARD ══ */
         .hp-header {
           max-width: 1200px;
           width: 100%;
-          margin: 0 auto 16px;
+          margin: 0 auto 14px;
+          flex-shrink: 0;
         }
 
-        .hp-greeting { margin-bottom: 12px; }
+        .hp-greeting {
+          background: linear-gradient(to right, #eff6ff, #f8faff);
+          border: 1px solid #dbeafe;
+          border-left: 4px solid #3b82f6;
+          border-radius: 0 10px 10px 0;
+          padding: 13px 20px;
+          margin-bottom: 12px;
+          display: flex;
+          align-items: center;
+        }
+
         .hp-greeting-title {
           font-family: 'Syne', sans-serif;
-          font-size: 22px; font-weight: 700; color: #0f172a;
-          margin: 0 0 4px; letter-spacing: -0.02em; line-height: 1.2;
+          font-size: 20px; font-weight: 700; color: #0f172a;
+          margin: 0 0 2px; letter-spacing: -0.02em; line-height: 1.2;
         }
-        .hp-greeting-sub { font-size: 13px; color: #64748b; margin: 0; }
+        .hp-greeting-sub { font-size: 12px; color: #64748b; margin: 0; }
 
-        /* KPI row */
+        /* ══ KPI ROW ══ */
         .hp-kpi-row {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
-          gap: 16px;
+          gap: 14px;
         }
 
         .hp-kpi {
@@ -329,10 +395,10 @@ const HomePage: React.FC = () => {
           border: 1px solid #e5e7eb;
           border-top: 3px solid transparent;
           border-radius: 12px;
-          padding: 18px 20px;
+          padding: 14px 18px;
           display: flex;
           align-items: center;
-          gap: 16px;
+          gap: 14px;
           box-shadow: 0 1px 4px rgba(0,0,0,0.04);
         }
         .hp-kpi--blue  { border-top-color: #3b82f6; }
@@ -342,7 +408,7 @@ const HomePage: React.FC = () => {
         .hp-kpi--green { border-top-color: #10b981; }
 
         .hp-kpi-icon-wrap {
-          width: 42px; height: 42px; border-radius: 10px;
+          width: 38px; height: 38px; border-radius: 9px;
           display: flex; align-items: center; justify-content: center;
           flex-shrink: 0;
         }
@@ -352,45 +418,33 @@ const HomePage: React.FC = () => {
         .hp-kpi-icon-wrap--gray  { background: #f8fafc; color: #94a3b8; }
         .hp-kpi-icon-wrap--green { background: #f0fdf4; color: #10b981; }
 
-        .hp-kpi-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .hp-kpi-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
         .hp-kpi-label {
           font-size: 10px; font-weight: 600; text-transform: uppercase;
           letter-spacing: 0.07em; color: #64748b;
         }
         .hp-kpi-value {
           font-family: 'Syne', sans-serif;
-          font-size: 26px; font-weight: 700; color: #0f172a;
+          font-size: 24px; font-weight: 700; color: #0f172a;
           line-height: 1; letter-spacing: -0.02em;
         }
-        .hp-kpi-sub { font-size: 11px; color: #94a3b8; margin-top: 2px; }
-        .hp-kpi-value--green { font-size: 20px; color: #10b981; letter-spacing: 0; }
+        .hp-kpi-sub { font-size: 11px; color: #94a3b8; margin-top: 1px; }
+        .hp-kpi-value--green { font-size: 18px; color: #10b981; letter-spacing: 0; }
 
         /* ══ SPLIT LAYOUT ══ */
         .hp-split {
           display: flex;
           align-items: stretch;
-          gap: 20px;
+          gap: 18px;
           width: 100%;
           max-width: 1200px;
           margin: 0 auto;
         }
 
-        /* ══ LEFT COLUMN ══ */
-        .hp-left {
-          flex: 0 0 auto;
-          display: flex;
-          flex-direction: column;
-        }
+        .hp-left  { flex: 0 0 auto; display: flex; flex-direction: column; }
+        .hp-right { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
-        /* ══ RIGHT COLUMN ══ */
-        .hp-right {
-          flex: 1;
-          min-width: 0;
-          display: flex;
-          flex-direction: column;
-        }
-
-        /* ══ SHARED PANEL SHELL ══ */
+        /* ══ PANEL SHELL ══ */
         .hp-panel {
           flex: 1;
           background: #ffffff;
@@ -401,65 +455,83 @@ const HomePage: React.FC = () => {
           overflow: hidden;
           box-shadow: 0 1px 6px rgba(0,0,0,0.05);
         }
-
-        /* Left panel body — centres the grid with breathing room */
         .hp-panel--left { overflow: visible; }
+
         .hp-panel-body {
-          padding: 20px 22px 22px;
+          flex: 1;
+          padding: 20px 22px;
           display: flex;
           align-items: flex-start;
           justify-content: center;
         }
 
-        /* Panel header */
         .hp-panel-hd {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 16px 18px 14px;
+          padding: 13px 16px 12px;
           border-bottom: 1px solid #f3f4f6;
           flex-shrink: 0;
+          gap: 10px;
         }
-        .hp-panel-hd-left { display: flex; flex-direction: column; gap: 2px; }
-        .hp-panel-title   { font-size: 15px; font-weight: 700; color: #111827; }
+        .hp-panel-hd-left { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; }
+        .hp-panel-title   { font-size: 14px; font-weight: 700; color: #111827; }
         .hp-panel-sub     { font-size: 11px; color: #9ca3af; }
 
-        /* ══ VIEW ALL BUTTON ══ */
+        /* ══ SEARCH IN PANEL ══ */
+        .hp-ri-search { position: relative; flex: 1; max-width: 220px; }
+        .hp-ri-search-icon {
+          position: absolute; left: 9px; top: 50%;
+          transform: translateY(-50%); color: #9ca3af; pointer-events: none;
+        }
+        .hp-ri-search-input {
+          width: 100%;
+          padding: 6px 10px 6px 28px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          font-size: 12px; color: #0f172a;
+          font-family: 'DM Sans', sans-serif;
+          outline: none;
+          transition: border-color 0.15s;
+          box-sizing: border-box;
+        }
+        .hp-ri-search-input::placeholder { color: #9ca3af; }
+        .hp-ri-search-input:focus { border-color: #3b82f6; background: #fff; }
+
         .hp-viewall {
           background: none; border: none; font-size: 12px;
           color: #6b7280; cursor: pointer; padding: 0; font-weight: 500;
+          white-space: nowrap; flex-shrink: 0;
         }
         .hp-viewall:hover { color: #111827; }
 
         /* ══ 2×2 CARD GRID ══ */
         .hp-grid {
           display: grid;
-          grid-template-columns: repeat(2, 260px);
-          gap: 24px;
+          grid-template-columns: repeat(2, 252px);
+          column-gap: 20px;
+          row-gap: 30px;
         }
 
-        /* ══ ACTION CARD ══ */
         .hp-card {
           position: relative;
           background: #ffffff;
           border: 1px solid #e5e7eb;
           border-top: 3px solid transparent;
-          border-radius: 16px;
-          padding: 20px;
+          border-radius: 14px;
+          padding: 18px;
           text-align: left;
           cursor: pointer;
           transition: all 0.2s ease;
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
+          display: flex; flex-direction: column; gap: 8px;
           flex-shrink: 0;
           box-sizing: border-box;
-          width: 260px;
-          min-height: 150px;
+          width: 252px; min-height: 142px;
         }
         .hp-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 12px 32px rgba(0,0,0,0.1);
+          transform: translateY(-3px);
+          box-shadow: 0 10px 28px rgba(0,0,0,0.09);
           border-color: #d1d5db;
         }
         .hp-card--orange { border-top-color: #D85A30; }
@@ -467,73 +539,85 @@ const HomePage: React.FC = () => {
         .hp-card--blue   { border-top-color: #185FA5; }
         .hp-card--purple { border-top-color: #7C3AED; }
 
-        /* ══ ICON BUBBLE ══ */
         .hp-card-icon {
-          width: 44px; height: 44px;
-          border-radius: 11px;
+          width: 40px; height: 40px; border-radius: 10px;
           display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0;
-          margin-bottom: 8px;
+          flex-shrink: 0; margin-bottom: 6px;
         }
         .hp-icon--orange { background: #FAECE7; color: #993C1D; }
         .hp-icon--teal   { background: #E1F5EE; color: #0F6E56; }
         .hp-icon--blue   { background: #E6F1FB; color: #185FA5; }
         .hp-icon--purple { background: #EDE9FE; color: #5B21B6; }
 
-        /* ══ CARD TEXT ══ */
-        .hp-card-title { font-size: 18px; font-weight: 600; color: #111827; }
-        .hp-card-desc  { font-size: 13px; color: #6b7280; line-height: 1.65; flex: 1; }
+        .hp-card-title { font-size: 16px; font-weight: 600; color: #111827; }
+        .hp-card-desc  { font-size: 12px; color: #6b7280; line-height: 1.6; flex: 1; }
 
-        /* ══ PILL ══ */
+        /* pill + CTA footer row */
+        .hp-card-footer {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-top: 4px;
+        }
+
         .hp-card-pill {
-          font-size: 11px; font-weight: 600;
-          padding: 5px 12px; border-radius: 999px;
-          display: inline-block; align-self: flex-start;
-          margin-top: 6px;
+          font-size: 10px; font-weight: 600;
+          padding: 4px 10px; border-radius: 999px;
+          display: inline-flex; align-items: center;
         }
         .hp-pill--orange { background: #FAECE7; color: #993C1D; }
         .hp-pill--teal   { background: #E1F5EE; color: #0F6E56; }
         .hp-pill--blue   { background: #E6F1FB; color: #185FA5; }
         .hp-pill--purple { background: #EDE9FE; color: #5B21B6; }
 
-        .hp-card-chevron {
-          position: absolute; bottom: 18px; right: 18px;
-          color: #d1d5db; transition: color 0.15s;
+        .hp-card-cta {
+          font-size: 11px; font-weight: 700;
+          display: inline-flex; align-items: center; gap: 2px;
+          opacity: 0;
+          transform: translateX(-4px);
+          transition: opacity 0.18s ease, transform 0.18s ease;
+          background: none;
+          padding: 0;
         }
-        .hp-card:hover .hp-card-chevron { color: #9ca3af; }
+        .hp-card:hover .hp-card-cta {
+          opacity: 1;
+          transform: translateX(0);
+        }
 
-        /* ══ INSIGHT FEED ══ */
+        /* ══ FEED ══ */
         .hp-feed {
-          flex: 1;
           overflow-y: auto;
-          padding: 10px;
-          display: flex;
-          flex-direction: column;
-          align-items: stretch;
-          gap: 8px;
-          min-height: 0;
+          padding: 8px;
+          display: flex; flex-direction: column; align-items: stretch;
+          gap: 4px;
+          max-height: 560px;
         }
 
-        /* ══ INSIGHT CARD ══ */
+        /* ══ GROUP LABEL ══ */
+        .hp-feed-group {
+          font-size: 10px; font-weight: 700;
+          text-transform: uppercase; letter-spacing: 0.08em;
+          color: #9ca3af;
+          padding: 8px 4px 4px;
+          flex-shrink: 0;
+        }
+        .hp-feed-group:first-child { padding-top: 2px; }
+
+        /* ══ INSIGHT ROW — fixed height ══ */
         .hp-insight-card {
-          flex: 1;
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          padding: 12px 14px;
+          flex: 0 0 auto;
+          display: flex; align-items: center; gap: 12px;
+          padding: 0 12px; height: 52px;
           background: #fafafa;
           border: 1px solid #ebebeb;
           border-left: 3px solid #e5e7eb;
-          border-radius: 10px;
-          cursor: pointer;
-          transition: all 0.15s ease;
-          text-align: left;
-          min-height: 0;
+          border-radius: 8px;
+          cursor: pointer; transition: all 0.15s ease;
+          text-align: left; box-sizing: border-box;
         }
         .hp-insight-card:hover {
-          background: #fff;
-          border-color: #d1d5db;
-          box-shadow: 0 3px 12px rgba(0,0,0,0.07);
+          background: #fff; border-color: #d1d5db;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.07);
           transform: translateX(2px);
         }
         .hp-insight-card--high   { border-left-color: #ef4444; }
@@ -543,77 +627,55 @@ const HomePage: React.FC = () => {
 
         .hp-ic-body { flex: 1; min-width: 0; }
         .hp-ic-name {
-          font-size: 14px; font-weight: 600; color: #111827;
-          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-          margin-bottom: 4px;
+          font-size: 13px; font-weight: 600; color: #111827;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;
         }
         .hp-ic-meta {
-          font-size: 12px; color: #9ca3af;
+          font-size: 11px; color: #9ca3af; margin-top: 2px;
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
 
-        .hp-ic-badges {
-          display: flex; flex-direction: column;
-          align-items: flex-end; gap: 5px; flex-shrink: 0;
-        }
-        .hp-ic-mode {
-          font-size: 11px; font-weight: 600;
-          padding: 4px 10px; border-radius: 999px; white-space: nowrap;
-        }
+        .hp-ic-badges { display: flex; flex-direction: row; align-items: center; gap: 5px; flex-shrink: 0; }
+        .hp-ic-mode { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
         .hp-ic-mode--sum { background: #E6F1FB; color: #185FA5; }
         .hp-ic-mode--cmp { background: #FAECE7; color: #993C1D; }
-
-        .hp-ic-risk {
-          font-size: 11px; font-weight: 600;
-          padding: 4px 10px; border-radius: 999px; white-space: nowrap;
-        }
+        .hp-ic-risk { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
         .hp-ic-risk--high   { background: #fef2f2; color: #dc2626; }
         .hp-ic-risk--medium { background: #fffbeb; color: #d97706; }
         .hp-ic-risk--low    { background: #f0fdf4; color: #16a34a; }
-
         .hp-ic-chevron { color: #d1d5db; flex-shrink: 0; transition: color 0.15s; }
 
-        /* ══ SKELETON ══ */
+        /* ══ SKELETONS ══ */
         .hp-ic-skel {
-          flex: 1;
-          display: flex; align-items: center; gap: 14px;
-          padding: 12px 14px;
-          background: #fafafa; border: 1px solid #ebebeb; border-radius: 10px;
-          min-height: 0;
+          flex: 0 0 auto; height: 52px;
+          display: flex; align-items: center; gap: 12px; padding: 0 12px;
+          background: #fafafa; border: 1px solid #ebebeb;
+          border-left: 3px solid #e5e7eb; border-radius: 8px; box-sizing: border-box;
         }
-        .hp-ic-skel-right { display: flex; flex-direction: column; gap: 5px; align-items: flex-end; flex-shrink: 0; }
+        .hp-ic-skel-right { display: flex; flex-direction: row; gap: 5px; align-items: center; flex-shrink: 0; }
         .hp-skel { background: #f3f4f6; border-radius: 4px; animation: hp-pulse 1.5s ease-in-out infinite; }
-        .hp-skel-body  { flex: 1; display: flex; flex-direction: column; gap: 6px; }
-        .hp-skel--line1 { height: 14px; width: 65%; border-radius: 4px; }
-        .hp-skel--line2 { height: 12px; width: 40%; border-radius: 4px; }
-        .hp-skel--pill  { width: 50px; height: 16px; border-radius: 999px; }
-        .hp-skel--pill2 { width: 58px; height: 16px; border-radius: 999px; }
-        @keyframes hp-pulse {
-          0%, 100% { opacity: 1; }
-          50%       { opacity: 0.4; }
-        }
+        .hp-skel-body  { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+        .hp-skel--line1 { height: 13px; width: 55%; }
+        .hp-skel--line2 { height: 11px; width: 35%; }
+        .hp-skel--pill  { width: 52px; height: 18px; border-radius: 999px; }
+        .hp-skel--pill2 { width: 58px; height: 18px; border-radius: 999px; }
+        @keyframes hp-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
         /* ══ EMPTY STATE ══ */
-        .hp-empty { padding: 60px 20px 20px; text-align: center; }
-        .hp-empty-icon  { margin-bottom: 12px; color: #d1d5db; display: flex; justify-content: center; }
-        .hp-empty-title { font-size: 14px; font-weight: 600; color: #374151; margin: 0 0 4px; }
+        .hp-empty { padding: 40px 20px 20px; text-align: center; }
+        .hp-empty-icon  { margin-bottom: 10px; color: #d1d5db; display: flex; justify-content: center; }
+        .hp-empty-title { font-size: 13px; font-weight: 600; color: #374151; margin: 0 0 4px; }
         .hp-empty-sub   { font-size: 12px; color: #9ca3af; margin: 0; }
 
-
         /* ══ RESPONSIVE ══ */
-        @media (max-width: 1100px) {
-          .hp-kpi-row { grid-template-columns: repeat(2, 1fr); }
-        }
+        @media (max-width: 1100px) { .hp-kpi-row { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 860px) {
           .hp-kpi-row { grid-template-columns: 1fr; }
           .hp-split   { flex-direction: column; }
           .hp-grid    { grid-template-columns: repeat(2, 1fr); }
           .hp-card    { width: 100%; }
-          .hp-left    { min-height: 0; }
         }
-        @media (max-width: 480px) {
-          .hp-grid { grid-template-columns: 1fr; }
-        }
+        @media (max-width: 480px) { .hp-grid { grid-template-columns: 1fr; } }
       `}</style>
     </div>
   );

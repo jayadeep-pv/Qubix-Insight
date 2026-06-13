@@ -62,7 +62,7 @@ export default function LoginPage({ onLogin, onTrialLogin, onTrialSignIn, loadin
           <div className="login-logo-icon"><Layers size={22} /></div>
           <div className="login-logo-text">
             <span className="login-logo-name">Qubix Insight</span>
-            <span className="login-logo-sub">iLogix Global</span>
+            <span className="login-logo-sub">Logixphere</span>
           </div>
         </div>
 

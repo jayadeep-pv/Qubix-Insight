@@ -191,7 +191,7 @@ export function AttributeReviewTable({
             <input
               type="checkbox"
               className="tbs-ai-cb"
-              checked={attr.enableAiInsight ?? true}
+              checked={attr.enableAiInsight ?? false}
               onChange={(e) => onUpdate(i, "enableAiInsight", e.target.checked)}
               title="Enable AI Insight for this attribute"
               aria-label="Enable AI Insight"
@@ -458,7 +458,7 @@ export function ConfirmStage({
                       <input
                         type="checkbox"
                         className="tbs-ai-cb"
-                        checked={attr.enableAiInsight ?? true}
+                        checked={attr.enableAiInsight ?? false}
                         onChange={(e) => onUpdateAttribute && onUpdateAttribute(i, "enableAiInsight", e.target.checked)}
                         disabled={!onUpdateAttribute}
                         title={onUpdateAttribute ? "Toggle AI Insight" : undefined}
@@ -615,7 +615,7 @@ export function useTemplateSave() {
           expectedDataType: DATA_TYPE_OPTION_MAP[attr.dataType] ?? DATA_TYPE_OPTION_MAP["Text"] ?? 857270001,
           displayOrder:     i + 1,
           isMandatory:      attr.isMandatory ?? false,
-          enableAiInsight:  attr.enableAiInsight ?? true,
+          enableAiInsight:  attr.enableAiInsight ?? false,
           templateId,
         });
       }

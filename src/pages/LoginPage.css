@@ -35,13 +35,13 @@
   width: 42px;
   height: 42px;
   border-radius: 11px;
-  background: linear-gradient(135deg, #FA4616, #c7340f);
+  background: linear-gradient(135deg, #F97316, #EA580C);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(250,70,22,0.3);
+  box-shadow: 0 4px 12px rgba(249,115,22,0.3);
 }
 
 .login-logo-text {

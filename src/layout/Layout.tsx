@@ -12,7 +12,6 @@ import {
   ListChecks,
   Layers,
   Power,
-  Search,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -51,7 +50,6 @@ export default function Layout({ onLogout }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { isTrial, userName, userEmail, tenantName } = useUser();
-  const [search, setSearch] = useState("");
   const [iconOnly, setIconOnly] = useState(false);
 
   const page = PAGE_META[location.pathname] ?? { title: "Qubix Insight", subtitle: "" };
@@ -68,7 +66,7 @@ export default function Layout({ onLogout }: LayoutProps) {
           <div className="logo-icon"><Layers size={16} /></div>
           <div className="logo-text">
             <span className="logo-name">Qubix Insight</span>
-            <span className="logo-sub">iLogix Global</span>
+            <span className="logo-sub">Logixphere</span>
           </div>
         </div>
 
@@ -172,17 +170,6 @@ export default function Layout({ onLogout }: LayoutProps) {
           <div className="topbar-title-area">
             <span className="topbar-title">{page.title}</span>
             {page.subtitle && <span className="topbar-subtitle">{page.subtitle}</span>}
-          </div>
-
-          {/* Search */}
-          <div className="topbar-search">
-            <Search size={14} className="topbar-search-icon" />
-            <input
-              className="topbar-search-input"
-              placeholder="Quick search…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
           </div>
 
           {/* Right: company pill + user name */}

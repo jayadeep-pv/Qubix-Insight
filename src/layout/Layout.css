@@ -131,8 +131,8 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 16px 0 4px;
-  margin-top: 24px;
+  padding: 10px 0 6px;
+  margin-top: 16px;
   font-size: 11px;
   color: #94a3b8;
   border-top: 1px solid #e2e8f0;
@@ -155,6 +155,9 @@
   padding: 24px 28px;
   background: #f1f5f9;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 /* ── Sidebar ──────────────────────────────────────────── */
@@ -202,13 +205,13 @@
   width: 34px;
   height: 34px;
   border-radius: 9px;
-  background: linear-gradient(135deg, #FA4616, #c7340f);
+  background: linear-gradient(135deg, #F97316, #EA580C);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
   flex-shrink: 0;
-  box-shadow: 0 3px 10px rgba(250,70,22,0.35);
+  box-shadow: 0 3px 10px rgba(249,115,22,0.35);
 }
 
 .logo-text {

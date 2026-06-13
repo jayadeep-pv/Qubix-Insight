@@ -247,7 +247,7 @@ function StartReview() {
   const [confirmedContext, setConfirmedContext]             = useState("");
   const [contextConfirmed, setContextConfirmed]             = useState(false);
   const [rerunningWithContext, setRerunningWithContext]     = useState(false);
-  const [enableAiInsight, setEnableAiInsight]               = useState(true);
+  const [enableAiInsight, setEnableAiInsight]               = useState(false);
   const [extractCategories, setExtractCategories]           = useState<{id:string;name:string}[]>([]);
 
   /* ── Save-as-Insight state (Quick Extract done stage) ── */
@@ -1196,7 +1196,7 @@ function StartReview() {
                     setExtractedAttributes(all.slice(0,Math.min(extractedAttributes.length,all.length)));
                     setDiscoveredAttributes(all.slice(Math.min(extractedAttributes.length,all.length)));
                   }}
-                  onAdd={()=>setExtractedAttributes(prev=>[...prev,{AttributeName:"",Description:"",dataType:"Text",category:"",SampleValue:"",enableAiInsight:true}])}
+                  onAdd={()=>setExtractedAttributes(prev=>[...prev,{AttributeName:"",Description:"",dataType:"Text",category:"",SampleValue:"",enableAiInsight:false}])}
                 />
               </div>
 
