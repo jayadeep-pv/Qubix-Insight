@@ -130,7 +130,10 @@ public class GetComparisonRunResults
             };
 
             candidateQuery.Criteria.AddCondition("ilx_analysisrun", ConditionOperator.Equal, runId);
-            TenantQueryHelper.AddTenantFilter(candidateQuery, tenant.TenantRecordId.ToString());
+            if (tenant.IsTrial)
+                TenantQueryHelper.AddTenantFilterWithSamples(candidateQuery, tenant.TenantRecordId.ToString());
+            else
+                TenantQueryHelper.AddTenantFilter(candidateQuery, tenant.TenantRecordId.ToString());
 
             var candidateEntities =
                 service.RetrieveMultiple(candidateQuery).Entities;
@@ -291,35 +294,14 @@ public class GetComparisonRunResults
             };
 
             resultQuery.Criteria.AddCondition("ilx_analysisrun", ConditionOperator.Equal, runId);
-            TenantQueryHelper.AddTenantFilter(resultQuery, tenant.TenantRecordId.ToString());
+            if (tenant.IsTrial)
+                TenantQueryHelper.AddTenantFilterWithSamples(resultQuery, tenant.TenantRecordId.ToString());
+            else
+                TenantQueryHelper.AddTenantFilter(resultQuery, tenant.TenantRecordId.ToString());
 
             var comparisonResults =
                 service.RetrieveMultiple(resultQuery).Entities;
 
-            // =========================================================
-            // 🔥 LOAD ATTRIBUTE AI FROM NEW TABLE
-            // =========================================================
-
-            var aiQuery = new QueryExpression("ilx_analysisattributeinsight")
-            {
-                ColumnSet = new ColumnSet(
-                    "ilx_templateattribute",
-                    "ilx_aioutput"
-                )
-            };
-
-            aiQuery.Criteria.AddCondition("ilx_analysisrun", ConditionOperator.Equal, runId);
-            TenantQueryHelper.AddTenantFilter(aiQuery, tenant.TenantRecordId.ToString());
-
-            var aiRecords = service.RetrieveMultiple(aiQuery).Entities;
-
-            // Map: AttributeId → AI Output
-            var aiMap = aiRecords
-                .Where(a => a.Contains("ilx_templateattribute"))
-                .ToDictionary(
-                    a => a.GetAttributeValue<EntityReference>("ilx_templateattribute").Id,
-                    a => a.GetAttributeValue<string>("ilx_aioutput")
-                );
 
             if (comparisonResults.Any())
             {
@@ -398,10 +380,7 @@ public class GetComparisonRunResults
                             DocumentId = docId,
                             Value = r.GetAttributeValue<string>("ilx_normalisedvalue"),
 
-                            AttributeAiInsight =
-                                aiMap.ContainsKey(attrId)
-                                    ? aiMap[attrId]
-                                    : null,
+                            AttributeAiInsight = r.GetAttributeValue<string>("ilx_attributeaiinsight"),
 
                             // ✅ ADD THESE TWO
                             Coordinates = r.GetAttributeValue<string>("ilx_coordinates"),
@@ -435,7 +414,10 @@ var docQuery = new QueryExpression("ilx_analysisdocument")
 };
 
 docQuery.Criteria.AddCondition("ilx_analysisrun", ConditionOperator.Equal, runId);
-TenantQueryHelper.AddTenantFilter(docQuery, tenant.TenantRecordId.ToString());
+if (tenant.IsTrial)
+    TenantQueryHelper.AddTenantFilterWithSamples(docQuery, tenant.TenantRecordId.ToString());
+else
+    TenantQueryHelper.AddTenantFilter(docQuery, tenant.TenantRecordId.ToString());
 
 var docEntities = service.RetrieveMultiple(docQuery).Entities;
 

@@ -31,15 +31,16 @@ using QubixInsight.Services; // 🔥 IMPORTANT (for AiSummaryService)
 
 
 
-            public async Task ExecuteAiInsightsForRun(
+            public async Task<(int PromptTokens, int CompletionTokens)> ExecuteAiInsightsForRun(
                     ServiceClient service,
                     Guid runId,
                     IEnumerable<Entity> docs,
                     Dictionary<Guid, Dictionary<string, object>> extracted,
                     object comparisonSummary,
-                    int aiScope,
                     Guid tenantRecordId)
                 {
+                    var totalPromptTokens     = 0;
+                    var totalCompletionTokens = 0;
                     try
                     {
                         _logger.LogInformation("Starting AI Insight execution...");
@@ -68,7 +69,7 @@ using QubixInsight.Services; // 🔥 IMPORTANT (for AiSummaryService)
                 if (!pendingInsights.Any())
                 {
                     _logger.LogInformation("No pending insights found for this run.");
-                    return;
+                    return (0, 0);
                 }
 
                 // Build shared context
@@ -107,27 +108,12 @@ using QubixInsight.Services; // 🔥 IMPORTANT (for AiSummaryService)
                     try
                     {
 
-                        var scopeInstruction = aiScope switch
-                        {
-                            857270000 => @"
-                        AI SCOPE: Structured Only
-                        Use ONLY the extracted structured data and comparison summary.
-                        Do NOT raise additional clauses/risks outside configured parameters.
-                        ",
-
-                            857270001 => @"
-                        AI SCOPE: Full Document Context
-                        Analyse the entire document text and identify material risks and observations,
-                        even if not present in extracted structured data.
-                        ",
-
-                            _ => @"
-                        AI SCOPE: Hybrid (Recommended)
+                        const string scopeInstruction = @"
+                        AI SCOPE: Hybrid
                         Analyse the entire document text.
                         Prioritise the extracted structured data as the configured evaluation points.
                         Also identify additional material risks not captured in the extracted structured data.
-                        "
-                        };
+                        ";
                                         var layeredPrompt = $@"
                         DOCUMENT TEXT:
                         {fullText}
@@ -193,6 +179,9 @@ using QubixInsight.Services; // 🔥 IMPORTANT (for AiSummaryService)
                             });
                         }
 
+                        totalPromptTokens     += aiExec.PromptTokens;
+                        totalCompletionTokens += aiExec.CompletionTokens;
+
                         update["ilx_aisummaryjsonoutput"] = aiContent;
                         update["ilx_prompttokens"] = aiExec.PromptTokens;
                         update["ilx_completiontokens"] = aiExec.CompletionTokens;
@@ -226,11 +215,30 @@ using QubixInsight.Services; // 🔥 IMPORTANT (for AiSummaryService)
                 }
 
                 _logger.LogInformation("AI Insight execution completed.");
+
+                try
+                {
+                    var runRecord = service.Retrieve("ilx_analysisrun", runId,
+                        new ColumnSet("ilx_totalpromptokens", "ilx_totalcompletiontokens"));
+                    var existingPrompt     = runRecord.GetAttributeValue<int>("ilx_totalpromptokens");
+                    var existingCompletion = runRecord.GetAttributeValue<int>("ilx_totalcompletiontokens");
+
+                    var tokenUpdate = new Entity("ilx_analysisrun", runId);
+                    tokenUpdate["ilx_totalpromptokens"]      = existingPrompt     + totalPromptTokens;
+                    tokenUpdate["ilx_totalcompletiontokens"] = existingCompletion + totalCompletionTokens;
+                    tokenUpdate["ilx_totaltokenusage"]       = existingPrompt + existingCompletion + totalPromptTokens + totalCompletionTokens;
+                    service.Update(tokenUpdate);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"Failed to write profile token totals to run: {ex.Message}");
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogError($"AI Insight layer crashed: {ex}");
             }
+            return (totalPromptTokens, totalCompletionTokens);
         }
 
 

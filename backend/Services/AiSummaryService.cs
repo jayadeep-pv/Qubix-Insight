@@ -47,7 +47,7 @@ public class AiSummaryService
             Content          = content,
             PromptTokens     = usage?.InputTokenCount     ?? 0,
             CompletionTokens = usage?.OutputTokenCount    ?? 0,
-            Model            = _deploymentName
+            Model            = response.Value.Model ?? _deploymentName
         };
     }
 

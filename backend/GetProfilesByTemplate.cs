@@ -70,7 +70,7 @@ public class GetProfilesByTemplate
                 "ilx_aiinsightprofile",
                 "ilx_aiinsightprofileid",
                 JoinOperator.Inner);
-            profileLink.Columns = new ColumnSet("ilx_name");
+            profileLink.Columns = new ColumnSet("ilx_name", "ilx_description");
             profileLink.EntityAlias = "profile";
 
             // Only return profiles that are still active
@@ -85,11 +85,14 @@ public class GetProfilesByTemplate
                 var profileRef = e.GetAttributeValue<EntityReference>("ilx_aiinsightprofile");
                 var profileName = e.GetAttributeValue<AliasedValue>("profile.ilx_name")?.Value as string;
 
+                var profileDescription = e.GetAttributeValue<AliasedValue>("profile.ilx_description")?.Value as string;
+
                 return new
                 {
                     id = e.Id,
                     profileId = profileRef?.Id,
                     profileName = profileName ?? "",
+                    profileDescription = profileDescription ?? "",
                     isDefault = e.GetAttributeValue<bool>("ilx_isdefault"),
                     displayOrder = e.GetAttributeValue<int?>("ilx_displayorder")
                 };

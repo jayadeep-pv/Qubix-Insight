@@ -7,8 +7,8 @@ import { getAccessToken } from "../services/tokenHelper";
 import { getAppConfig } from "../appConfig";
 import { getExternalIdInstance } from "../authConfig";
 import { useNavigate, useLocation } from "react-router-dom";
-import AiSettingsPanel from "../components/AiSettingsPanel";
 import { configApi, triggerLoginRedirect } from "../services/configApi";
+import { useUser } from "../context/UserContext";
 import { PageBreadcrumb } from "../components/PageBreadcrumb";
 import {
   AttributeReviewTable, ClassifyStage, ConfirmStage,
@@ -29,6 +29,7 @@ interface TemplateType {
 interface AiProfile {
   id: string;
   name: string;
+  description?: string;
   isDefault?: boolean;
   isMandatory?: boolean;
 }
@@ -192,6 +193,7 @@ function ErrorPanel({ message }: { message: string }) {
 function StartReview() {
   const { instance, accounts, inProgress } = useMsal();
   const isAuthenticated = useIsAuthenticated();
+  const { isTrial, runsUsed, runLimit, refreshUser } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -222,7 +224,6 @@ function StartReview() {
   const [selectedDocumentType, setSelectedDocumentType] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
-  const [aiOptions, setAiOptions] = useState<string[]>(["executiveSummary", "attributeInsight"]);
 
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
@@ -316,12 +317,28 @@ function StartReview() {
   const loadProfilesForTemplate = async (templateId: string) => {
     try {
       const data = await configApi.getProfilesByTemplate(templateId);
-      const profiles: AiProfile[] = data.map((d: any) => ({
+      let profiles: AiProfile[] = data.map((d: any) => ({
         id: d.profileId,
         name: d.profileName,
+        description: d.description ?? d.profileDescription ?? "",
         isDefault: d.isDefault,
         isMandatory: d.isMandatory,
       }));
+
+      // No template-specific profiles — fall back to global defaults
+      if (profiles.length === 0) {
+        const allProfiles = await configApi.getAllAiInsightProfiles();
+        profiles = (allProfiles as any[])
+          .filter(p => p.isDefault || p.isMandatory)
+          .map(p => ({
+            id: p.id,
+            name: p.profileName,
+            description: p.description ?? "",
+            isDefault: p.isDefault,
+            isMandatory: p.isMandatory,
+          }));
+      }
+
       setAiProfiles(profiles);
       setSelectedProfiles(profiles.filter(p => p.isDefault || p.isMandatory).map(p => p.id));
     } catch {
@@ -429,6 +446,8 @@ function StartReview() {
 
   /* ── Validation ── */
   const validate = (): string | null => {
+    if (isTrial && (mode === "compare" || mode === "compare-scoring"))
+      return "Compare and Scoring are not available on a Trial account. Please contact your administrator to upgrade.";
     if (!insightName.trim()) return "Enter an insight name.";
     if (!uploadedFiles.length) return "Upload at least one document.";
     if (mode !== "extract") {
@@ -437,11 +456,7 @@ function StartReview() {
     }
     if ((mode === "compare" || mode === "compare-scoring") && uploadedFiles.length < 2)
       return "This mode requires at least 2 documents.";
-    if (
-      mode !== "extract" &&
-      aiOptions.includes("executiveSummary") &&
-      selectedProfiles.length === 0
-    )
+    if (mode !== "extract" && aiProfiles.length > 0 && selectedProfiles.length === 0)
       return "Select at least one AI Insight Profile.";
     return null;
   };
@@ -518,6 +533,7 @@ function StartReview() {
       setDiscoveredAttributes(discovered);
       setExtractComplete(true);
       setStatus(`${attrs.length} attributes detected${tmpl ? ` (${configured.length} from template, ${discovered.length} new)` : ""}`);
+      refreshUser(); // re-fetch runsUsed so the disable check stays accurate
     } catch (ex: any) {
       clearStageTimers();
       snapProgress(0);
@@ -574,7 +590,6 @@ function StartReview() {
     formData.append("documentTypeId", selectedDocumentType);
     formData.append("comparisonTemplateId", selectedTemplate);
     formData.append("mode", mode === "summarise" ? "Summarise" : mode === "compare-scoring" ? "Scoring" : "Compare");
-    formData.append("aiScope", "Hybrid");
     uploadedFiles.forEach((file) => formData.append("files", file));
     const user = getCurrentUser();
 
@@ -592,6 +607,14 @@ function StartReview() {
         body: formData,
       });
       if (uploadResp.status === 401) { triggerLoginRedirect(); return; }
+      if (uploadResp.status === 403) {
+        const msg = await uploadResp.text();
+        clearStageTimers(); snapProgress(0); setScanning(false);
+        setError(msg.toLowerCase().includes("trial")
+          ? "Compare and Scoring are not available on a Trial account. Please contact your administrator to upgrade."
+          : parseFriendlyError(msg));
+        return;
+      }
       if (!uploadResp.ok) throw new Error(await uploadResp.text() || `HTTP ${uploadResp.status}`);
       const { runRecordId } = await uploadResp.json();
 
@@ -614,8 +637,6 @@ function StartReview() {
       }, 50000));
 
       // Create AI insight records (fire-and-forget alongside execute)
-      const includeExecutiveSummary = aiOptions.includes("executiveSummary");
-      const includeAttributeInsight = aiOptions.includes("attributeInsight");
       if (selectedProfiles.length > 0) {
         fetch(CREATE_INSIGHTS_URL(), {
           method: "POST",
@@ -635,8 +656,6 @@ function StartReview() {
         },
         body: JSON.stringify({
           comparisonRunId: runRecordId,
-          includeExecutiveSummary,
-          includeAttributeInsight,
           includeScoring: mode === "compare-scoring",
         }),
       });
@@ -681,7 +700,7 @@ function StartReview() {
       formData.append("documentTypeId", extractSave.savedDocTypeId);
       formData.append("comparisonTemplateId", extractSave.savedTemplateId);
       formData.append("mode", "Summarise");
-      formData.append("aiScope", "Hybrid");
+
       formData.append("files", uploadedFiles[0]);
 
       const user = getCurrentUser();
@@ -750,8 +769,6 @@ function StartReview() {
         },
         body: JSON.stringify({
           comparisonRunId: runRecordId,
-          includeExecutiveSummary: profileIds.length > 0,
-          includeAttributeInsight: true,
           includeScoring: false,
         }),
       });
@@ -788,7 +805,7 @@ function StartReview() {
   /* ── SCREEN 1: MODE PICKER ── */
   if (screen === "pick") {
     return (
-      <div className="dc-container" style={{ maxWidth: 700 }}>
+      <div className="dc-container" style={{ maxWidth: 920 }}>
 
         <PageBreadcrumb
           items={[
@@ -813,16 +830,17 @@ function StartReview() {
         <div className="sr-pick-cards">
           {MODES.map((m) => {
             const isHovered = hoveredMode === m.id;
+            const trialLocked = isTrial && (m.id === "compare" || m.id === "compare-scoring");
             return (
               <button
                 key={m.id}
-                className="sr-pick-card"
-                style={{ borderTopColor: isHovered ? m.borderColor : "transparent" }}
-                onClick={() => { setMode(m.id); setScreen("form"); }}
-                onMouseEnter={() => setHoveredMode(m.id)}
+                className={`sr-pick-card${trialLocked ? " sr-pick-card--locked" : ""}`}
+                style={{ borderTopColor: !trialLocked && isHovered ? m.borderColor : "transparent" }}
+                onClick={() => { if (!trialLocked) { setMode(m.id); setScreen("form"); } }}
+                onMouseEnter={() => !trialLocked && setHoveredMode(m.id)}
                 onMouseLeave={() => setHoveredMode(null)}
               >
-                <div className="sr-pick-icon" style={{ background: m.iconBg }}>
+                <div className="sr-pick-icon" style={{ background: trialLocked ? "#f3f4f6" : m.iconBg }}>
                   {m.icon}
                 </div>
                 <div className="sr-pick-label">{m.label}</div>
@@ -831,9 +849,13 @@ function StartReview() {
                   <span className="sr-pick-count" style={{ color: m.badgeColor, background: m.badgeBg }}>
                     {m.docCount}
                   </span>
-                  <span className="sr-pick-arrow" style={{ color: m.badgeColor }}>
-                    Start →
-                  </span>
+                  {trialLocked ? (
+                    <span className="sr-pick-upgrade">Upgrade →</span>
+                  ) : (
+                    <span className="sr-pick-arrow" style={{ color: m.badgeColor }}>
+                      Start →
+                    </span>
+                  )}
                 </div>
               </button>
             );
@@ -861,10 +883,23 @@ function StartReview() {
             flex-direction: column;
             gap: 8px;
           }
-          .sr-pick-card:hover {
+          .sr-pick-card:hover:not(.sr-pick-card--locked) {
             transform: translateY(-3px);
             box-shadow: 0 10px 28px rgba(0,0,0,0.09);
             border-color: #d1d5db;
+          }
+          .sr-pick-card--locked {
+            opacity: 0.55;
+            cursor: default;
+            background: #fafafa;
+          }
+          .sr-pick-upgrade {
+            font-size: 11px;
+            font-weight: 600;
+            color: #6b7280;
+            background: #f3f4f6;
+            padding: 3px 8px;
+            border-radius: 999px;
           }
           .sr-pick-icon {
             width: 40px;
@@ -930,63 +965,59 @@ function StartReview() {
         ]}
       />
 
-      {/* ── STAGE 1: Insight Name + How it works + Upload (hidden once scan completes) ── */}
-      {!(mode === "extract" && extractComplete) && (
-      <div className="dc-card" style={{ marginBottom: 16 }}>
-        <div className="form-group" style={{ marginBottom: 16 }}>
-          <label htmlFor="insightName">Insight Name</label>
-          <input id="insightName" value={insightName}
-            onChange={(e) => setInsightName(e.target.value)}
-            placeholder="e.g. Contract Risk Review Q2 2026"/>
-        </div>
-
-        {mode === "extract" && (
-          <>
-            <div className="sr-extract-info" style={{ marginBottom: 14 }}>
-              <div className="sr-extract-info-title">How it works</div>
-              <div className="sr-extract-info-steps">
-                <div className="sr-extract-step"><div className="sr-extract-step-num">1</div><div>Upload any document — no setup needed</div></div>
-                <div className="sr-extract-step"><div className="sr-extract-step-num">2</div><div>AI detects all key attributes and values</div></div>
-                <div className="sr-extract-step"><div className="sr-extract-step-num">3</div><div>Review results — save as a template when ready</div></div>
-              </div>
+      {/* ── Trial run usage banner ── */}
+      {isTrial && !extractComplete && (() => {
+        const remaining = runLimit - runsUsed;
+        const pct       = runLimit > 0 ? (runsUsed / runLimit) * 100 : 0;
+        const isAtLimit = remaining <= 0;
+        const isWarning = remaining === 1;
+        const bg        = isAtLimit ? "#fef2f2" : isWarning ? "#fffbeb" : "#f0f9ff";
+        const border    = isAtLimit ? "#fecaca" : isWarning ? "#fde68a" : "#bae6fd";
+        const textColor = isAtLimit ? "#b91c1c" : isWarning ? "#92400e" : "#0369a1";
+        const icon      = isAtLimit ? "🚫" : isWarning ? "⚠️" : "ℹ️";
+        return (
+          <div style={{ background: bg, border: `1px solid ${border}`, borderRadius: 8,
+                        padding: "6px 14px", marginBottom: 8, display: "flex",
+                        alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 14 }}>{icon}</span>
+            <span style={{ fontSize: 12, color: textColor, flex: 1 }}>
+              {isAtLimit
+                ? <strong>You have used all {runLimit} free runs for this month. Allowance resets on the 1st.</strong>
+                : <><strong>Used {runsUsed} of {runLimit}</strong> free runs this month{remaining > 0 && <> &mdash; <strong>{remaining} remaining</strong></>}</>
+              }
+            </span>
+            <div style={{ width: 80, height: 3, background: "#e5e7eb", borderRadius: 999, overflow: "hidden", flexShrink: 0 }}>
+              <div style={{ height: "100%", width: `${Math.min(pct, 100)}%`,
+                            background: isAtLimit ? "#ef4444" : isWarning ? "#f59e0b" : "#0ea5e9",
+                            borderRadius: 999 }} />
             </div>
-
-            <div className="form-group" style={{ marginBottom: 14 }}>
-              <label>
-                Enrich an existing template?
-                <span style={{fontSize:11,fontWeight:400,color:"#9ca3af",marginLeft:4}}>(optional)</span>
-              </label>
-              <p style={{fontSize:12,color:"#9ca3af",margin:"3px 0 6px"}}>
-                Extracts configured fields plus discovers any new ones.
-              </p>
-              <select value={extractTemplateId}
-                onChange={(e) => setExtractTemplateId(e.target.value)}
-                aria-label="Enrich existing template" title="Enrich existing template">
-                <option value="">— None, discover freely —</option>
-                {templates.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
-            </div>
-          </>
-        )}
-
-        {/* ── Upload ── */}
-        <div>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-            <h3 style={{ margin:0 }}>{isCompare ? "Upload Documents" : "Upload Document"}</h3>
-            {isCompare && (
-              <span className={`sr-file-count-badge${uploadedFiles.length >= 2 ? " sr-file-count-badge--ok" : ""}`}>
-                {uploadedFiles.length} / 2 minimum required
-              </span>
-            )}
-            {(mode === "summarise" || mode === "extract") && (
-              <span className="sr-file-count-badge sr-file-count-badge--single">
-                1 document only
-              </span>
-            )}
           </div>
+        );
+      })()}
 
+      {/* ── Quick Extract: two-column layout ── */}
+      {mode === "extract" && !(extractComplete) && (
+      <div className="top-grid">
+        <div className="dc-card" style={{ marginTop: 0, marginBottom: 0 }}>
+          <div className="form-group" style={{ marginBottom: 14 }}>
+            <label htmlFor="insightName">Insight Name</label>
+            <input id="insightName" value={insightName}
+              onChange={(e) => setInsightName(e.target.value)}
+              placeholder="e.g. Contract Risk Review Q2 2026"/>
+          </div>
+          <div className="form-group" style={{ marginBottom: 14 }}>
+            <label>Enrich an existing template?<span style={{fontSize:11,fontWeight:400,color:"#9ca3af",marginLeft:4}}>(optional)</span></label>
+            <p style={{fontSize:12,color:"#9ca3af",margin:"3px 0 6px"}}>Extracts configured fields plus discovers any new ones.</p>
+            <select value={extractTemplateId} onChange={(e) => setExtractTemplateId(e.target.value)}
+              aria-label="Enrich existing template" title="Enrich existing template">
+              <option value="">— None, discover freely —</option>
+              {templates.map((t) => (<option key={t.id} value={t.id}>{t.name}</option>))}
+            </select>
+          </div>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+            <h3 style={{ margin:0 }}>Upload Document</h3>
+            <span className="sr-file-count-badge sr-file-count-badge--single">1 document only</span>
+          </div>
           {uploadedFiles.length > 0 ? (
             <div>
               {uploadedFiles.map((file, index) => (
@@ -996,30 +1027,122 @@ function StartReview() {
                     <div className="file-name">{file.name}</div>
                     <div className="file-size">{(file.size/1024/1024).toFixed(2)} MB</div>
                   </div>
-                  <button type="button" className="sr-uploaded-file-remove"
-                    onClick={() => removeFile(index)}>Remove</button>
+                  <button type="button" className="sr-uploaded-file-remove" onClick={() => removeFile(index)}>Remove</button>
                 </div>
               ))}
-              {!isCompare && (
-                <button type="button" className="sr-change-file-btn"
-                  onClick={() => fileInputRef.current?.click()}>
-                  ↻ Change file
-                </button>
-              )}
-              {isCompare && (
-                <button type="button" className="sr-add-more-btn"
-                  onClick={() => fileInputRef.current?.click()}>
-                  + Add another document
-                </button>
-              )}
+              <button type="button" className="sr-change-file-btn" onClick={() => fileInputRef.current?.click()}>↻ Change file</button>
             </div>
           ) : (
-            <div className={`dc-dropzone ${scanning ? "disabled-zone" : ""}`} style={{ minHeight:80 }}
+            <div className={`dc-dropzone ${scanning ? "disabled-zone" : ""}`} style={{ minHeight:64 }}
               onClick={() => !scanning && fileInputRef.current?.click()}>
               <div className="dropzone-inner">
                 <div className="dropzone-icon">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-                    stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M16 16l-4-4-4 4"/><path d="M12 12v7"/>
+                    <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 4 16.3"/>
+                  </svg>
+                </div>
+                <div className="dropzone-primary">Drag &amp; drop file here</div>
+                <div className="dropzone-secondary">or click to browse</div>
+              </div>
+            </div>
+          )}
+          <div style={{ marginTop: 14 }}>
+            <button className="primary-btn" onClick={() => runExtract()}
+              disabled={scanning || uploadedFiles.length === 0 || (isTrial && runsUsed >= runLimit)}>
+              {scanning ? "Scanning…" : "Scan Document"}
+            </button>
+            {isTrial && runsUsed >= runLimit && (
+              <p style={{ fontSize:12, color:"#b91c1c", marginTop:8, marginBottom:0 }}>
+                You have used all {runLimit} free runs for this month. Your allowance resets on the 1st of next month.
+              </p>
+            )}
+            {error && <ErrorPanel message={error} />}
+          </div>
+        </div>
+        <div className="dc-card guidance-card">
+          <p className="guide-about">How it works</p>
+          <p className="guide-about-desc">Upload any document — no template or setup required. The AI detects fields automatically.</p>
+          <div className="guide-steps" style={{ marginBottom: 16 }}>
+            <div className="guide-step"><div className="guide-step-num">1</div><div>Upload any document — no setup needed</div></div>
+            <div className="guide-step"><div className="guide-step-num">2</div><div>AI detects all key attributes and values</div></div>
+            <div className="guide-step"><div className="guide-step-num">3</div><div>Review results — save as a template when ready</div></div>
+          </div>
+          <div className="guide-divider">
+            <p className="guide-section-title">Best for</p>
+            <p style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.6, margin: 0 }}>
+              Exploring a new document type, one-off extractions, or building a template from scratch.
+            </p>
+          </div>
+        </div>
+      </div>
+      )}
+
+      {/* ── UNIFIED CARD: needsTemplate modes (Summarise / Compare / Scoring) ── */}
+      {needsTemplate && (
+      <div className="top-grid">
+      <div className="dc-card" style={{ padding: 0, overflow: "hidden", marginTop: 0, marginBottom: 0 }}>
+
+        {/* Section 1: Insight Name */}
+        <div style={{ padding:"16px 20px", borderBottom:"1px solid #f3f4f6" }}>
+          <label htmlFor="insightName" style={{ fontSize:12, fontWeight:600, color:"#374151", display:"block", marginBottom:5 }}>Insight Name</label>
+          <input id="insightName" value={insightName}
+            onChange={(e) => setInsightName(e.target.value)}
+            placeholder="e.g. Contract Risk Review Q2 2026"
+            style={{ margin:0, width:"100%", boxSizing:"border-box" }}/>
+        </div>
+
+        {/* Section 2: Document Type + Template */}
+        <div style={{ padding:"14px 20px", borderBottom:"1px solid #f3f4f6", display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+          <div>
+            <label htmlFor="documentType" style={{ fontSize:12, fontWeight:600, color:"#374151", display:"block", marginBottom:5 }}>Document Type</label>
+            <select id="documentType" value={selectedDocumentType} style={{ margin:0, width:"100%" }}
+              onChange={(e) => setSelectedDocumentType(e.target.value)}>
+              <option value="">Select document type</option>
+              {filteredDocumentTypes.map((dt) => (<option key={dt.id} value={dt.id}>{dt.name}</option>))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="reviewTemplate" style={{ fontSize:12, fontWeight:600, color:"#374151", display:"block", marginBottom:5 }}>Review Template</label>
+            <select id="reviewTemplate" value={selectedTemplate} style={{ margin:0, width:"100%" }}
+              onChange={(e) => setSelectedTemplate(e.target.value)} disabled={!selectedDocumentType}>
+              <option value="">Select template</option>
+              {templates.map((t) => (<option key={t.id} value={t.id}>{t.name}</option>))}
+            </select>
+          </div>
+        </div>
+
+        {/* Section 3: Upload */}
+        <div style={{ padding:"14px 20px", borderBottom:"1px solid #f3f4f6" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+            <label style={{ fontSize:12, fontWeight:600, color:"#374151", margin:0 }}>{isCompare ? "Upload Documents" : "Upload Document"}</label>
+            {isCompare ? (
+              <span className={`sr-file-count-badge${uploadedFiles.length >= 2 ? " sr-file-count-badge--ok" : ""}`}>{uploadedFiles.length} / 2 minimum</span>
+            ) : (
+              <span className="sr-file-count-badge sr-file-count-badge--single">1 document only</span>
+            )}
+          </div>
+          {uploadedFiles.length > 0 ? (
+            <div>
+              {uploadedFiles.map((file, index) => (
+                <div key={index} className="sr-uploaded-file-row" style={{ padding:"7px 10px" }}>
+                  <div className="sr-uploaded-file-icon">📄</div>
+                  <div className="sr-uploaded-file-info">
+                    <div className="file-name">{file.name}</div>
+                    <div className="file-size">{(file.size/1024/1024).toFixed(2)} MB</div>
+                  </div>
+                  <button type="button" className="sr-uploaded-file-remove" onClick={() => removeFile(index)}>Remove</button>
+                </div>
+              ))}
+              {!isCompare && <button type="button" className="sr-change-file-btn" onClick={() => fileInputRef.current?.click()}>↻ Change file</button>}
+              {isCompare && <button type="button" className="sr-add-more-btn" onClick={() => fileInputRef.current?.click()}>+ Add another document</button>}
+            </div>
+          ) : (
+            <div className={`dc-dropzone ${scanning ? "disabled-zone" : ""}`} style={{ minHeight:56 }}
+              onClick={() => !scanning && fileInputRef.current?.click()}>
+              <div className="dropzone-inner">
+                <div className="dropzone-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M16 16l-4-4-4 4"/><path d="M12 12v7"/>
                     <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 4 16.3"/>
                   </svg>
@@ -1034,76 +1157,114 @@ function StartReview() {
           )}
         </div>
 
-        {/* ── Scan button (extract mode, pre-results) ── */}
-        {mode === "extract" && !extractComplete && (
-          <div style={{ marginTop: 16 }}>
-            <div className="action-flow-horizontal">
-              <button className="primary-btn" onClick={() => runExtract()}
-                disabled={scanning || uploadedFiles.length === 0}>
-                {scanning ? "Scanning…" : "Scan Document"}
+        {/* Section 4: AI Insight Profiles */}
+        <div style={{ padding:"14px 20px", borderBottom:"1px solid #f3f4f6" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: aiProfiles.length > 0 ? 10 : 0 }}>
+            <label style={{ fontSize:12, fontWeight:600, color:"#374151", margin:0 }}>AI Insight Profiles</label>
+            {aiProfiles.length > 0 && (
+              <span style={{ fontSize:11, color:"#6b7280" }}>{selectedProfiles.length} of {aiProfiles.length} selected</span>
+            )}
+          </div>
+          {aiProfiles.length === 0 ? (
+            <p className="aip-no-profiles" style={{ margin:0 }}>Select a template to load its configured profiles.</p>
+          ) : (
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+              {aiProfiles.map((profile) => {
+                const isSelected = selectedProfiles.includes(profile.id);
+                return (
+                  <button key={profile.id} type="button"
+                    className={`aip-profile-card${isSelected ? " aip-profile-card--on" : ""}`}
+                    style={{ padding:"9px 12px" }}
+                    onClick={() => isSelected
+                      ? setSelectedProfiles(selectedProfiles.filter((id) => id !== profile.id))
+                      : setSelectedProfiles([...selectedProfiles, profile.id])}>
+                    <div className="aip-profile-card-header">
+                      <span className="aip-profile-card-name">{profile.name}</span>
+                      <div className={`aip-profile-card-radio${isSelected ? " aip-profile-card-radio--on" : ""}`} />
+                    </div>
+                    {profile.description && <div className="aip-profile-card-desc">{profile.description}</div>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Section 5: Action footer */}
+        <div style={{ padding:"12px 20px", background:"#fafafa" }}>
+          {error && <ErrorPanel message={error} />}
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            {aiProfiles.length > 0 ? (
+              <span style={{ fontSize:12, color:"#9ca3af" }}>
+                {selectedProfiles.length} of {aiProfiles.length} profile{aiProfiles.length !== 1 ? "s" : ""} selected
+              </span>
+            ) : <span />}
+            <div className="action-flow-horizontal" style={{ margin:0 }}>
+              <button
+                type="button"
+                className="primary-btn"
+                onClick={startAnalysis}
+                disabled={
+                  scanning ||
+                  uploadedFiles.length === 0 ||
+                  (isCompare && uploadedFiles.length < 2)
+                }
+              >
+                Start Analysis →
               </button>
             </div>
-            <div className="flow-status">{status}</div>
-            {error && <ErrorPanel message={error} />}
           </div>
-        )}
+        </div>
+      </div>
+      <div className="dc-card guidance-card">
+        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
+          <span className="guide-about" style={{ margin:0 }}>{activeMeta.label}</span>
+          <span style={{ fontSize:11, fontWeight:600, padding:"3px 10px", borderRadius:999, background:activeMeta.badgeBg, color:activeMeta.badgeColor }}>{activeMeta.badge}</span>
+        </div>
+        <p className="guide-about-desc">{activeMeta.description}</p>
+        <div className="guide-steps" style={{ marginBottom: 16 }}>
+          {mode === "summarise" && <>
+            <div className="guide-step"><div className="guide-step-num">1</div><div>Select document type and template</div></div>
+            <div className="guide-step"><div className="guide-step-num">2</div><div>Upload your document</div></div>
+            <div className="guide-step"><div className="guide-step-num">3</div><div>AI extracts all template fields and writes a summary</div></div>
+          </>}
+          {mode === "compare" && <>
+            <div className="guide-step"><div className="guide-step-num">1</div><div>Select document type and template</div></div>
+            <div className="guide-step"><div className="guide-step-num">2</div><div>Upload two or more documents</div></div>
+            <div className="guide-step"><div className="guide-step-num">3</div><div>AI extracts the same fields from all documents side by side</div></div>
+          </>}
+          {mode === "compare-scoring" && <>
+            <div className="guide-step"><div className="guide-step-num">1</div><div>Select document type and template</div></div>
+            <div className="guide-step"><div className="guide-step-num">2</div><div>Upload two or more documents and choose AI profiles</div></div>
+            <div className="guide-step"><div className="guide-step-num">3</div><div>AI scores and ranks each document against your rules</div></div>
+          </>}
+        </div>
+        <div className="guide-divider">
+          <p className="guide-section-title">Requirements</p>
+          <p style={{ fontSize:13, color:"#374151", margin:0 }}>{activeMeta.docCount}</p>
+        </div>
+        <div style={{ borderTop:"1px dashed #e5e7eb", marginTop:14, paddingTop:14 }}>
+          <p className="guide-section-title" style={{ color:"#1D9E75" }}>Tip</p>
+          <p style={{ fontSize:12, color:"#6b7280", lineHeight:1.6, margin:"0 0 8px" }}>
+            Don't have a template yet? Create a new Document Type and Template in Admin, then return here to run any document against it.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate("/admin/document-types")}
+            style={{
+              fontSize:12, fontWeight:600, color:"#1D9E75", background:"#E1F5EE",
+              border:"none", borderRadius:6, padding:"5px 12px", cursor:"pointer",
+            }}
+          >
+            Go to Admin →
+          </button>
+        </div>
+      </div>
       </div>
       )}
+
       <input type="file" multiple={isCompare} hidden ref={fileInputRef}
         onChange={(e) => handleFiles(e.target.files)}/>
-
-      {/* ── SETTINGS (template modes only) ── */}
-      {needsTemplate && (
-        <div className="top-grid" style={{ alignItems:"stretch", marginBottom:0, marginTop:16 }}>
-          <div className="setup-panel">
-            <div className="form-group">
-              <label htmlFor="documentType">Document Type</label>
-              <select id="documentType" value={selectedDocumentType}
-                onChange={(e) => setSelectedDocumentType(e.target.value)}>
-                <option value="">Select document type</option>
-                {filteredDocumentTypes.map((dt) => (
-                  <option key={dt.id} value={dt.id}>{dt.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="form-group">
-              <label htmlFor="reviewTemplate">Review Template</label>
-              <select id="reviewTemplate" value={selectedTemplate}
-                onChange={(e) => setSelectedTemplate(e.target.value)}
-                disabled={!selectedDocumentType}>
-                <option value="">Select template</option>
-                {templates.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <AiSettingsPanel aiOptions={aiOptions} setAiOptions={setAiOptions}
-            aiProfiles={aiProfiles} selectedProfiles={selectedProfiles}
-            setSelectedProfiles={setSelectedProfiles}/>
-        </div>
-      )}
-      {/* ── ACTION FLOW (summarise / compare modes) ── */}
-      {needsTemplate && (
-        <div className="dc-card sr-action-card">
-          {error && <ErrorPanel message={error} />}
-          <div className="action-flow-horizontal">
-            <button
-              type="button"
-              className="primary-btn"
-              onClick={startAnalysis}
-              disabled={
-                scanning ||
-                uploadedFiles.length === 0 ||
-                (isCompare && uploadedFiles.length < 2)
-              }
-            >
-              Start Analysis →
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* ── QUICK EXTRACT — multi-stage inline flow ── */}
       {mode === "extract" && extractComplete && (
@@ -1810,6 +1971,8 @@ function StartReview() {
         }
         .sr-uploaded-file-icon { font-size: 20px; flex-shrink: 0; }
         .sr-uploaded-file-info { flex: 1; min-width: 0; }
+        .file-name { font-size: 13px; font-weight: 500; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .file-size { font-size: 11px; color: #9ca3af; margin-top: 1px; }
         .sr-uploaded-file-remove {
           padding: 5px 12px;
           border: 1px solid #e5e7eb;

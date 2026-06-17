@@ -20,7 +20,7 @@ namespace QubixInsight.Services
             _logger = logger;
         }
 
-        public async Task<string> GenerateInsight(
+        public async Task<AiExecutionResult> GenerateInsight(
             string attributeName,
             string expectation,
             Dictionary<string, string> candidateValues,
@@ -29,10 +29,10 @@ namespace QubixInsight.Services
             try
             {
                 if (string.IsNullOrWhiteSpace(attributeName))
-                    return "";
+                    return new AiExecutionResult();
 
                 if (string.IsNullOrWhiteSpace(expectation))
-                    return "";
+                    return new AiExecutionResult();
 
                 var valuesText = string.Join("\n",
                     candidateValues.Select(v => $"{v.Key}: {v.Value}")
@@ -77,15 +77,12 @@ namespace QubixInsight.Services
                     - Return document-level summary
                     ";
 
-                // ✅ IMPORTANT: Use your actual method
-                var response = await _ai.RunPromptAsync(prompt);
-
-                return response ?? "";
+                return await _ai.GenerateRawPromptAsync(prompt);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Attribute AI failed for {Attribute}", attributeName);
-                return "";
+                return new AiExecutionResult();
             }
         }
     }

@@ -51,6 +51,7 @@ public class GetAllAiInsightProfiles
                     "ilx_profilecode",
                     "ilx_profilestatus",
                     "ilx_prompt",
+                    "ilx_description",
                     "ilx_displayorder",
                     "ilx_isdefault",
                     "ilx_ismandatory",
@@ -60,7 +61,10 @@ public class GetAllAiInsightProfiles
                 )
             };
 
-            TenantQueryHelper.AddTenantFilter(query, tenant.TenantRecordId.ToString());
+            if (tenant.IsTrial)
+                TenantQueryHelper.AddTenantFilterWithSamples(query, tenant.TenantRecordId.ToString());
+            else
+                TenantQueryHelper.AddTenantFilter(query, tenant.TenantRecordId.ToString());
 
             var result = service.RetrieveMultiple(query);
 
@@ -72,6 +76,7 @@ public class GetAllAiInsightProfiles
                 profileStatus = e.GetAttributeValue<OptionSetValue>("ilx_profilestatus")?.Value,
                 prompt = e.GetAttributeValue<string>("ilx_prompt"),
                 displayOrder = e.GetAttributeValue<int?>("ilx_displayorder"),
+                description = e.GetAttributeValue<string>("ilx_description") ?? "",
                 isDefault = e.GetAttributeValue<bool>("ilx_isdefault"),
                 isMandatory = e.GetAttributeValue<bool>("ilx_ismandatory"),
                 statecode = e.GetAttributeValue<OptionSetValue>("statecode")?.Value,

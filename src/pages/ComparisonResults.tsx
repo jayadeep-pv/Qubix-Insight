@@ -2142,34 +2142,56 @@ return (
   <div className="results-card">
 
           {/* Ranking */}
-            <div
-              style={{
-                marginBottom: 16,
-                paddingBottom: 12,
-                borderBottom: "1px solid #e5e7eb"
-              }}
-            >
-              <h2>Ranking</h2>
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 }}>
+                Ranking
+              </div>
 
-              {sortedCandidates.map((c) => (
-                <div
-                  key={c.id}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    padding: "10px 12px",
-                    borderRadius: 6,
-                    background: winner?.id === c.id ? "#f0fdf4" : "#f9fafb",
-                    border: winner?.id === c.id ? "1px solid #bbf7d0" : "1px solid #e5e7eb",
-                    fontWeight: winner?.id === c.id ? 600 : 500,
-                    marginBottom: 6
-                  }}
-                >
-                  <span>
-                    {winner?.id === c.id ? "🏆 " : ""}
-                    {c.label}
-                  </span>
-                  <span>{c.totalScore} pts</span>
+              {/* Winner card */}
+              {winner && (
+                <div style={{
+                  background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
+                  border: "2px solid #22c55e",
+                  borderRadius: 14,
+                  padding: "20px 24px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 16,
+                  marginBottom: 10,
+                  boxShadow: "0 4px 16px rgba(34,197,94,0.15)"
+                }}>
+                  <div style={{ fontSize: 40, lineHeight: 1, flexShrink: 0 }}>🏆</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "#16a34a", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 2 }}>Winner</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: "#14532d", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{winner.label}</div>
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: "#16a34a", lineHeight: 1 }}>{winner.totalScore}</div>
+                    <div style={{ fontSize: 11, color: "#4ade80", fontWeight: 600 }}>pts</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Runner-up rows */}
+              {sortedCandidates.filter(c => c.id !== winner?.id).map((c, i) => (
+                <div key={c.id} style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "12px 16px",
+                  borderRadius: 10,
+                  background: "#f9fafb",
+                  border: "1px solid #e5e7eb",
+                  marginBottom: 6
+                }}>
+                  <div style={{
+                    width: 26, height: 26, borderRadius: "50%",
+                    background: "#e5e7eb", color: "#6b7280",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 12, fontWeight: 700, flexShrink: 0
+                  }}>{i + 2}</div>
+                  <span style={{ flex: 1, fontWeight: 500, color: "#374151", fontSize: 14 }}>{c.label}</span>
+                  <span style={{ fontWeight: 700, color: "#6b7280", fontSize: 15 }}>{c.totalScore} <span style={{ fontSize: 11, fontWeight: 500 }}>pts</span></span>
                 </div>
               ))}
             </div>
@@ -2229,7 +2251,7 @@ return (
             style={{
               padding: 10,
               fontWeight: 500,
-              borderTop: "1px solid #f3f4f6"
+              borderTop: "1px solid #e5e7eb"
             }}
           >
             {attr.attributeName}
@@ -2244,51 +2266,31 @@ return (
                 key={c.id}
                 style={{
                   textAlign: "center",
-                  padding: 10,
-                  borderTop: "1px solid #f3f4f6"
+                  padding: "8px 10px",
+                  borderTop: "1px solid #e5e7eb"
                 }}
               >
-                <div
-                  style={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: "50%",
-                    margin: "0 auto",
-                    background: isWinner ? "#10b981" : "#d1d5db"
-                  }}
-                />
+                {isWinner ? (
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    width: 24, height: 24, borderRadius: "50%",
+                    background: "#16a34a",
+                    boxShadow: "0 2px 6px rgba(22,163,74,0.35)"
+                  }}>
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 6l2.5 2.5L10 3" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </span>
+                ) : (
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", margin: "0 auto", background: "#e5e7eb" }} />
+                )}
               </td>
             );
           })}
 
-          {/* EXPAND BUTTON (RIGHT MOST COLUMN) */}
-          <td
-            style={{
-              textAlign: "center",
-              padding: 10,
-              borderTop: "1px solid #f3f4f6"
-            }}
-          >
-            <div
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: "50%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background:
-                  expandedScoreRow === attr.attributeId
-                    ? "#e5e7eb"
-                    : "#f3f4f6",
-                color: "#374151",
-                fontSize: 14,
-                fontWeight: 600,
-                transition: "all 0.2s ease"
-              }}
-            >
-              {expandedScoreRow === attr.attributeId ? "−" : "+"}
-            </div>
+          {/* EXPAND BUTTON */}
+          <td style={{ textAlign: "center", padding: "10px 8px", borderTop: "1px solid #e5e7eb" }}>
+            <span className={`attr-card-chevron${expandedScoreRow === attr.attributeId ? " expanded" : ""}`}>▾</span>
           </td>
 
         </tr>

@@ -257,20 +257,6 @@ private (int? Page, string? PolygonJson) FindPosition(
                 return await BadRequest(req, "comparisonRunId is required.");
             }
 
-            // ✅ ADD THIS (nothing removed)
-            bool includeExecutiveSummary = false;
-            bool includeAttributeInsight = false;
-
-            if (body.TryGetProperty("includeExecutiveSummary", out var execProp))
-            {
-                includeExecutiveSummary = execProp.GetBoolean();
-            }
-
-            if (body.TryGetProperty("includeAttributeInsight", out var attrProp))
-            {
-                includeAttributeInsight = attrProp.GetBoolean();
-            }
-
             bool includeScoring = true;
 
             if (body.TryGetProperty("includeScoring", out var scoringProp))
@@ -278,7 +264,7 @@ private (int? Page, string? PolygonJson) FindPosition(
                 includeScoring = scoringProp.GetBoolean();
             }
 
-            _logger.LogWarning($"FLAGS → Exec: {includeExecutiveSummary}, Attr: {includeAttributeInsight}, Scoring: {includeScoring}");
+            _logger.LogInformation($"FLAGS → Scoring: {includeScoring}");
 
             LogStage("Parse request body + flags", parseBodySw);
 
@@ -291,32 +277,6 @@ private (int? Page, string? PolygonJson) FindPosition(
 
                 LogStage("Dataverse connection", dataverseConnectSw);
 
-            // ============================
-            // ✅ STEP 3: Save AI flags to Run
-            // ============================
-
-            var saveFlagsSw = Stopwatch.StartNew();
-
-            try
-            {                
-                
-                var runUpdate = new Entity("ilx_analysisrun", runId);
-
-                runUpdate["ilx_includeexecutivesummary"] = includeExecutiveSummary;
-                runUpdate["ilx_includeattributeinsight"] = includeAttributeInsight;
-
-                service.Update(runUpdate);
-
-                _logger.LogInformation("AI flags saved to run successfully.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning($"Failed to save AI flags: {ex.Message}");
-                // DO NOT STOP EXECUTION
-
-                
-            }
-            LogStage("Save AI flags to run", saveFlagsSw);
             /* =========================================================
              * 1️⃣ Load Run + Mode
              * ========================================================= */
@@ -326,16 +286,14 @@ private (int? Page, string? PolygonJson) FindPosition(
             var runLoaderService = new RunLoaderService(service);
             var run = runLoaderService.LoadRun(runId);
 
+            var parentAnalysisId = run.GetAttributeValue<EntityReference>("ilx_analysis")?.Id;
+
             var mode =
                 run.GetAttributeValue<OptionSetValue>("ilx_mode")?.Value
                 ?? MODE_COMPARE;
 
-            var aiScope =
-                run.GetAttributeValue<OptionSetValue>("ilx_aiinsightscope")?.Value
-                ?? 857270002; // default Hybrid
-            
-            bool runExtraction = aiScope == SCOPE_STRUCTURED_ONLY || aiScope == SCOPE_HYBRID;
-            bool runAi = aiScope == SCOPE_FULL || aiScope == SCOPE_HYBRID;
+            bool runExtraction = true;
+            bool runAi = true;
 
             _logger.LogInformation($"Run Mode Value: {mode}");
 
@@ -747,33 +705,25 @@ private (int? Page, string? PolygonJson) FindPosition(
 
             var attributeAiSw = Stopwatch.StartNew();
 
-            if (includeAttributeInsight)
+            _logger.LogInformation("Starting Attribute-level AI insights...");
+            var (attrPromptTokens, attrCompletionTokens) = (0, 0);
+            try
             {
-                _logger.LogInformation("Starting Attribute-level AI insights...");
-                LogStage("Execute attribute AI insights", attributeAiSw);
-
-                try
-                {
-                    await ExecuteAttributeAiInsights(
-                        service,
-                        runId,
-                        attributesForMode,
-                        docs.ToList(),
-                        extracted,
-                        mode,
-                        tenant.TenantRecordId
-                    );
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning($"Attribute AI failed: {ex.Message}");
-                }
+                (attrPromptTokens, attrCompletionTokens) = await ExecuteAttributeAiInsights(
+                    service,
+                    runId,
+                    attributesForMode,
+                    docs.ToList(),
+                    extracted,
+                    mode,
+                    tenant.TenantRecordId
+                );
             }
-            else
+            catch (Exception ex)
             {
-                _logger.LogInformation("Attribute AI skipped (disabled in UI).");
-                LogStage("Execute attribute AI insights (skipped)", attributeAiSw);
+                _logger.LogWarning($"Attribute AI failed: {ex.Message}");
             }
+            LogStage("Execute attribute AI insights", attributeAiSw);
 
 
 
@@ -794,9 +744,6 @@ private (int? Page, string? PolygonJson) FindPosition(
                     docs.ToList(),
                     attributesForMode,
                     extracted,
-                    aiScope,
-                    includeExecutiveSummary,
-                    includeAttributeInsight,
                     runExtraction,
                     runAi,
                     tenant.TenantRecordId
@@ -816,10 +763,46 @@ private (int? Page, string? PolygonJson) FindPosition(
                 var runUpdateEntity = new Entity("ilx_analysisrun", runId);
                 runUpdateEntity["ilx_rawresultjson"] = JsonSerializer.Serialize(runOutput);
                 runUpdateEntity["ilx_runstatus"] = new OptionSetValue(857270002);
-
                 service.Update(runUpdateEntity);
-
+                if (parentAnalysisId.HasValue)
+                {
+                    var analysisUpdate = new Entity("ilx_analysis", parentAnalysisId.Value);
+                    analysisUpdate["ilx_analysisstatus"] = new OptionSetValue(857270001); // Completed
+                    service.Update(analysisUpdate);
+                }
                 _logger.LogInformation("Run updated with results JSON");
+
+                // Extract mode has no profile-selection UI — auto-seed the template's default profile
+                try
+                {
+                    var defaultProfileId = GetDefaultInsightProfileForTemplate(service, templateRef.Id);
+                    if (defaultProfileId.HasValue)
+                    {
+                        var checkQuery = new QueryExpression("ilx_analysisruninsight")
+                        {
+                            ColumnSet = new ColumnSet(false)
+                        };
+                        checkQuery.Criteria.AddCondition("ilx_analysisrun", ConditionOperator.Equal, runId);
+                        TenantQueryHelper.AddTenantFilter(checkQuery, tenant.TenantRecordId.ToString());
+
+                        if (!service.RetrieveMultiple(checkQuery).Entities.Any())
+                        {
+                            var insightSeed = new Entity("ilx_analysisruninsight");
+                            insightSeed["ilx_analysisrun"] = new EntityReference("ilx_analysisrun", runId);
+                            insightSeed["ilx_aiinsightprofile"] = new EntityReference("ilx_aiinsightprofile", defaultProfileId.Value);
+                            insightSeed["ilx_runstatus"] = new OptionSetValue(INSIGHT_PENDING);
+                            insightSeed["ilx_tenantid"] = tenant.TenantRecordId.ToString();
+                            service.Create(insightSeed);
+                        }
+                    }
+
+                    await _aiInsightsService.ExecuteAiInsightsForRun(
+                        service, runId, docs, extracted, runOutput, tenant.TenantRecordId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"AI Insights execution failed (Extract mode): {ex.Message}");
+                }
 
                 LogStage("TOTAL ExecuteComparisonRun", totalSw);
 
@@ -871,8 +854,6 @@ private (int? Page, string? PolygonJson) FindPosition(
                     rules,
                     extracted,
                     attributesForMode,
-                    includeAttributeInsight,
-                    aiScope,
                     tenant.TenantRecordId
                 );
 
@@ -894,7 +875,12 @@ private (int? Page, string? PolygonJson) FindPosition(
                 updateRunScoring["ilx_rawresultjson"] = JsonSerializer.Serialize(outputScoring);
                 updateRunScoring["ilx_runstatus"] = new OptionSetValue(857270002);
                 service.Update(updateRunScoring);
-
+                if (parentAnalysisId.HasValue)
+                {
+                    var analysisUpdate = new Entity("ilx_analysis", parentAnalysisId.Value);
+                    analysisUpdate["ilx_analysisstatus"] = new OptionSetValue(857270001); // Completed
+                    service.Update(analysisUpdate);
+                }
                 _logger.LogInformation("Run updated with results JSON (with scoring)");
 
                 LogStage("TOTAL ExecuteComparisonRun", totalSw);
@@ -920,13 +906,18 @@ private (int? Page, string? PolygonJson) FindPosition(
                 updateRunPlain["ilx_rawresultjson"] = JsonSerializer.Serialize(outputPlain);
                 updateRunPlain["ilx_runstatus"] = new OptionSetValue(857270002);
                 service.Update(updateRunPlain);
-
+                if (parentAnalysisId.HasValue)
+                {
+                    var analysisUpdate = new Entity("ilx_analysis", parentAnalysisId.Value);
+                    analysisUpdate["ilx_analysisstatus"] = new OptionSetValue(857270001); // Completed
+                    service.Update(analysisUpdate);
+                }
                 _logger.LogInformation("Run updated with results JSON (no scoring)");
 
                 try
                 {
                     await _aiInsightsService.ExecuteAiInsightsForRun(
-                        service, runId, docs, extracted, outputPlain, aiScope, tenant.TenantRecordId);
+                        service, runId, docs, extracted, outputPlain, tenant.TenantRecordId);
                 }
                 catch (Exception ex)
                 {
@@ -1205,7 +1196,7 @@ private static bool TryParseDecimalSafe(object input, out decimal value)
 
 
 
-    private async Task ExecuteAttributeAiInsights(
+    private async Task<(int PromptTokens, int CompletionTokens)> ExecuteAttributeAiInsights(
     ServiceClient service,
     Guid runId,
     List<Entity> attributes,
@@ -1214,6 +1205,8 @@ private static bool TryParseDecimalSafe(object input, out decimal value)
     int mode,
     Guid tenantRecordId)
     {
+        var totalPromptTokens      = 0;
+        var totalCompletionTokens  = 0;
         _logger.LogWarning("🔥 ENTERED ExecuteAttributeAiInsights");
         _logger.LogInformation("Starting Attribute AI Insight generation...");
 
@@ -1279,22 +1272,29 @@ private static bool TryParseDecimalSafe(object input, out decimal value)
             {
                 var serviceAi = new AttributeAiInsightsService(_aiSummaryService, _logger);
 
-                var insight = await serviceAi.GenerateInsight(
+                var aiResult = await serviceAi.GenerateInsight(
                     attributeName,
                     expectation,
                     candidateValues,
                     mode == MODE_COMPARE
                 );
 
-                var entity = new Entity("ilx_analysisattributeinsight");
-                
+                totalPromptTokens     += aiResult.PromptTokens;
+                totalCompletionTokens += aiResult.CompletionTokens;
 
-                entity["ilx_name"] = $"{runName} - {attributeName}";
-                entity["ilx_analysisrun"] = new EntityReference("ilx_analysisrun", runId);
-                entity["ilx_templateattribute"] = new EntityReference("ilx_templateattribute", attr.Id);
-                entity["ilx_aioutput"] = insight;
-                entity["ilx_tenantid"] = tenantRecordId.ToString();
-                service.Create(entity);               
+                var resultQuery = new QueryExpression("ilx_analysisresult")
+                {
+                    ColumnSet = new ColumnSet("ilx_analysisresultid")
+                };
+                resultQuery.Criteria.AddCondition("ilx_analysisrun", ConditionOperator.Equal, runId);
+                resultQuery.Criteria.AddCondition("ilx_templateattribute", ConditionOperator.Equal, attr.Id);
+
+                foreach (var resultRow in service.RetrieveMultiple(resultQuery).Entities)
+                {
+                    var update = new Entity("ilx_analysisresult") { Id = resultRow.Id };
+                    update["ilx_attributeaiinsight"] = aiResult.Content;
+                    service.Update(update);
+                }               
             }
             catch (Exception ex)
             {
@@ -1304,6 +1304,20 @@ private static bool TryParseDecimalSafe(object input, out decimal value)
 
         _logger.LogWarning($"⏱️ TIMER | TOTAL ExecuteAttributeAiInsights | {overallAiSw.ElapsedMilliseconds} ms | {overallAiSw.Elapsed.TotalSeconds:F2} s");
 
+        try
+        {
+            var attrTokenUpdate = new Entity("ilx_analysisrun", runId);
+            attrTokenUpdate["ilx_totalpromptokens"]      = totalPromptTokens;
+            attrTokenUpdate["ilx_totalcompletiontokens"] = totalCompletionTokens;
+            attrTokenUpdate["ilx_totaltokenusage"]       = totalPromptTokens + totalCompletionTokens;
+            service.Update(attrTokenUpdate);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"Failed to write attribute token totals to run: {ex.Message}");
+        }
+
+        return (totalPromptTokens, totalCompletionTokens);
     }
 
 
@@ -1361,6 +1375,20 @@ private async Task<byte[]> GetDocumentBytesAsync(Entity doc, string containerNam
 
     return stream.ToArray();
 }
+private static Guid? GetDefaultInsightProfileForTemplate(ServiceClient service, Guid templateId)
+{
+    var query = new QueryExpression("ilx_templateaiprofile")
+    {
+        ColumnSet = new ColumnSet("ilx_aiinsightprofile")
+    };
+    query.Criteria.AddCondition("ilx_analysistemplate", ConditionOperator.Equal, templateId);
+    query.Criteria.AddCondition("ilx_isdefault", ConditionOperator.Equal, true);
+    query.Criteria.AddCondition("statecode", ConditionOperator.Equal, 0);
+
+    var result = service.RetrieveMultiple(query).Entities.FirstOrDefault();
+    return result?.GetAttributeValue<EntityReference>("ilx_aiinsightprofile")?.Id;
+}
+
 private static string NormalizeForAnchorMatch(string input)
 {
     if (string.IsNullOrWhiteSpace(input))
