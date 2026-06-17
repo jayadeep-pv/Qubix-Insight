@@ -74,7 +74,13 @@ public class GetAllInsights
         comparisonLink.EntityAlias = "cmp";
 
         query.Criteria.AddCondition("statecode", ConditionOperator.LessThan, 2); // include Active (0) and Inactive (1)
-        TenantQueryHelper.AddTenantFilter(query, tenant.TenantRecordId.ToString());
+
+        // Trial users also see shared sample records
+        if (tenant.IsTrial)
+            TenantQueryHelper.AddTenantFilterWithSamples(query, tenant.TenantRecordId.ToString());
+        else
+            TenantQueryHelper.AddTenantFilter(query, tenant.TenantRecordId.ToString());
+
         query.AddOrder("createdon", OrderType.Descending);
 
         // Enumerate eagerly — avoids lazy N+1 calls during JSON serialization

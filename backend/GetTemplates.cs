@@ -70,7 +70,10 @@ public class GetTemplates
 
             query.Criteria.AddCondition("statecode", ConditionOperator.Equal, 0);
             query.Criteria.AddCondition("ilx_documenttype", ConditionOperator.Equal, docTypeGuid);
-            TenantQueryHelper.AddTenantFilter(query, tenant.TenantRecordId.ToString());
+            if (tenant.IsTrial)
+                TenantQueryHelper.AddTenantFilterWithSamples(query, tenant.TenantRecordId.ToString());
+            else
+                TenantQueryHelper.AddTenantFilter(query, tenant.TenantRecordId.ToString());
 
             var results = service.RetrieveMultiple(query).Entities
                 .Select(e => new

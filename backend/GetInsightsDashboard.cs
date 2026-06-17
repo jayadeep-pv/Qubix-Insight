@@ -79,7 +79,10 @@ public class GetInsightsDashboard
             ColumnSet = new ColumnSet(false)
         };
 
-        TenantQueryHelper.AddTenantFilter(insightQuery, tenant.TenantRecordId.ToString());
+        if (tenant.IsTrial)
+            TenantQueryHelper.AddTenantFilterWithSamples(insightQuery, tenant.TenantRecordId.ToString());
+        else
+            TenantQueryHelper.AddTenantFilter(insightQuery, tenant.TenantRecordId.ToString());
         var totalInsights = service.RetrieveMultiple(insightQuery).Entities.Count;
 
 
@@ -93,7 +96,10 @@ public class GetInsightsDashboard
         };
 
         monthQuery.Criteria.AddCondition("createdon", ConditionOperator.ThisMonth);
-        TenantQueryHelper.AddTenantFilter(monthQuery, tenant.TenantRecordId.ToString());
+        if (tenant.IsTrial)
+            TenantQueryHelper.AddTenantFilterWithSamples(monthQuery, tenant.TenantRecordId.ToString());
+        else
+            TenantQueryHelper.AddTenantFilter(monthQuery, tenant.TenantRecordId.ToString());
 
         var insightsThisMonth = service.RetrieveMultiple(monthQuery).Entities.Count;
 
@@ -107,7 +113,10 @@ public class GetInsightsDashboard
             ColumnSet = new ColumnSet(false)
         };
 
-        TenantQueryHelper.AddTenantFilter(runCountQuery, tenant.TenantRecordId.ToString());
+        if (tenant.IsTrial)
+            TenantQueryHelper.AddTenantFilterWithSamples(runCountQuery, tenant.TenantRecordId.ToString());
+        else
+            TenantQueryHelper.AddTenantFilter(runCountQuery, tenant.TenantRecordId.ToString());
         var totalRuns = service.RetrieveMultiple(runCountQuery).Entities.Count;
 
 
@@ -120,7 +129,10 @@ public class GetInsightsDashboard
             ColumnSet = new ColumnSet("createdon", "ilx_mode")
         };
 
-        TenantQueryHelper.AddTenantFilter(allRunsQuery, tenant.TenantRecordId.ToString());
+        if (tenant.IsTrial)
+            TenantQueryHelper.AddTenantFilterWithSamples(allRunsQuery, tenant.TenantRecordId.ToString());
+        else
+            TenantQueryHelper.AddTenantFilter(allRunsQuery, tenant.TenantRecordId.ToString());
         var allRuns = service.RetrieveMultiple(allRunsQuery).Entities;
 
         /* =============================
@@ -180,7 +192,10 @@ public class GetInsightsDashboard
         {
             ColumnSet = new ColumnSet(false)
         };
-        TenantQueryHelper.AddTenantFilter(totalDocsQuery, tenant.TenantRecordId.ToString());
+        if (tenant.IsTrial)
+            TenantQueryHelper.AddTenantFilterWithSamples(totalDocsQuery, tenant.TenantRecordId.ToString());
+        else
+            TenantQueryHelper.AddTenantFilter(totalDocsQuery, tenant.TenantRecordId.ToString());
         var totalDocs = service.RetrieveMultiple(totalDocsQuery).Entities.Count;
 
         /* =============================
@@ -191,7 +206,10 @@ public class GetInsightsDashboard
         {
             ColumnSet = new ColumnSet(false)
         };
-        TenantQueryHelper.AddTenantFilter(highRiskQuery, tenant.TenantRecordId.ToString());
+        if (tenant.IsTrial)
+            TenantQueryHelper.AddTenantFilterWithSamples(highRiskQuery, tenant.TenantRecordId.ToString());
+        else
+            TenantQueryHelper.AddTenantFilter(highRiskQuery, tenant.TenantRecordId.ToString());
         highRiskQuery.Criteria.AddCondition("ilx_risklevel", ConditionOperator.Equal, 857270002); // High
         var totalHighRisk = service.RetrieveMultiple(highRiskQuery).Entities.Count;
 
@@ -212,8 +230,13 @@ public class GetInsightsDashboard
             )
         };
 
-        TenantQueryHelper.AddTenantFilter(runQuery, tenant.TenantRecordId.ToString());
-        runQuery.TopCount = 8;
+        // Trial users also see shared sample records in the recent runs list
+        if (tenant.IsTrial)
+            TenantQueryHelper.AddTenantFilterWithSamples(runQuery, tenant.TenantRecordId.ToString());
+        else
+            TenantQueryHelper.AddTenantFilter(runQuery, tenant.TenantRecordId.ToString());
+
+        runQuery.TopCount = 10;
         runQuery.AddOrder("createdon", OrderType.Descending);
 
         /* =============================

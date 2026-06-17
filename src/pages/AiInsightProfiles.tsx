@@ -5,7 +5,6 @@ import { useNavigate } from "react-router-dom";
 import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { PageBreadcrumb } from "../components/PageBreadcrumb";
 import { useUser } from "../context/UserContext";
-
 type SortKey = "profileName" | "profileCode" | "profileStatusLabel" | "statecode";
 type SortDir = "asc" | "desc";
 

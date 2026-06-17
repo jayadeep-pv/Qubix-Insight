@@ -42,8 +42,6 @@ namespace QubixInsight.Services
             List<ComparisonRule> rules,
             Dictionary<Guid, Dictionary<string, object>> extracted,
             List<Entity> attributes,
-            bool includeAttributeInsight,
-            int aiScope,
             Guid tenantRecordId
             )
         {
@@ -338,7 +336,6 @@ namespace QubixInsight.Services
                         docs,
                         extracted,
                         summaryObject,
-                        aiScope,
                         tenantRecordId);
                     
 

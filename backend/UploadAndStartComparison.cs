@@ -23,15 +23,18 @@ public class UploadAndStartComparison
 
     private readonly TenantResolverService _tenantResolver;
     private readonly TenantDataverseService _tenantDataverseService;
+    private readonly TenantUserService _tenantUserService;
 
     public UploadAndStartComparison(
         ILoggerFactory loggerFactory,
         TenantResolverService tenantResolver,
-        TenantDataverseService tenantDataverseService)
+        TenantDataverseService tenantDataverseService,
+        TenantUserService tenantUserService)
     {
         _logger = loggerFactory.CreateLogger<UploadAndStartComparison>();
         _tenantResolver = tenantResolver;
         _tenantDataverseService = tenantDataverseService;
+        _tenantUserService = tenantUserService;
     }
 
     public UploadAndStartComparison(ILoggerFactory loggerFactory)
@@ -81,9 +84,8 @@ public class UploadAndStartComparison
             var documentTypeId = form.GetParameterValue("documentTypeId");
             var templateId = form.GetParameterValue("comparisonTemplateId");
             var modeString = form.GetParameterValue("mode") ?? "Compare";
-            var aiScopeString = form.GetParameterValue("aiScope") ?? "Hybrid";
 
-            // Trial accounts may only upload for Summarise (Quick Extract) mode
+            // Trial accounts may only upload for Summarise mode
             var isTrialBlockedMode = tenant.IsTrial &&
                 !modeString.Equals("Summarise", StringComparison.OrdinalIgnoreCase);
 
@@ -92,6 +94,26 @@ public class UploadAndStartComparison
                 var forbidden = req.CreateResponse(System.Net.HttpStatusCode.Forbidden);
                 await forbidden.WriteStringAsync("Trial accounts can only use Quick Extract. Upgrade to run comparisons.");
                 return forbidden;
+            }
+
+            // Trial monthly run limit check
+            if (tenant.IsTrial && !string.IsNullOrWhiteSpace(userAadId))
+            {
+                var (allowed, runsUsed, runLimit) = _tenantUserService.CheckAndIncrementRun(userAadId);
+                if (!allowed)
+                {
+                    var limitReached = req.CreateResponse(System.Net.HttpStatusCode.Forbidden);
+                    await limitReached.WriteStringAsync(
+                        System.Text.Json.JsonSerializer.Serialize(new
+                        {
+                            error      = "run_limit_reached",
+                            runsUsed,
+                            runLimit,
+                            message    = $"You have used all {runLimit} of your free runs for this month. Your allowance resets on the 1st of next month."
+                        }));
+                    limitReached.Headers.Add("Content-Type", "application/json");
+                    return limitReached;
+                }
             }
 
             if (string.IsNullOrWhiteSpace(comparisonName))
@@ -177,19 +199,11 @@ public class UploadAndStartComparison
                 new OptionSetValue(
                     modeString.Equals("Summarise", StringComparison.OrdinalIgnoreCase)
                         ? MODE_SUMMARISE
-                        : modeString.Equals("Score", StringComparison.OrdinalIgnoreCase)
+                        : modeString.Equals("Scoring", StringComparison.OrdinalIgnoreCase)
                             ? MODE_SCORE
                             : MODE_COMPARE
                 );
 
-            int aiScopeOption = aiScopeString switch
-            {
-                "Extracted" => 857270000,
-                "Full" => 857270001,
-                _ => 857270002
-            };
-
-            runEntity["ilx_aiinsightscope"] = new OptionSetValue(aiScopeOption);
             runEntity["ilx_tenantid"] = tenant.TenantRecordId.ToString();
 
             var runRecordId = service.Create(runEntity);

@@ -95,6 +95,12 @@ public class GetCurrentUser
             var isExpired = trialUser?.TrialExpiry.HasValue == true
                 && trialUser.TrialExpiry.Value < DateTime.UtcNow;
 
+            // Return runs for the CURRENT month only (resets each month)
+            var currentMonth = int.Parse(DateTime.UtcNow.ToString("yyyyMM"));
+            var runsThisMonth = (trialUser != null && trialUser.RunMonth == currentMonth)
+                ? trialUser.RunsUsed
+                : 0;
+
             var result = new
             {
                 isTrial          = tenant.IsTrial,
@@ -108,8 +114,8 @@ public class GetCurrentUser
                 jobTitle         = trialUser?.JobTitle    ?? "",
                 country          = trialUser?.Country     ?? "",
                 profileComplete  = !tenant.IsTrial || trialUser != null,
-                runsUsed         = trialUser?.RunsUsed   ?? 0,
-                runLimit         = trialUser?.RunLimit    ?? 5,
+                runsUsed         = runsThisMonth,
+                runLimit         = trialUser?.RunLimit    ?? 3,
                 trialExpiry      = trialUser?.TrialExpiry?.ToString("o") ?? "",
                 trialExpired     = isExpired
             };

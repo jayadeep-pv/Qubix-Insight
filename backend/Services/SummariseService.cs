@@ -41,27 +41,19 @@ namespace QubixInsight.Services
         private const int INSIGHT_COMPLETED = 857270001;
         private const int INSIGHT_FAILED = 857270002;
 
-        public  async Task<HttpResponseData> ExecuteSummarise(
+        public async Task<HttpResponseData> ExecuteSummarise(
             HttpRequestData req,
             ServiceClient service,
             Guid runId,
             List<Entity> docs,
             List<Entity> attributes,
             Dictionary<Guid, Dictionary<string, object>> extracted,
-            int aiScope,
-            bool includeExecutiveSummary,
-            bool includeAttributeInsight,
             bool runExtraction,
             bool runAi,
             Guid tenantRecordId)
         {
             _logger.LogInformation("Entering Summarise Mode (profile-driven)");
-                        
-                        // docs will typically be 1, but we support 1+
-                        var fullText = string.Join("\n\n",
-                            docs.Select(d => d.GetAttributeValue<string>("ilx_extractedtext") ?? ""));
 
-                        // Build a simple summary object for context
                         var summariseSummaryObject = new
                         {
                             mode = "Summarise",
@@ -72,23 +64,6 @@ namespace QubixInsight.Services
                                 name = d.GetAttributeValue<string>("ilx_name")
                             })
                         };
-
-                        /* =========================================================
-                        * 🔥 NEW: CONTROL EXECUTION BASED ON AI SCOPE
-                        * ========================================================= */
-
-                        var scopeValue = aiScope;
-
-                        runExtraction =
-                            scopeValue == SCOPE_STRUCTURED_ONLY ||
-                            scopeValue == SCOPE_HYBRID;
-
-                        runAi =
-                            scopeValue == SCOPE_FULL ||
-                            scopeValue == SCOPE_HYBRID;
-
-                        
-                        _logger.LogInformation($"Scope: {scopeValue}, RunExtraction: {runExtraction}, RunAI: {runAi}");
 
                         /* =========================================================
                         * 🧩 STRUCTURED EXTRACTION (WE WILL RETURN THIS)
@@ -180,7 +155,7 @@ namespace QubixInsight.Services
                         * 🤖 AI INSIGHTS (CONTROLLED BY UI)
                         * ========================================================= */
 
-                        if (runAi && includeExecutiveSummary)
+                        if (runAi)
                         {
                             _logger.LogInformation("Executing AI Insight generation (Executive Summary enabled)...");
 
@@ -192,7 +167,6 @@ namespace QubixInsight.Services
                                     docs,
                                     extracted,
                                     summariseSummaryObject,
-                                    aiScope,
                                     tenantRecordId
                                 );
                             }

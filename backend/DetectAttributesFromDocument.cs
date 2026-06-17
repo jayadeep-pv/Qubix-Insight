@@ -16,19 +16,22 @@ namespace QubixInsight.Functions
         private readonly AiSummaryService _aiService;
         private readonly TenantResolverService _tenantResolver;
         private readonly TenantDataverseService _tenantDataverseService;
+        private readonly TenantUserService _tenantUserService;
 
         public DetectAttributesFromDocument(
             ILogger<DetectAttributesFromDocument> logger,
             AzureOcrService ocrService,
             AiSummaryService aiService,
             TenantResolverService tenantResolver,
-            TenantDataverseService tenantDataverseService)
+            TenantDataverseService tenantDataverseService,
+            TenantUserService tenantUserService)
         {
             _logger = logger;
             _ocrService = ocrService;
             _aiService = aiService;
             _tenantResolver = tenantResolver;
             _tenantDataverseService = tenantDataverseService;
+            _tenantUserService = tenantUserService;
         }
 
         // ── Clause-mode heuristic ─────────────────────────────────────────────
@@ -60,6 +63,35 @@ namespace QubixInsight.Functions
                 // ── Tenant ─────────────────────────────────────────────────────
                 var tenantKey = req.Headers.TryGetValues("X-Tenant-Key", out var vals)
                     ? vals.FirstOrDefault() : null;
+
+                // ── Trial monthly run limit ────────────────────────────────────
+                var jwtUserInfo = JwtTenantExtractor.GetUserInfo(req);
+                if (jwtUserInfo is not null && !string.IsNullOrWhiteSpace(tenantKey))
+                {
+                    try
+                    {
+                        var tenant = _tenantResolver.ResolveTenant(tenantKey);
+                        if (tenant.IsTrial && !string.IsNullOrWhiteSpace(jwtUserInfo.Oid))
+                        {
+                            var (allowed, runsUsed, runLimit) = _tenantUserService.CheckAndIncrementRun(jwtUserInfo.Oid);
+                            if (!allowed)
+                            {
+                                var limitReached = req.CreateResponse(HttpStatusCode.Forbidden);
+                                await limitReached.WriteStringAsync(
+                                    JsonSerializer.Serialize(new
+                                    {
+                                        error   = "run_limit_reached",
+                                        runsUsed,
+                                        runLimit,
+                                        message = $"You have used all {runLimit} of your free runs for this month. Your allowance resets on the 1st of next month."
+                                    }));
+                                limitReached.Headers.Add("Content-Type", "application/json");
+                                return limitReached;
+                            }
+                        }
+                    }
+                    catch { /* non-fatal — if tenant lookup fails here, let the scan proceed */ }
+                }
 
                 // ── Read file ──────────────────────────────────────────────────
                 byte[] fileBytes;

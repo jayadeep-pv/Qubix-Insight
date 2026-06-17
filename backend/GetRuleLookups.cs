@@ -55,7 +55,10 @@ public class GetRuleLookups
                 )
             };
 
-            TenantQueryHelper.AddTenantFilter(templateQuery, tenant.TenantRecordId.ToString());
+            if (tenant.IsTrial)
+                TenantQueryHelper.AddTenantFilterWithSamples(templateQuery, tenant.TenantRecordId.ToString());
+            else
+                TenantQueryHelper.AddTenantFilter(templateQuery, tenant.TenantRecordId.ToString());
 
             var templates = service.RetrieveMultiple(templateQuery)
                 .Entities
@@ -80,7 +83,10 @@ public class GetRuleLookups
                 )
             };
 
-            TenantQueryHelper.AddTenantFilter(attributeQuery, tenant.TenantRecordId.ToString());
+            if (tenant.IsTrial)
+                TenantQueryHelper.AddTenantFilterWithSamples(attributeQuery, tenant.TenantRecordId.ToString());
+            else
+                TenantQueryHelper.AddTenantFilter(attributeQuery, tenant.TenantRecordId.ToString());
 
             var attributes = service.RetrieveMultiple(attributeQuery)
                 .Entities

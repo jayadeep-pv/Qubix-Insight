@@ -55,34 +55,35 @@ export default function AiSettingsPanel({
       <div className="form-group">
         <label>Insight Profiles</label>
 
-        {aiProfiles.length === 0 && isSummaryEnabled && (
+        {aiProfiles.length === 0 ? (
           <p className="aip-no-profiles">
             Select a template to load its configured profiles.
           </p>
+        ) : (
+          <div className={`aip-check-list${isSummaryEnabled ? "" : " aip-check-list--disabled"}`}>
+            {aiProfiles.map((profile) => {
+              const isSelected = selectedProfiles.includes(profile.id);
+              return (
+                <label key={profile.id} className={`aip-check-row${isSelected ? " aip-check-row--on" : ""}`}>
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() =>
+                      isSelected
+                        ? setSelectedProfiles(selectedProfiles.filter((id) => id !== profile.id))
+                        : setSelectedProfiles([...selectedProfiles, profile.id])
+                    }
+                    className="aip-check-input"
+                  />
+                  <span className="aip-check-name">{profile.name}</span>
+                  {profile.isDefault && (
+                    <span className="aip-default-badge">default</span>
+                  )}
+                </label>
+              );
+            })}
+          </div>
         )}
-
-        <div className={`profile-row${isSummaryEnabled ? "" : " profile-row--disabled"}`}>
-          {aiProfiles.map((profile) => {
-            const isSelected = selectedProfiles.includes(profile.id);
-            return (
-              <button
-                key={profile.id}
-                type="button"
-                className={`profile-chip${isSelected ? " selected" : ""}`}
-                onClick={() =>
-                  isSelected
-                    ? setSelectedProfiles(selectedProfiles.filter((id) => id !== profile.id))
-                    : setSelectedProfiles([...selectedProfiles, profile.id])
-                }
-              >
-                {profile.name}
-                {profile.isDefault && (
-                  <span className="aip-default-badge">*</span>
-                )}
-              </button>
-            );
-          })}
-        </div>
       </div>
     </div>
   );

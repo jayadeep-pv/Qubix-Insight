@@ -69,7 +69,15 @@ public class GetRunInsights
         };
 
         query.Criteria.AddCondition("ilx_analysisrun", ConditionOperator.Equal, runId);
-        TenantQueryHelper.AddTenantFilter(query, tenant.TenantRecordId.ToString());
+
+        // Explicitly join to the profile entity to guarantee the name is populated
+        var profileLink = query.AddLink(
+            "ilx_aiinsightprofile",
+            "ilx_aiinsightprofile",
+            "ilx_aiinsightprofileid",
+            JoinOperator.LeftOuter);
+        profileLink.Columns = new ColumnSet("ilx_name");
+        profileLink.EntityAlias = "profile";
 
         var results = service.RetrieveMultiple(query);
 
@@ -77,6 +85,11 @@ public class GetRunInsights
 {
     var profileRef =
         e.GetAttributeValue<EntityReference>("ilx_aiinsightprofile");
+
+    var profileName =
+        e.GetAttributeValue<AliasedValue>("profile.ilx_name")?.Value as string
+        ?? profileRef?.Name
+        ?? "";
 
     double? executionTime = null;
 
@@ -94,7 +107,7 @@ public class GetRunInsights
     {
         insightId = e.Id,
         profileId = profileRef?.Id,
-        profileName = profileRef?.Name,
+        profileName,
         status =
             e.GetAttributeValue<OptionSetValue>("ilx_runstatus")?.Value,
         executionTime = executionTime,

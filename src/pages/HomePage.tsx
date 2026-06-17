@@ -63,19 +63,30 @@ interface CardProps {
   title: string;
   description: string;
   onClick: () => void;
+  locked?: boolean;
 }
 
-function ActionCard({ icon, iconCls, cardCls, pillCls, pillLabel, title, description, onClick }: CardProps) {
+function ActionCard({ icon, iconCls, cardCls, pillCls, pillLabel, title, description, onClick, locked }: CardProps) {
   return (
-    <button className={`hp-card ${cardCls}`} onClick={onClick}>
+    <button
+      className={`hp-card ${cardCls}${locked ? " hp-card--locked" : ""}`}
+      onClick={locked ? undefined : onClick}
+      style={locked ? { cursor: "default", opacity: 0.5 } : undefined}
+    >
       <div className={`hp-card-icon ${iconCls}`}>{icon}</div>
       <div className="hp-card-title">{title}</div>
       <div className="hp-card-desc">{description}</div>
       <div className="hp-card-footer">
         <span className={`hp-card-pill ${pillCls}`}>{pillLabel}</span>
-        <span className={`hp-card-cta ${pillCls}`}>
-          Start <ChevronRight size={11} strokeWidth={2.5} />
-        </span>
+        {locked ? (
+          <span className="hp-card-cta" style={{ color: "#9ca3af", background: "#f3f4f6", borderRadius: 999, padding: "2px 8px", fontSize: 11 }}>
+            Upgrade
+          </span>
+        ) : (
+          <span className={`hp-card-cta ${pillCls}`}>
+            Start <ChevronRight size={11} strokeWidth={2.5} />
+          </span>
+        )}
       </div>
     </button>
   );
@@ -115,7 +126,7 @@ function RunRow({ run, onClick }: { run: RecentRun; onClick: () => void }) {
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
-  const { userName: fullName } = useUser();
+  const { userName: fullName, isTrial } = useUser();
   const userName = fullName?.split(" ")[0] || "User";
 
   const [recentRuns, setRecentRuns] = useState<RecentRun[]>([]);
@@ -134,7 +145,7 @@ const HomePage: React.FC = () => {
           highRisk: data.totalHighRisk ?? 0,
         });
         setRecentRuns(
-          allRuns.slice(0, 10).map((r: any) => ({
+          allRuns.slice(0, 7).map((r: any) => ({
             id:            r.id,
             name:          r.insightName || r.runName || "Untitled",
             documentType:  r.documentType || "Document",
@@ -249,6 +260,7 @@ const HomePage: React.FC = () => {
                   title="Compare Documents"
                   description="Extract and compare fields across two or more documents side by side"
                   onClick={() => navigate("/new", { state: { mode: "compare", from: "home" } })}
+                  locked={isTrial}
                 />
                 <ActionCard
                   icon={<Star size={22} />} iconCls="hp-icon--purple" cardCls="hp-card--purple"
@@ -256,6 +268,7 @@ const HomePage: React.FC = () => {
                   title="Scoring"
                   description="Rank documents against weighted criteria with a scored winner"
                   onClick={() => navigate("/new", { state: { mode: "compare-scoring", from: "home" } })}
+                  locked={isTrial}
                 />
               </div>
             </div>

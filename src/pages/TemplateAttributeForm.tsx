@@ -4,18 +4,27 @@ import { useNavigate, useParams } from "react-router-dom";
 import RulesList from "../components/templates/RulesList";
 import { PageBreadcrumb } from "../components/PageBreadcrumb";
 import PageLoading from "../components/PageLoading";
+import { useUser } from "../context/UserContext";
 
 export default function TemplateAttributeForm() {
 
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isTrial } = useUser();
+
+  const [activeTab, setActiveTab] = useState("details");
+
+  const switchTab = (tab: string) => {
+    setActiveTab(tab);
+    document.querySelector<HTMLElement>('.content')?.scrollTo({ top: 0, behavior: 'auto' });
+  };
 
   const [templates,setTemplates] = useState<any[]>([]);
   const [categoryOptions,setCategoryOptions] = useState<any[]>([]);
   const [dataTypeOptions,setDataTypeOptions] = useState<any[]>([]);
   const [usageModeOptions,setUsageModeOptions] = useState<any[]>([]);
 
-  const [activeTab, setActiveTab] = useState("details");
+
 
   const [form,setForm] = useState({
     templateId:"",
@@ -169,38 +178,35 @@ export default function TemplateAttributeForm() {
 
     <div className="page">
 
-      <PageBreadcrumb
-        items={[
-          { label: "Template Attributes", onClick: () => navigate("/admin/template-attributes") },
-          { label: id ? `Template Attribute — ${form.name}` : "New Template Attribute" },
-        ]}
-      />
+      <div className="page-sticky-header">
+        <PageBreadcrumb
+          items={[
+            { label: "Template Attributes", onClick: () => navigate("/admin/template-attributes") },
+            { label: id ? `Template Attribute — ${form.name}` : "New Template Attribute" },
+          ]}
+        />
 
-      <div className="admin-form-header">
-        <h2>{id ? `Template Attribute — ${form.name}` : "New Template Attribute"}</h2>
+        <div className="admin-form-header">
+          <h2>{id ? `Template Attribute — ${form.name}` : "New Template Attribute"}</h2>
+        </div>
+        {id && (
+          <div className="tabs">
+            <button type="button" className={activeTab === "details" ? "tab active" : "tab"} onClick={() => switchTab("details")}>Details</button>
+            <button type="button" className={activeTab === "rules" ? "tab active" : "tab"} onClick={() => switchTab("rules")}>Rules</button>
+          </div>
+        )}
       </div>
 
-      {id && (
-        <div className="tabs">
-          <button
-            type="button"
-            className={activeTab === "details" ? "tab active" : "tab"}
-            onClick={() => setActiveTab("details")}
-          >
-            Details
-          </button>
-          <button
-            type="button"
-            className={activeTab === "rules" ? "tab active" : "tab"}
-            onClick={() => setActiveTab("rules")}
-          >
-            Rules
-          </button>
-        </div>
-      )}
-
       {activeTab === "details" && (
-        <div className="admin-form-card">
+      <div className="top-grid">
+      <div className={`admin-form-card${isTrial ? " admin-form-card--readonly" : ""}`}>
+
+          {isTrial && (
+            <div className="trial-banner">
+              <span className="trial-banner-icon">🔒</span>
+              <span>Trial account — this record is read only. Upgrade to enable editing.</span>
+            </div>
+          )}
 
           <div className="form-group">
             <label htmlFor="template">Template *</label>
@@ -338,7 +344,8 @@ export default function TemplateAttributeForm() {
           )}
 
           <div className="form-footer">
-            <button type="button" className="btn-primary" onClick={save} disabled={saving}>
+            <button type="button" className="btn-primary" onClick={save} disabled={saving || isTrial}
+              title={isTrial ? "Not available on trial" : undefined}>
               {saving ? "Saving…" : "Save"}
             </button>
             <button type="button" className="btn-secondary" onClick={() => navigate("/admin/template-attributes")}>
@@ -346,12 +353,29 @@ export default function TemplateAttributeForm() {
             </button>
           </div>
 
+      </div>
+
+      <div className="dc-card guidance-card">
+        <p className="guide-about">About Template Attributes</p>
+        <p className="guide-about-desc">
+          Attributes define individual data fields the AI extracts from each document. Each targets one specific piece of information.
+        </p>
+        <div className="guide-divider">
+          <p className="guide-section-title">How it works</p>
+          <div className="guide-steps">
+            <div className="guide-step"><div className="guide-step-num">1</div><div>Name the attribute and choose the right data type</div></div>
+            <div className="guide-step"><div className="guide-step-num">2</div><div>Use the AI Prompt to describe exactly what to extract</div></div>
+            <div className="guide-step"><div className="guide-step-num">3</div><div>Add scoring rules below to evaluate this field's values</div></div>
+          </div>
         </div>
+      </div>
+
+      </div>
       )}
 
       {activeTab === "rules" && id && (
         <div className="admin-tab-panel">
-          <RulesList templateAttributeId={id} hideHeader />
+          <RulesList templateAttributeId={id} hideHeader embedded />
         </div>
       )}
 

@@ -4,13 +4,22 @@ import { useNavigate, useParams } from "react-router-dom";
 import TemplateAttributesList from "../components/templates/TemplateAttributesList";
 import { PageBreadcrumb } from "../components/PageBreadcrumb";
 import type { TemplateAiProfile } from "../types/TemplateAiProfile";
+import { useUser } from "../context/UserContext";
 
 export default function ComparisonTemplateForm() {
 
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { isTrial } = useUser();
+
+
 
   const [activeTab, setActiveTab] = useState("details");
+
+  const switchTab = (tab: string) => {
+    setActiveTab(tab);
+    document.querySelector<HTMLElement>('.content')?.scrollTo({ top: 0, behavior: 'auto' });
+  };
 
   const [documentTypes, setDocumentTypes] = useState<any[]>([]);
   const [createdOn, setCreatedOn] = useState<string | null>(null);
@@ -50,7 +59,7 @@ export default function ComparisonTemplateForm() {
     ]);
     setDocumentTypes(docs);
     setAiOutputStyles(styles);
-    setAllProfiles(profiles.filter((p: any) => p.statecode === 0));
+    setAllProfiles(profiles.filter((p: any) => (p.statecode ?? 0) === 0));
   }
 
   async function loadTemplateProfiles() {
@@ -182,48 +191,38 @@ export default function ComparisonTemplateForm() {
 
     <div className="page">
 
-      <PageBreadcrumb
-        items={[
-          { label: "Templates", onClick: () => navigate("/comparison-templates") },
-          { label: id ? `Template — ${form.name}` : "New Template" },
-        ]}
-      />
+      <div className="page-sticky-header">
+        <PageBreadcrumb
+          items={[
+            { label: "Templates", onClick: () => navigate("/comparison-templates") },
+            { label: id ? `Template — ${form.name}` : "New Template" },
+          ]}
+        />
 
-      <div className="admin-form-header">
-        <h2>{id ? `Template — ${form.name}` : "New Template"}</h2>
+        <div className="admin-form-header">
+          <h2>{id ? `Template — ${form.name}` : "New Template"}</h2>
+        </div>
+        {id && (
+          <div className="tabs">
+            <button type="button" className={activeTab === "details" ? "tab active" : "tab"} onClick={() => switchTab("details")}>Details</button>
+            <button type="button" className={activeTab === "attributes" ? "tab active" : "tab"} onClick={() => switchTab("attributes")}>Template Attributes</button>
+            <button type="button" className={activeTab === "aiProfiles" ? "tab active" : "tab"} onClick={() => switchTab("aiProfiles")}>
+              AI Profiles{templateProfiles.length > 0 && <span className="tab-badge">{templateProfiles.length}</span>}
+            </button>
+          </div>
+        )}
       </div>
 
-      {id && (
-        <div className="tabs">
-          <button
-            type="button"
-            className={activeTab === "details" ? "tab active" : "tab"}
-            onClick={() => setActiveTab("details")}
-          >
-            Details
-          </button>
-          <button
-            type="button"
-            className={activeTab === "attributes" ? "tab active" : "tab"}
-            onClick={() => setActiveTab("attributes")}
-          >
-            Template Attributes
-          </button>
-          <button
-            type="button"
-            className={activeTab === "aiProfiles" ? "tab active" : "tab"}
-            onClick={() => setActiveTab("aiProfiles")}
-          >
-            AI Profiles
-            {templateProfiles.length > 0 && (
-              <span className="tab-badge">{templateProfiles.length}</span>
-            )}
-          </button>
-        </div>
-      )}
-
       {activeTab === "details" && (
-        <div className="admin-form-card">
+      <div className="top-grid">
+      <div className={`admin-form-card${isTrial ? " admin-form-card--readonly" : ""}`}>
+
+          {isTrial && (
+            <div className="trial-banner">
+              <span className="trial-banner-icon">🔒</span>
+              <span>Trial account — this record is read only. Upgrade to enable editing.</span>
+            </div>
+          )}
 
           <div className="form-group">
             <label htmlFor="name">Template Name *</label>
@@ -336,7 +335,8 @@ export default function ComparisonTemplateForm() {
           )}
 
           <div className="form-footer">
-            <button type="button" className="btn-primary" onClick={save}>
+            <button type="button" className="btn-primary" onClick={save} disabled={isTrial}
+              title={isTrial ? "Not available on trial" : undefined}>
               Save
             </button>
             <button type="button" className="btn-secondary" onClick={() => navigate("/comparison-templates")}>
@@ -345,16 +345,39 @@ export default function ComparisonTemplateForm() {
           </div>
 
         </div>
+
+      <div className="dc-card guidance-card">
+        <p className="guide-about">About Templates</p>
+        <p className="guide-about-desc">
+          Templates define the fields the AI extracts from documents. Link attributes to build your extraction schema, then attach AI profiles to run analysis automatically.
+        </p>
+        <div className="guide-divider">
+          <p className="guide-section-title">How it works</p>
+          <div className="guide-steps">
+            <div className="guide-step"><div className="guide-step-num">1</div><div>Create a template and link it to a document type</div></div>
+            <div className="guide-step"><div className="guide-step-num">2</div><div>Add attributes below to define each field to extract</div></div>
+            <div className="guide-step"><div className="guide-step-num">3</div><div>Attach AI Insight Profiles to customise AI analysis</div></div>
+          </div>
+        </div>
+      </div>
+
+      </div>
       )}
 
       {activeTab === "attributes" && id && (
         <div className="admin-tab-panel">
-          <TemplateAttributesList templateId={id} hideHeader />
+          <TemplateAttributesList templateId={id} hideHeader embedded />
         </div>
       )}
 
       {activeTab === "aiProfiles" && id && (
-        <div className="admin-form-card">
+        <div className={`admin-form-card${isTrial ? " admin-form-card--readonly" : ""}`}>
+          {isTrial && (
+            <div className="trial-banner">
+              <span className="trial-banner-icon">🔒</span>
+              <span>Trial account — this record is read only. Upgrade to enable editing.</span>
+            </div>
+          )}
           <p className="tp-profiles-hint">
             Attach AI Insight Profiles to this template. Profiles marked as <strong>Default</strong> will be pre-selected when users start a review with this template — they can still deselect them if needed.
           </p>
@@ -393,7 +416,8 @@ export default function ComparisonTemplateForm() {
           )}
 
           <div className="form-footer">
-            <button type="button" className="btn-primary" onClick={saveProfiles} disabled={profilesSaving}>
+            <button type="button" className="btn-primary" onClick={saveProfiles} disabled={profilesSaving || isTrial}
+              title={isTrial ? "Not available on trial" : undefined}>
               {profilesSaving ? "Saving…" : profilesSaved ? "Saved ✓" : "Save Profiles"}
             </button>
           </div>

@@ -58,7 +58,10 @@ public class GetAllRules
                     "statecode")
             };
 
-            TenantQueryHelper.AddTenantFilter(query, tenant.TenantRecordId.ToString());
+            if (tenant.IsTrial)
+                TenantQueryHelper.AddTenantFilterWithSamples(query, tenant.TenantRecordId.ToString());
+            else
+                TenantQueryHelper.AddTenantFilter(query, tenant.TenantRecordId.ToString());
             query.AddOrder("ilx_name", OrderType.Ascending);
 
             var templateLink = query.AddLink(

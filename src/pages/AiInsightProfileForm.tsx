@@ -4,12 +4,14 @@ import { AiInsightProfile } from "../types/AiInsightProfile"
 import { useNavigate, useParams } from "react-router-dom"
 import { PageBreadcrumb } from "../components/PageBreadcrumb"
 import PageLoading from "../components/PageLoading"
+import { useUser } from "../context/UserContext"
 
 export default function AiInsightProfileForm() {
 
   const { id } = useParams()
   const navigate = useNavigate()
   const isEdit = !!id
+  const { isTrial } = useUser()
 
   const [form, setForm] = useState<AiInsightProfile>({
     profileName: "",
@@ -130,18 +132,27 @@ export default function AiInsightProfileForm() {
 
     <div className="page">
 
-      <PageBreadcrumb
-        items={[
-          { label: "AI Insight Profiles", onClick: () => navigate("/admin/ai-insight-profiles") },
-          { label: isEdit ? "Edit AI Insight Profile" : "New AI Insight Profile" },
-        ]}
-      />
-
-      <div className="admin-form-header">
-        <h2>{isEdit ? "Edit AI Insight Profile" : "New AI Insight Profile"}</h2>
+      <div className="page-sticky-header">
+        <PageBreadcrumb
+          items={[
+            { label: "AI Insight Profiles", onClick: () => navigate("/admin/ai-insight-profiles") },
+            { label: isEdit ? "Edit AI Insight Profile" : "New AI Insight Profile" },
+          ]}
+        />
+        <div className="admin-form-header">
+          <h2>{isEdit ? "Edit AI Insight Profile" : "New AI Insight Profile"}</h2>
+        </div>
       </div>
 
-      <div className="admin-form-card">
+      <div className="top-grid">
+      <div className={`admin-form-card${isTrial ? " admin-form-card--readonly" : ""}`}>
+
+        {isTrial && (
+          <div className="trial-banner">
+            <span className="trial-banner-icon">🔒</span>
+            <span>Trial account — this record is read only. Upgrade to enable editing.</span>
+          </div>
+        )}
 
         <div className="form-group">
           <label htmlFor="profile-name">Profile Name *</label>
@@ -211,13 +222,31 @@ export default function AiInsightProfileForm() {
         )}
 
         <div className="form-footer">
-          <button type="button" className="btn-primary" onClick={save} disabled={saving}>
+          <button type="button" className="btn-primary" onClick={save} disabled={saving || isTrial}
+            title={isTrial ? "Not available on trial" : undefined}>
             {saving ? "Saving…" : "Save"}
           </button>
           <button type="button" className="btn-secondary" onClick={() => navigate("/admin/ai-insight-profiles")}>
             Cancel
           </button>
         </div>
+
+      </div>
+
+      <div className="dc-card guidance-card">
+        <p className="guide-about">About AI Insight Profiles</p>
+        <p className="guide-about-desc">
+          AI Insight Profiles package AI analyses that run automatically on insights. Attach profiles to templates to make them available when users start a review.
+        </p>
+        <div className="guide-divider">
+          <p className="guide-section-title">How it works</p>
+          <div className="guide-steps">
+            <div className="guide-step"><div className="guide-step-num">1</div><div>Create a profile with a prompt that describes the AI analysis</div></div>
+            <div className="guide-step"><div className="guide-step-num">2</div><div>Attach the profile to a template via the Template form</div></div>
+            <div className="guide-step"><div className="guide-step-num">3</div><div>Default profiles are pre-selected; mandatory profiles always run</div></div>
+          </div>
+        </div>
+      </div>
 
       </div>
 

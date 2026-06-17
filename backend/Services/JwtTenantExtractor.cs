@@ -55,10 +55,13 @@ public static class JwtTenantExtractor
             if (string.IsNullOrEmpty(oid))
                 oid = root.TryGetProperty("sub", out var sub) ? sub.GetString() : null;
             var issuer = root.TryGetProperty("iss",                out var i)   ? i.GetString()   : null;
-            // email claim varies by token type: prefer 'upn' for AAD, 'email' for External ID
-            var email  = root.TryGetProperty("upn",                out var upn) ? upn.GetString() :
-                         root.TryGetProperty("email",              out var em)  ? em.GetString()  :
-                         root.TryGetProperty("preferred_username", out var pu)  ? pu.GetString()  : null;
+            // email claim varies by token type: prefer 'upn' for AAD, 'preferred_username'/'email' for External ID.
+            // CIAM tokens sometimes put an OID GUID in the 'email' claim — validate with '@' check.
+            static bool IsEmail(string? s) => s?.Contains('@') == true;
+            var rawEmail = root.TryGetProperty("upn",                out var upn) ? upn.GetString() :
+                           root.TryGetProperty("preferred_username", out var pu)  ? pu.GetString()  :
+                           root.TryGetProperty("email",              out var em)  ? em.GetString()  : null;
+            var email = IsEmail(rawEmail) ? rawEmail : null;
             // name claim: External ID does not auto-compose displayName — fall back to given_name + family_name
             var nameVal     = root.TryGetProperty("name",        out var n)   ? n.GetString()   : null;
             var givenName   = root.TryGetProperty("given_name",  out var gn)  ? gn.GetString()  : null;

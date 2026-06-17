@@ -19,6 +19,7 @@ public record TenantUserRecord(
     string? Email,
     int     RunsUsed,
     int     RunLimit,
+    int     RunMonth,
     DateTime? TrialStart,
     DateTime? TrialExpiry,
     int     UserStatus
@@ -61,7 +62,7 @@ public class TenantUserService
             ColumnSet = new ColumnSet(
                 "ilx_name", "ilx_firstname", "ilx_lastname",
                 "ilx_companyname", "ilx_jobtitle", "ilx_country", "ilx_email",
-                "ilx_runlimit", "ilx_runsused",
+                "ilx_runlimit", "ilx_runsused", "ilx_runmonth",
                 "ilx_trialstart", "ilx_trialexpiry", "ilx_userstatus")
         };
         q.Criteria.AddCondition("ilx_externalobjectid", ConditionOperator.Equal, oid);
@@ -81,10 +82,56 @@ public class TenantUserService
             Email:       e.GetAttributeValue<string>("ilx_email"),
             RunsUsed:    e.GetAttributeValue<int>("ilx_runsused"),
             RunLimit:    e.GetAttributeValue<int>("ilx_runlimit"),
+            RunMonth:    e.GetAttributeValue<int>("ilx_runmonth"),
             TrialStart:  e.Contains("ilx_trialstart")  ? e.GetAttributeValue<DateTime>("ilx_trialstart")  : null,
             TrialExpiry: e.Contains("ilx_trialexpiry") ? e.GetAttributeValue<DateTime>("ilx_trialexpiry") : null,
             UserStatus:  e.GetAttributeValue<OptionSetValue>("ilx_userstatus")?.Value ?? 1
         );
+    }
+
+    /// <summary>
+    /// Checks the monthly run limit for a trial user and — if allowed — increments
+    /// the counter atomically. Returns (allowed, runsUsedThisMonth, runLimit).
+    /// Resets the counter automatically when a new calendar month starts.
+    /// </summary>
+    public (bool Allowed, int RunsUsed, int RunLimit) CheckAndIncrementRun(string oid)
+    {
+        using var svc = CreateClient();
+
+        var q = new QueryExpression("ilx_tenantuser")
+        {
+            ColumnSet = new ColumnSet("ilx_tenantuserid", "ilx_runsused", "ilx_runlimit", "ilx_runmonth",
+                                      "ilx_trialexpiry")
+        };
+        q.Criteria.AddCondition("ilx_externalobjectid", ConditionOperator.Equal, oid);
+        var existing = svc.RetrieveMultiple(q).Entities.FirstOrDefault();
+        if (existing == null)
+            return (true, 0, 5); // no record yet — allow and let run proceed
+
+        var currentMonth  = int.Parse(DateTime.UtcNow.ToString("yyyyMM"));
+        var storedMonth   = existing.GetAttributeValue<int>("ilx_runmonth");
+        var runsUsed      = existing.GetAttributeValue<int>("ilx_runsused");
+        var runLimit      = existing.GetAttributeValue<int>("ilx_runlimit");
+        if (runLimit <= 0) runLimit = 3; // safety default
+
+        // New calendar month — reset the monthly counter
+        if (storedMonth != currentMonth)
+        {
+            runsUsed    = 0;
+            storedMonth = currentMonth;
+        }
+
+        if (runsUsed >= runLimit)
+            return (false, runsUsed, runLimit);
+
+        // Increment and persist
+        runsUsed++;
+        var update = new Entity("ilx_tenantuser") { Id = existing.Id };
+        update["ilx_runsused"]  = runsUsed;
+        update["ilx_runmonth"]  = currentMonth;
+        svc.Update(update);
+
+        return (true, runsUsed, runLimit);
     }
 
     public void CreateOrUpdate(
@@ -125,9 +172,10 @@ public class TenantUserService
         if (existing == null)
         {
             entity["ilx_trialstart"]  = DateTime.UtcNow;
-            entity["ilx_trialexpiry"] = DateTime.UtcNow.AddDays(30);
-            entity["ilx_runlimit"]    = 5;
+            entity["ilx_trialexpiry"] = DateTime.UtcNow.AddMonths(3);
+            entity["ilx_runlimit"]    = 3;
             entity["ilx_runsused"]    = 0;
+            entity["ilx_runmonth"]    = 0;
             entity["ilx_userstatus"]  = new OptionSetValue(857270000); // Active
             svc.Create(entity);
         }

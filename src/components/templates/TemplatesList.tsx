@@ -13,9 +13,10 @@ type Props = {
   documentTypeId?: string
   documentTypeName?: string
   hideHeader?: boolean
+  embedded?: boolean
 }
 
-export default function TemplatesList({ documentTypeId, documentTypeName, hideHeader }: Props) {
+export default function TemplatesList({ documentTypeId, documentTypeName, hideHeader, embedded }: Props) {
 
   const [data, setData] = useState<ComparisonTemplate[]>([])
   const [search, setSearch] = useState("")
@@ -110,7 +111,7 @@ export default function TemplatesList({ documentTypeId, documentTypeName, hideHe
   }
 
   return (
-    <div className="content-page">
+    <div className={embedded ? undefined : "content-page"}>
 
       {!hideHeader ? (
         <>

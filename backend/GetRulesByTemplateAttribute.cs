@@ -95,7 +95,10 @@ public class GetRulesByTemplateAttribute
         ========================= */
         query.Criteria.AddCondition("statecode", ConditionOperator.Equal, 0);
         query.Criteria.AddCondition("ilx_templateattribute", ConditionOperator.Equal, attrGuid);
-        TenantQueryHelper.AddTenantFilter(query, tenant.TenantRecordId.ToString());
+        if (tenant.IsTrial)
+            TenantQueryHelper.AddTenantFilterWithSamples(query, tenant.TenantRecordId.ToString());
+        else
+            TenantQueryHelper.AddTenantFilter(query, tenant.TenantRecordId.ToString());
 
         /* =========================
            EXECUTE

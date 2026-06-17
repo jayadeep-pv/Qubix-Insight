@@ -59,7 +59,10 @@ public class GetAttributeCategories
 
             // 🔹 Only Active
             query.Criteria.AddCondition("statecode", ConditionOperator.Equal, 0);
-            TenantQueryHelper.AddTenantFilter(query, tenant.TenantRecordId.ToString());
+            if (tenant.IsTrial)
+                TenantQueryHelper.AddTenantFilterWithSamples(query, tenant.TenantRecordId.ToString());
+            else
+                TenantQueryHelper.AddTenantFilter(query, tenant.TenantRecordId.ToString());
 
             // 🔹 Sort Order
             query.AddOrder("ilx_displayorder", OrderType.Ascending);

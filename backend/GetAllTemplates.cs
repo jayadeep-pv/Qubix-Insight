@@ -60,7 +60,10 @@ public class GetAllTemplates
             )
         };
 
-        TenantQueryHelper.AddTenantFilter(query, tenant.TenantRecordId.ToString());
+        if (tenant.IsTrial)
+            TenantQueryHelper.AddTenantFilterWithSamples(query, tenant.TenantRecordId.ToString());
+        else
+            TenantQueryHelper.AddTenantFilter(query, tenant.TenantRecordId.ToString());
 
         var link = query.AddLink(
             "ilx_documenttype",

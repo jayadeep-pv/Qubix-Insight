@@ -66,7 +66,6 @@ export default function Layout({ onLogout }: LayoutProps) {
           <div className="logo-icon"><Layers size={16} /></div>
           <div className="logo-text">
             <span className="logo-name">Qubix Insight</span>
-            <span className="logo-sub">Logixphere</span>
           </div>
         </div>
 

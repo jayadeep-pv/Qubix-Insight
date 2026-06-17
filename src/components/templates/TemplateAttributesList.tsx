@@ -11,9 +11,10 @@ type SortDir = "asc" | "desc";
 type Props = {
   templateId?: string
   hideHeader?: boolean
+  embedded?: boolean
 }
 
-export default function TemplateAttributesList({ templateId, hideHeader }: Props) {
+export default function TemplateAttributesList({ templateId, hideHeader, embedded }: Props) {
 
   const [data, setData] = useState<any[]>([])
   const [search, setSearch] = useState("")
@@ -116,7 +117,7 @@ export default function TemplateAttributesList({ templateId, hideHeader }: Props
   }
 
   return (
-    <div className="content-page">
+    <div className={embedded ? undefined : "content-page"}>
 
       {!hideHeader ? (
         <>

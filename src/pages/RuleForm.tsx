@@ -4,12 +4,14 @@ import { configApi } from "../services/configApi";
 import { Rule, RuleLookupAttribute, RuleLookupTemplate } from "../types/Rule";
 import { PageBreadcrumb } from "../components/PageBreadcrumb";
 import PageLoading from "../components/PageLoading";
+import { useUser } from "../context/UserContext";
 
 export default function RuleForm() {
 
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = !!id;
+  const { isTrial } = useUser();
 
   const [form, setForm] = useState<Rule>({
     name: "",
@@ -167,18 +169,27 @@ export default function RuleForm() {
 
     <div className="page">
 
-      <PageBreadcrumb
-        items={[
-          { label: "Rules", onClick: () => navigate("/admin/rules") },
-          { label: id ? `Rule — ${form.name}` : "New Rule" },
-        ]}
-      />
-
-      <div className="admin-form-header">
-        <h2>{id ? `Rule — ${form.name}` : "New Rule"}</h2>
+      <div className="page-sticky-header">
+        <PageBreadcrumb
+          items={[
+            { label: "Rules", onClick: () => navigate("/admin/rules") },
+            { label: id ? `Rule — ${form.name}` : "New Rule" },
+          ]}
+        />
+        <div className="admin-form-header">
+          <h2>{id ? `Rule — ${form.name}` : "New Rule"}</h2>
+        </div>
       </div>
 
-      <div className="admin-form-card">
+      <div className="top-grid">
+      <div className={`admin-form-card${isTrial ? " admin-form-card--readonly" : ""}`}>
+
+        {isTrial && (
+          <div className="trial-banner">
+            <span className="trial-banner-icon">🔒</span>
+            <span>Trial account — this record is read only. Upgrade to enable editing.</span>
+          </div>
+        )}
 
         <div className="form-group">
           <label htmlFor="rule-name">Rule Name *</label>
@@ -315,13 +326,31 @@ export default function RuleForm() {
         )}
 
         <div className="form-footer">
-          <button type="button" className="btn-primary" onClick={save} disabled={saving}>
+          <button type="button" className="btn-primary" onClick={save} disabled={saving || isTrial}
+            title={isTrial ? "Not available on trial" : undefined}>
             {saving ? "Saving…" : "Save"}
           </button>
           <button type="button" className="btn-secondary" onClick={() => navigate("/admin/rules")}>
             Cancel
           </button>
         </div>
+
+      </div>
+
+      <div className="dc-card guidance-card">
+        <p className="guide-about">About Rules</p>
+        <p className="guide-about-desc">
+          Rules define scoring logic applied to extracted field values during a Scoring run. Each rule evaluates one attribute and contributes to the overall document score.
+        </p>
+        <div className="guide-divider">
+          <p className="guide-section-title">How it works</p>
+          <div className="guide-steps">
+            <div className="guide-step"><div className="guide-step-num">1</div><div>Select the template attribute this rule should evaluate</div></div>
+            <div className="guide-step"><div className="guide-step-num">2</div><div>Set severity and weight — higher weight means greater score impact</div></div>
+            <div className="guide-step"><div className="guide-step-num">3</div><div>Advisory text appears in the report to explain findings to reviewers</div></div>
+          </div>
+        </div>
+      </div>
 
       </div>
 

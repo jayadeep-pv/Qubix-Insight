@@ -20,7 +20,7 @@ namespace QubixInsight.Services.Domain
                 runId,
                 new ColumnSet(
                     "ilx_mode",
-                    "ilx_aiinsightscope",
+                    "ilx_analysis",
                     "ilx_documenttype",
                     "ilx_analysistemplate"
                 )
