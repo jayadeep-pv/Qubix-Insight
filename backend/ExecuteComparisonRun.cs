@@ -787,11 +787,17 @@ private (int? Page, string? PolygonJson) FindPosition(
 
                         if (!service.RetrieveMultiple(checkQuery).Entities.Any())
                         {
+                            var runRec     = service.Retrieve("ilx_analysisrun",     runId,                 new ColumnSet("ilx_runid"));
+                            var profileRec = service.Retrieve("ilx_aiinsightprofile", defaultProfileId.Value, new ColumnSet("ilx_name"));
+                            var runDisplayId  = runRec.GetAttributeValue<string>("ilx_runid") ?? runId.ToString();
+                            var profileName   = profileRec.GetAttributeValue<string>("ilx_name") ?? "";
+
                             var insightSeed = new Entity("ilx_analysisruninsight");
-                            insightSeed["ilx_analysisrun"] = new EntityReference("ilx_analysisrun", runId);
-                            insightSeed["ilx_aiinsightprofile"] = new EntityReference("ilx_aiinsightprofile", defaultProfileId.Value);
-                            insightSeed["ilx_runstatus"] = new OptionSetValue(INSIGHT_PENDING);
-                            insightSeed["ilx_tenantid"] = tenant.TenantRecordId.ToString();
+                            insightSeed["ilx_name"]             = $"{runDisplayId} — {profileName}";
+                            insightSeed["ilx_analysisrun"]       = new EntityReference("ilx_analysisrun", runId);
+                            insightSeed["ilx_aiinsightprofile"]  = new EntityReference("ilx_aiinsightprofile", defaultProfileId.Value);
+                            insightSeed["ilx_runstatus"]         = new OptionSetValue(INSIGHT_PENDING);
+                            insightSeed["ilx_tenantid"]          = tenant.TenantRecordId.ToString();
                             service.Create(insightSeed);
                         }
                     }

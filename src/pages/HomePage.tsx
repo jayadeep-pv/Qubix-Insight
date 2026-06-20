@@ -112,7 +112,7 @@ function RunRow({ run, onClick }: { run: RecentRun; onClick: () => void }) {
         </div>
       </div>
       <div className="hp-ic-badges">
-        <span className={`hp-ic-mode hp-ic-mode--${run.mode?.toLowerCase() === "summarise" ? "sum" : "cmp"}`}>
+        <span className={`hp-ic-mode hp-ic-mode--${run.mode?.toLowerCase() === "summarise" ? "sum" : run.mode?.toLowerCase() === "scoring" ? "scr" : "cmp"}`}>
           {run.mode}
         </span>
         <span className={`hp-ic-risk hp-ic-risk--${run.riskLevel}`}>
@@ -652,6 +652,7 @@ const HomePage: React.FC = () => {
         .hp-ic-mode { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
         .hp-ic-mode--sum { background: #E6F1FB; color: #185FA5; }
         .hp-ic-mode--cmp { background: #FAECE7; color: #993C1D; }
+        .hp-ic-mode--scr { background: #EDE9FE; color: #5B21B6; }
         .hp-ic-risk { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
         .hp-ic-risk--high   { background: #fef2f2; color: #dc2626; }
         .hp-ic-risk--medium { background: #fffbeb; color: #d97706; }

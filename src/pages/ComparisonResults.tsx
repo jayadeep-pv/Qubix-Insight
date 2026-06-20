@@ -173,8 +173,10 @@ function safeParseInsight(jsonString: unknown): any {
 
     if (typeof jsonString === "string") {
       const cleaned = jsonString
-        .replace(/\\n/g, "")
-        .replace(/\\"/g, '"')
+        .replace(/\r\n/g, " ")
+        .replace(/\n/g, " ")
+        .replace(/\r/g, " ")
+        .replace(/\\n/g, " ")
         .trim();
 
       const parsed = JSON.parse(cleaned);
@@ -784,17 +786,17 @@ const sendChatQuestion = async () => {
 
 
     useEffect(() => {
-      function updateWidth() {
-        if (pdfContainerRef.current) {
-          setPdfWidth(pdfContainerRef.current.offsetWidth);
+      if (activeTab !== "fields" || !pdfContainerRef.current) return;
+
+      const observer = new ResizeObserver(entries => {
+        for (const entry of entries) {
+          setPdfWidth((entry.target as HTMLElement).offsetWidth);
         }
-      }
+      });
 
-      updateWidth();
-
-      window.addEventListener("resize", updateWidth);
-      return () => window.removeEventListener("resize", updateWidth);
-}, []);
+      observer.observe(pdfContainerRef.current);
+      return () => observer.disconnect();
+}, [activeTab]);
 
   useEffect(() => {
     if (!selectedAttrId || !highlight || activeTab !== "fields") { setConnectorData(null); return; }
@@ -948,7 +950,7 @@ const pdfViewer = pdfUrl ? (
             >
               <Page
                 pageNumber={currentPage}
-                width={pdfWidth -24}
+                width={pdfWidth - 12}
                 renderTextLayer={false}
                 renderAnnotationLayer={false}
                 onLoadSuccess={(page) => {
@@ -982,7 +984,7 @@ const pdfViewer = pdfUrl ? (
                     const minY = Math.min(...ys);
                     const maxY = Math.max(...ys);
 
-                    const renderedWidth = pdfWidth - 24;
+                    const renderedWidth = pdfWidth - 12;
                     const pageNaturalWidth = pageSizes[currentPage].width;
                     const scale = renderedWidth / pageNaturalWidth;
                     // PDF page.width from react-pdf is in points (72 pts = 1 inch).
@@ -1606,7 +1608,9 @@ const pdfViewer = pdfUrl ? (
    COMPARE MODE
 ===================================================== */
 
-const winner = candidates.find(c => c.isWinner) || sortedCandidates[0] || null;
+const hasRealWinner = candidates.some(c => c.isWinner);
+const winner = candidates.find(c => c.isWinner) || null;
+const noRulesConfigured = mode === "Scoring" && candidates.length > 0 && evaluations.length === 0;
 
 
 return (
@@ -1656,7 +1660,7 @@ return (
     </div>
 
     <div className="header-right">
-      {winner && (
+      {winner && hasRealWinner && (
         <div className="winner-card">
           🏆 Winner: <strong>{winner.label}</strong>
         </div>
@@ -2141,14 +2145,36 @@ return (
   <div className="rr-tab-scroll">
   <div className="results-card">
 
+          {/* No rules warning */}
+          {noRulesConfigured && (
+            <div style={{
+              display: "flex", alignItems: "flex-start", gap: 12,
+              padding: "14px 16px", marginBottom: 20,
+              background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10,
+            }}>
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0, marginTop: 1 }}>
+                <path d="M10 2L2 17h16L10 2z" stroke="#d97706" strokeWidth="1.5" strokeLinejoin="round" fill="#fef3c7"/>
+                <path d="M10 8v4M10 14.5v.5" stroke="#d97706" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+              <div>
+                <div style={{ fontWeight: 600, color: "#92400e", fontSize: 13, marginBottom: 3 }}>
+                  No scoring rules configured
+                </div>
+                <div style={{ color: "#78350f", fontSize: 13, lineHeight: 1.5 }}>
+                  Scoring requires rules to be set up for this template's attributes. Go to <strong>Admin → Rules</strong> and add rules with a comparison direction and weight for each attribute you want to score.
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Ranking */}
             <div style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 }}>
                 Ranking
               </div>
 
-              {/* Winner card */}
-              {winner && (
+              {/* Winner card — only when a real winner exists */}
+              {winner && hasRealWinner && (
                 <div style={{
                   background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
                   border: "2px solid #22c55e",
@@ -2172,8 +2198,8 @@ return (
                 </div>
               )}
 
-              {/* Runner-up rows */}
-              {sortedCandidates.filter(c => c.id !== winner?.id).map((c, i) => (
+              {/* All candidates as ranked rows (winner at top when real winner exists, otherwise all equal) */}
+              {sortedCandidates.filter(c => !hasRealWinner || c.id !== winner?.id).map((c, i) => (
                 <div key={c.id} style={{
                   display: "flex",
                   alignItems: "center",
@@ -2189,7 +2215,7 @@ return (
                     background: "#e5e7eb", color: "#6b7280",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     fontSize: 12, fontWeight: 700, flexShrink: 0
-                  }}>{i + 2}</div>
+                  }}>{hasRealWinner ? i + 2 : i + 1}</div>
                   <span style={{ flex: 1, fontWeight: 500, color: "#374151", fontSize: 14 }}>{c.label}</span>
                   <span style={{ fontWeight: 700, color: "#6b7280", fontSize: 15 }}>{c.totalScore} <span style={{ fontSize: 11, fontWeight: 500 }}>pts</span></span>
                 </div>

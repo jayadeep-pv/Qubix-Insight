@@ -151,7 +151,7 @@ public class GetAllInsights
             mode = (r.GetAttributeValue<OptionSetValue>("ilx_mode")?.Value) switch
             {
                 857270001 => "Summarise",
-                857270002 => "Score",
+                857270002 => "Scoring",
                 _         => "Compare"
             }
         });

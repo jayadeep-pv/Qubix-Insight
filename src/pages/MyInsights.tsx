@@ -195,7 +195,7 @@ const MyInsights: React.FC = () => {
                 <td className="col-center">{item.documentCount || "-"}</td>
                 <td>{item.createdDate}</td>
                 <td>
-                  <span className={`mode-badge ${item.mode?.toLowerCase() === "summarise" ? "summarise" : "compare"}`}>
+                  <span className={`mode-badge ${item.mode?.toLowerCase() === "summarise" ? "summarise" : item.mode?.toLowerCase() === "scoring" ? "scoring" : "compare"}`}>
                     {item.mode || "-"}
                   </span>
                 </td>

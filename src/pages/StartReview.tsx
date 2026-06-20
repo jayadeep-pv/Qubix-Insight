@@ -226,6 +226,8 @@ function StartReview() {
   const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
 
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounterRef = useRef(0);
 
   /* ── Scan progress ── */
   const [scanning, setScanning]         = useState(false);
@@ -255,11 +257,11 @@ function StartReview() {
   const [insightSaving, setInsightSaving] = useState(false);
   const [insightError,  setInsightError]  = useState("");
 
-  // Quick Scan is a single AI call — 2 stages.
-  // Save as Insight and the other 3 modes are multi-step — 4 stages.
   const SCAN_STAGES = (mode === "extract" && !insightSaving)
     ? ["Uploading document", "Detecting attributes"]
-    : ["Uploading document", "Extracting attributes", "Running AI profiles", "Generating report"];
+    : mode === "compare-scoring"
+      ? ["Uploading document", "Extracting attributes", "Running AI profiles", "Allocating scores", "Generating report"]
+      : ["Uploading document", "Extracting attributes", "Running AI profiles", "Generating report"];
 
   /* ── Template builder inline state (used after scan completes) ── */
   type ExtractStage = "results" | TemplateStage;
@@ -440,8 +442,31 @@ function StartReview() {
     const updated = [...uploadedFiles];
     updated.splice(index, 1);
     setUploadedFiles(updated);
+  };
 
-
+  /* ── Drag-and-drop handlers (shared by both dropzones) ── */
+  const onDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current++;
+    setIsDragging(true);
+  };
+  const onDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) setIsDragging(false);
+  };
+  const onDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current = 0;
+    setIsDragging(false);
+    if (!scanning) handleFiles(e.dataTransfer.files);
   };
 
   /* ── Validation ── */
@@ -594,8 +619,8 @@ function StartReview() {
     const user = getCurrentUser();
 
     try {
-      // ── Stage 0: Upload (animate 0→30% while real upload runs) ──
-      startProgressAnim(30, 9000);
+      // ── Stage 0: Upload (animate 0→10% while real upload runs) ──
+      startProgressAnim(10, 9000);
       const uploadResp = await fetch(UPLOAD_FUNCTION_URL(), {
         method: "POST",
         headers: {
@@ -618,23 +643,33 @@ function StartReview() {
       if (!uploadResp.ok) throw new Error(await uploadResp.text() || `HTTP ${uploadResp.status}`);
       const { runRecordId } = await uploadResp.json();
 
-      // ── Stages 1–3: all timer-based, run concurrently with the execute fetch ──
-      // Timing tuned so extracting fills ~half the total run time (~60s):
-      //   Stage 1  Extracting attributes  0–30s  → 30→62%
-      //   Stage 2  Running AI profiles   30–50s  → 62→82%
-      //   Stage 3  Generating report     50–62s  → 82→95%  (execute finishes → 100%)
-      snapProgress(30); setScanStageIdx(1);
-      startProgressAnim(62, 30000);                                      // stage 1: 30s
+      // ── Stage progress (timer-based, concurrent with execute fetch) ──
+      // All modes:   Upload 10% | Extract 40% | AI 30% | Report 20%
+      // Scoring:     Upload 10% | Extract 30% | AI 30% | Scores 10% | Report 20%
+      const isScoring = mode === "compare-scoring";
+      snapProgress(10); setScanStageIdx(1);
+      startProgressAnim(isScoring ? 40 : 50, 30000);                    // extract: 30s
 
       stageTimeoutsRef.current.push(setTimeout(() => {
-        snapProgress(62); setScanStageIdx(2);
-        startProgressAnim(82, 20000);                                    // stage 2: 20s
+        snapProgress(isScoring ? 40 : 50); setScanStageIdx(2);
+        startProgressAnim(isScoring ? 70 : 80, 20000);                  // AI: 20s
       }, 30000));
 
-      stageTimeoutsRef.current.push(setTimeout(() => {
-        snapProgress(82); setScanStageIdx(3);
-        startProgressAnim(95, 14000);                                    // stage 3: 14s
-      }, 50000));
+      if (isScoring) {
+        stageTimeoutsRef.current.push(setTimeout(() => {
+          snapProgress(70); setScanStageIdx(3);
+          startProgressAnim(80, 10000);                                  // allocate scores: 10s
+        }, 50000));
+        stageTimeoutsRef.current.push(setTimeout(() => {
+          snapProgress(80); setScanStageIdx(4);
+          startProgressAnim(95, 10000);                                  // report: 10s
+        }, 60000));
+      } else {
+        stageTimeoutsRef.current.push(setTimeout(() => {
+          snapProgress(80); setScanStageIdx(3);
+          startProgressAnim(95, 14000);                                  // report: 14s
+        }, 50000));
+      }
 
       // Create AI insight records (fire-and-forget alongside execute)
       if (selectedProfiles.length > 0) {
@@ -692,8 +727,8 @@ function StartReview() {
     setScanStageIdx(0);
 
     try {
-      // Stage 0: Upload (0→28%)
-      startProgressAnim(28, 6000);
+      // Stage 0: Upload (0→10%)
+      startProgressAnim(10, 6000);
 
       const formData = new FormData();
       formData.append("comparisonName", insightName || templateName);
@@ -720,10 +755,10 @@ function StartReview() {
 
       const { runRecordId } = await uploadRes.json();
 
-      // Stage 1: Extracting attributes (30→62%)
-      snapProgress(30);
+      // Stage 1: Extracting attributes (10→50%)
+      snapProgress(10);
       setScanStageIdx(1);
-      startProgressAnim(62, 30000);
+      startProgressAnim(50, 30000);
 
       // Fetch mandatory/default profiles and create insights before executing
       let profileIds: string[] = [];
@@ -735,10 +770,10 @@ function StartReview() {
           .filter(Boolean);
 
         if (profileIds.length > 0) {
-          // Stage 2: Running AI profiles (62→82%)
-          snapProgress(62);
+          // Stage 2: Running AI profiles (50→80%)
+          snapProgress(50);
           setScanStageIdx(2);
-          startProgressAnim(82, 20000);
+          startProgressAnim(80, 20000);
 
           await fetch(CREATE_INSIGHTS_URL(), {
             method: "POST",
@@ -753,8 +788,8 @@ function StartReview() {
         // non-critical — continue to execute even if insight creation fails
       }
 
-      // Stage 3: Generating report (82→95%)
-      snapProgress(82);
+      // Stage 3: Generating report (80→95%)
+      snapProgress(80);
       setScanStageIdx(3);
       startProgressAnim(95, 14000);
 
@@ -1033,8 +1068,15 @@ function StartReview() {
               <button type="button" className="sr-change-file-btn" onClick={() => fileInputRef.current?.click()}>↻ Change file</button>
             </div>
           ) : (
-            <div className={`dc-dropzone ${scanning ? "disabled-zone" : ""}`} style={{ minHeight:64 }}
-              onClick={() => !scanning && fileInputRef.current?.click()}>
+            <div
+              className={`dc-dropzone${scanning ? " disabled-zone" : ""}${isDragging ? " dc-dropzone--dragging" : ""}`}
+              style={{ minHeight: 64 }}
+              onClick={() => !scanning && fileInputRef.current?.click()}
+              onDragEnter={onDragEnter}
+              onDragLeave={onDragLeave}
+              onDragOver={onDragOver}
+              onDrop={onDrop}
+            >
               <div className="dropzone-inner">
                 <div className="dropzone-icon">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1042,7 +1084,7 @@ function StartReview() {
                     <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 4 16.3"/>
                   </svg>
                 </div>
-                <div className="dropzone-primary">Drag &amp; drop file here</div>
+                <div className="dropzone-primary">{isDragging ? "Drop to upload" : "Drag & drop file here"}</div>
                 <div className="dropzone-secondary">or click to browse</div>
               </div>
             </div>
@@ -1135,11 +1177,31 @@ function StartReview() {
                 </div>
               ))}
               {!isCompare && <button type="button" className="sr-change-file-btn" onClick={() => fileInputRef.current?.click()}>↻ Change file</button>}
-              {isCompare && <button type="button" className="sr-add-more-btn" onClick={() => fileInputRef.current?.click()}>+ Add another document</button>}
+              {isCompare && (
+                <div
+                  className={`dc-dropzone dc-dropzone--compact${isDragging ? " dc-dropzone--dragging" : ""}`}
+                  onClick={() => !scanning && fileInputRef.current?.click()}
+                  onDragEnter={onDragEnter}
+                  onDragLeave={onDragLeave}
+                  onDragOver={onDragOver}
+                  onDrop={onDrop}
+                >
+                  <span style={{ fontSize: 12, color: "#9ca3af" }}>
+                    {isDragging ? "Drop to add" : "+ Drop more files or click to browse"}
+                  </span>
+                </div>
+              )}
             </div>
           ) : (
-            <div className={`dc-dropzone ${scanning ? "disabled-zone" : ""}`} style={{ minHeight:56 }}
-              onClick={() => !scanning && fileInputRef.current?.click()}>
+            <div
+              className={`dc-dropzone${scanning ? " disabled-zone" : ""}${isDragging ? " dc-dropzone--dragging" : ""}`}
+              style={{ minHeight: 56 }}
+              onClick={() => !scanning && fileInputRef.current?.click()}
+              onDragEnter={onDragEnter}
+              onDragLeave={onDragLeave}
+              onDragOver={onDragOver}
+              onDrop={onDrop}
+            >
               <div className="dropzone-inner">
                 <div className="dropzone-icon">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1147,7 +1209,7 @@ function StartReview() {
                     <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 4 16.3"/>
                   </svg>
                 </div>
-                <div className="dropzone-primary">Drag &amp; drop file here</div>
+                <div className="dropzone-primary">{isDragging ? "Drop to upload" : "Drag & drop file here"}</div>
                 <div className="dropzone-secondary">or click to browse</div>
               </div>
             </div>
@@ -1554,24 +1616,22 @@ function StartReview() {
 
             {scanning ? (
               /* ── Multi-stage progress ── */
-              <div style={{ width: "100%", marginTop: 8 }}>
+              <div style={{ width: "100%", marginTop: 4 }}>
                 {/* Progress bar */}
-                <div style={{ marginBottom: 16 }}>
+                <div style={{ marginBottom: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
                       {scanStageIdx < SCAN_STAGES.length ? SCAN_STAGES[scanStageIdx] : "Complete!"}
                     </span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#FA4616" }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#16a34a" }}>
                       {scanProgress}%
                     </span>
                   </div>
-                  <div style={{ height: 8, background: "#e2e8f0", borderRadius: 99, overflow: "hidden" }}>
+                  <div style={{ height: 7, background: "#e2e8f0", borderRadius: 99, overflow: "hidden" }}>
                     <div style={{
                       height: "100%",
                       width: `${scanProgress}%`,
-                      background: scanProgress === 100
-                        ? "linear-gradient(90deg,#16a34a,#22c55e)"
-                        : "linear-gradient(90deg,#FA4616,#f97316)",
+                      background: "linear-gradient(90deg,#16a34a,#22c55e)",
                       borderRadius: 99,
                       transition: "width 0.4s ease",
                     }} />
@@ -1579,7 +1639,7 @@ function StartReview() {
                 </div>
 
                 {/* Stage list */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {SCAN_STAGES.map((stage, i) => {
                     const done    = i < scanStageIdx || scanProgress === 100;
                     const current = i === scanStageIdx && scanProgress < 100;
@@ -1589,9 +1649,9 @@ function StartReview() {
                           width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
                           display: "flex", alignItems: "center", justifyContent: "center",
                           fontSize: 11, fontWeight: 700,
-                          background: done ? "#dcfce7" : current ? "#fff7ed" : "#f1f5f9",
-                          border: `2px solid ${done ? "#22c55e" : current ? "#FA4616" : "#e2e8f0"}`,
-                          color: done ? "#16a34a" : current ? "#FA4616" : "#94a3b8",
+                          background: done ? "#dcfce7" : current ? "#f0fdf4" : "#f1f5f9",
+                          border: `2px solid ${done ? "#22c55e" : current ? "#16a34a" : "#e2e8f0"}`,
+                          color: done ? "#16a34a" : current ? "#16a34a" : "#94a3b8",
                         }}>
                           {done ? "✓" : current ? "⟳" : "○"}
                         </div>
@@ -1602,7 +1662,7 @@ function StartReview() {
                         }}>
                           {stage}
                           {current && (
-                            <span style={{ color: "#FA4616" }}>
+                            <span style={{ color: "#16a34a" }}>
                               {"·".repeat(Math.floor(Date.now() / 500) % 4 + 1)}
                             </span>
                           )}

@@ -4,6 +4,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.PowerPlatform.Dataverse.Client;
 using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Query;
 using QubixInsight.Services;
 
 namespace QubixInsight.Functions;
@@ -60,23 +61,24 @@ public class CreateComparisonInsights
             // Use the authenticated user's own tenant ID — guaranteed to match GetRunInsights filter
             var tenantId = tenant.TenantRecordId.ToString();
 
+            var runRec       = service.Retrieve("ilx_analysisrun", runId, new ColumnSet("ilx_runid"));
+            var runDisplayId = runRec.GetAttributeValue<string>("ilx_runid") ?? runId.ToString();
+
             foreach (var profileIdElement in profilesProp.EnumerateArray())
             {
                 if (!Guid.TryParse(profileIdElement.GetString(), out var profileId))
                     continue;
 
+                var profileRec  = service.Retrieve("ilx_aiinsightprofile", profileId, new ColumnSet("ilx_name"));
+                var profileName = profileRec.GetAttributeValue<string>("ilx_name") ?? "";
+
                 var insight = new Entity("ilx_analysisruninsight");
 
-                insight["ilx_analysisrun"] =
-                    new EntityReference("ilx_analysisrun", runId);
-
-                insight["ilx_aiinsightprofile"] =
-                    new EntityReference("ilx_aiinsightprofile", profileId);
-
-                insight["ilx_runstatus"] =
-                    new OptionSetValue(INSIGHT_PENDING);
-
-                insight["ilx_tenantid"] = tenantId;
+                insight["ilx_name"]            = $"{runDisplayId} — {profileName}";
+                insight["ilx_analysisrun"]      = new EntityReference("ilx_analysisrun", runId);
+                insight["ilx_aiinsightprofile"] = new EntityReference("ilx_aiinsightprofile", profileId);
+                insight["ilx_runstatus"]        = new OptionSetValue(INSIGHT_PENDING);
+                insight["ilx_tenantid"]         = tenantId;
 
                 service.Create(insight);
             }

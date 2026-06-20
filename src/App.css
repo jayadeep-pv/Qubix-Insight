@@ -169,7 +169,7 @@ body {
 /* ── Results page split layout (below tabs) ───────────── */
 .rr-content-split {
   display: flex;
-  gap: 16px;
+  gap: 2px;
   align-items: stretch;
   padding-top: 14px;
   min-height: calc(100vh - 220px);
@@ -203,7 +203,7 @@ body {
 
 /* Chat pane stretches to match the left pane height via align-items: stretch */
 .rr-chat-pane {
-  width: 300px;
+  width: 310px;
   flex-shrink: 0;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
@@ -217,7 +217,9 @@ body {
 
 .results-container {
   width: 100%;
-  padding: 6px 20px 0;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 6px 0 40px;
   box-sizing: border-box;
 }
 
@@ -787,9 +789,14 @@ body {
   color: #3b5bdb;
 }
 
+.mode-pill-compare-scoring {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
 .mode-pill-summarise {
-  background: #e6f7f1;
-  color: #099268;
+  background: #E6F1FB;
+  color: #185FA5;
 }
 
 /* ================================================= */
@@ -941,7 +948,7 @@ body {
 /* ================================================= */
 
 .pdf-panel {
-  flex: 5;
+  flex: 7;
   min-width: 0;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
@@ -997,10 +1004,15 @@ body {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 12px;
+  padding: 6px;
   display: flex;
   justify-content: center;
   background: #f9fafb;
+  scrollbar-width: none;
+}
+
+.pdf-body::-webkit-scrollbar {
+  display: none;
 }
 
 .pdf-empty-state {
@@ -1058,13 +1070,13 @@ body {
 
 .split-pane-row {
   display: flex;
-  gap: 16px;
+  gap: 6px;
   flex: 1;
   overflow: hidden;
 }
 
 .attr-list-panel {
-  flex: 5;
+  flex: 4;
   min-width: 0;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
@@ -1255,6 +1267,23 @@ label {
 .dc-dropzone:hover {
   border-color: var(--brand-orange);
   background: #fff7ed;
+}
+
+.dc-dropzone--dragging,
+.dc-dropzone--dragging:hover {
+  border-color: #16a34a;
+  background: #f0fdf4;
+  border-style: solid;
+}
+
+.dc-dropzone--compact {
+  min-height: unset;
+  padding: 8px 14px;
+  border-radius: 8px;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .dropzone-inner {
@@ -1641,22 +1670,23 @@ label {
 .sr-processing-card {
   background: #ffffff;
   border: 1px solid #e5e7eb;
-  border-radius: 20px;
-  padding: 40px 52px;
+  border-radius: 16px;
+  padding: 28px 36px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.07), 0 1px 4px rgba(0, 0, 0, 0.04);
   min-width: 260px;
   text-align: center;
   animation: srFadeUp 0.22s ease;
 }
 
-/* Overlay variant — heavier elevation, slightly wider for the mode badge */
+/* Overlay variant — heavier elevation, wider to breathe */
 .sr-processing-card {
-  gap: 18px;
-  min-width: 300px;
+  gap: 14px;
+  min-width: 380px;
+  max-width: 440px;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.10), 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
@@ -2903,7 +2933,8 @@ label {
 
 .mode-badge { padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 500; }
 .mode-badge.compare { background: #eef3ff; color: #3b5bdb; }
-.mode-badge.summarise { background: #e6f7f1; color: #099268; }
+.mode-badge.scoring { background: #ede9fe; color: #5b21b6; }
+.mode-badge.summarise { background: #E6F1FB; color: #185FA5; }
 
 .ai-settings-hint { font-size: 12px; color: #6b7280; margin-top: 10px; margin-bottom: 6px; }
 
