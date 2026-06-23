@@ -237,6 +237,7 @@ export default function ComparisonResults() {
   // summary state removed — Overview is driven by insightRows from getRunInsights
   const [loading, setLoading] = useState(true);
   const [pdfExporting, setPdfExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
   const [expandedAttributes, setExpandedAttributes] = useState<string[]>([]);
   const [expandedAiAttributes, setExpandedAiAttributes] = useState<string[]>([]);
   const [attrSearch, setAttrSearch] = useState("");
@@ -297,14 +298,10 @@ export default function ComparisonResults() {
 
  const handleExportPdf = async () => {
   if (!runId) return;
+  setExportError("");
   try {
     setPdfExporting(true);
-    const { blob } = await configApi.exportComparisonPdf(runId);
-    const cleanName = (runName || runId)
-      .replace(/[^a-zA-Z0-9\s-]/g, "")
-      .trim()
-      .replace(/\s+/g, "_");
-    const filename = `${mode}_${cleanName}.pdf`;
+    const { blob, filename } = await configApi.exportComparisonPdf(runId);
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -316,9 +313,9 @@ export default function ComparisonResults() {
   } catch (err: any) {
     console.error(err);
     if (err?.response?.status === 403) {
-      alert("PDF export is not available on trial accounts. Please upgrade to export reports.");
+      setExportError("PDF export is not available on trial accounts. Please upgrade to export reports.");
     } else {
-      alert("Export failed. Please try again.");
+      setExportError("PDF export failed. Please try again, or contact support if this persists.");
     }
   } finally {
     setPdfExporting(false);
@@ -1104,41 +1101,60 @@ const pdfViewer = pdfUrl ? (
           </button>
         }
       />
-        
+
+      {exportError && (
+        <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "8px 14px", marginBottom: 12, fontSize: 13, color: "#b91c1c", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span>{exportError}</span>
+          <button onClick={() => setExportError("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#b91c1c", fontSize: 18, lineHeight: 1 }}>×</button>
+        </div>
+      )}
 
       <div className="comparison-header">
-          {/* LEFT */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <div style={{ fontSize: 18, fontWeight: 700 }}>
-              {comparisonName || "Untitled Run"}
-            </div>
-
-            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-              <span className="mode-pill mode-pill-summarise">{mode}</span>
-              {documentTypeName && (
-                <span style={{ fontSize: 13, color: "#6b7280" }}><strong>Type:</strong> {documentTypeName}</span>
-              )}
-              {templateName && (
-                <span style={{ fontSize: 13, color: "#6b7280" }}><strong>Template:</strong> {templateName}</span>
-              )}
-              {runMeta?.createdBy && (
-                <span style={{ fontSize: 13, color: "#6b7280" }}><strong>By:</strong> {runMeta.createdBy}</span>
-              )}
-              {runMeta?.createdOn && (
-                <span style={{ fontSize: 13, color: "#6b7280" }}>
-                  <strong>On:</strong>{" "}
-                  {new Date(runMeta.createdOn).toLocaleString("en-GB")}
-                </span>
-              )}
-            </div>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+            <span className="mode-pill mode-pill-summarise">{mode}</span>
+            <span style={{ fontSize: 16, fontWeight: 700, color: "#111827" }}>{comparisonName || "Untitled Run"}</span>
           </div>
+              <div className="header-meta">
+            {[documentTypeName || null, templateName || null].filter(Boolean).map((item, i, arr) => (
+              <React.Fragment key={i}>
+                <span style={{ whiteSpace: "nowrap" }}>{item}</span>
+                {i < arr.length - 1 && <span className="header-meta-sep">·</span>}
+              </React.Fragment>
+            ))}
+          </div>
+          {(runMeta?.createdBy || runMeta?.createdOn) && (
+            <div className="header-meta" style={{ marginTop: 2 }}>
+              {runMeta?.createdBy && (
+                <span style={{ whiteSpace: "nowrap" }}><span style={{ fontWeight: 600 }}>Created by:</span> {runMeta.createdBy}</span>
+              )}
+              {runMeta?.createdBy && runMeta?.createdOn && <span className="header-meta-sep">·</span>}
+              {runMeta?.createdOn && (
+                <span style={{ whiteSpace: "nowrap" }}><span style={{ fontWeight: 600 }}>Created on:</span> {new Date(runMeta.createdOn).toLocaleString("en-GB")}</span>
+              )}
+            </div>
+          )}
         </div>
+      </div>
 
 
 
 
         
-                {/* 🔥 PREMIUM TABS */}
+                {/* AI disclaimer */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 6,
+          padding: "5px 14px", marginBottom: 2,
+          background: "#f8fafc", borderRadius: 8,
+          border: "1px solid #e2e8f0",
+        }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span style={{ fontSize: 11, color: "#94a3b8" }}>
+            AI-generated content · Results may not be 100% accurate · Please verify before use
+          </span>
+        </div>
+
+        {/* 🔥 PREMIUM TABS */}
                   <div className="premium-tabs">
                   {[
                       { key: "summary", label: "Overview", icon: <LayoutDashboard size={15} />, count: null },
@@ -1151,7 +1167,7 @@ const pdfViewer = pdfUrl ? (
                       className={`premium-tab${activeTab === tab.key ? " active" : ""}`}
                     >
                       {React.cloneElement(tab.icon, {
-                        color: activeTab === tab.key ? "#FA4616" : "#9ca3af"
+                        color: activeTab === tab.key ? "#F97316" : "#9ca3af"
                       })}
                       {tab.label}
                       {tab.count !== null && (
@@ -1273,11 +1289,11 @@ const pdfViewer = pdfUrl ? (
     <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 20, overflow: "visible" }} aria-hidden="true">
       <defs>
         <marker id="conn-arrow-s" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
-          <polygon points="0 0, 7 2.5, 0 5" fill="#FA4616" fillOpacity="0.75" />
+          <polygon points="0 0, 7 2.5, 0 5" fill="#F97316" fillOpacity="0.75" />
         </marker>
       </defs>
-      <path d={`M ${connectorData.x1} ${connectorData.y1} C ${connectorData.x1 + 80} ${connectorData.y1}, ${connectorData.x2 - 80} ${connectorData.y2}, ${connectorData.x2} ${connectorData.y2}`} stroke="#FA4616" strokeWidth="1.5" strokeDasharray="5 3" fill="none" strokeOpacity="0.65" markerEnd="url(#conn-arrow-s)" />
-      <circle cx={connectorData.x1} cy={connectorData.y1} r="3.5" fill="#FA4616" fillOpacity="0.65" />
+      <path d={`M ${connectorData.x1} ${connectorData.y1} C ${connectorData.x1 + 80} ${connectorData.y1}, ${connectorData.x2 - 80} ${connectorData.y2}, ${connectorData.x2} ${connectorData.y2}`} stroke="#F97316" strokeWidth="1.5" strokeDasharray="5 3" fill="none" strokeOpacity="0.65" markerEnd="url(#conn-arrow-s)" />
+      <circle cx={connectorData.x1} cy={connectorData.y1} r="3.5" fill="#F97316" fillOpacity="0.65" />
     </svg>
   )}
   <div className="split-pane-row">
@@ -1634,29 +1650,46 @@ return (
       />
 
 
+  {exportError && (
+    <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "8px 14px", marginBottom: 12, fontSize: 13, color: "#b91c1c", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <span>{exportError}</span>
+      <button onClick={() => setExportError("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#b91c1c", fontSize: 18, lineHeight: 1 }}>×</button>
+    </div>
+  )}
+
   {/* ============================= */}
   {/* HEADER SECTION */}
   {/* ============================= */}
   <div className="comparison-header">
 
     <div className="header-left">
-      <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Comparison Results</h3>
-
-      <div className="header-meta">
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
         <span className={`mode-pill mode-pill-${mode === "Scoring" ? "compare-scoring" : mode.toLowerCase()}`}>{mode}</span>
-        <span><strong>Documents:</strong> {candidates.length}</span>
-
-        {runMeta?.createdBy && (
-          <span><strong>Run By:</strong> {runMeta.createdBy}</span>
-        )}
-
-        {runMeta?.createdOn && (
-          <span>
-            <strong>Run On:</strong>{" "}
-            {new Date(runMeta.createdOn).toLocaleString("en-GB")}
-          </span>
-        )}
+        <span style={{ fontSize: 16, fontWeight: 700, color: "#111827" }}>{comparisonName || "Untitled Run"}</span>
       </div>
+      <div className="header-meta">
+        {[
+          documentTypeName || null,
+          templateName || null,
+          `${documents.length || candidates.length} doc${(documents.length || candidates.length) !== 1 ? "s" : ""}`,
+        ].filter(Boolean).map((item, i, arr) => (
+          <React.Fragment key={i}>
+            <span style={{ whiteSpace: "nowrap" }}>{item}</span>
+            {i < arr.length - 1 && <span className="header-meta-sep">·</span>}
+          </React.Fragment>
+        ))}
+      </div>
+      {(runMeta?.createdBy || runMeta?.createdOn) && (
+        <div className="header-meta" style={{ marginTop: 2 }}>
+          {runMeta?.createdBy && (
+            <span style={{ whiteSpace: "nowrap" }}><span style={{ fontWeight: 600 }}>Created by:</span> {runMeta.createdBy}</span>
+          )}
+          {runMeta?.createdBy && runMeta?.createdOn && <span className="header-meta-sep">·</span>}
+          {runMeta?.createdOn && (
+            <span style={{ whiteSpace: "nowrap" }}><span style={{ fontWeight: 600 }}>Created on:</span> {new Date(runMeta.createdOn).toLocaleString("en-GB")}</span>
+          )}
+        </div>
+      )}
     </div>
 
     <div className="header-right">
@@ -1677,6 +1710,18 @@ return (
 
 
 
+        <div style={{
+          display: "flex", alignItems: "center", gap: 6,
+          padding: "5px 14px", marginBottom: 2,
+          background: "#f8fafc", borderRadius: 8,
+          border: "1px solid #e2e8f0",
+        }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span style={{ fontSize: 11, color: "#94a3b8" }}>
+            AI-generated content · Results may not be 100% accurate · Please verify before use
+          </span>
+        </div>
+
 <div className="premium-tabs">
   {[
   { key: "summary", label: "Overview", icon: <LayoutDashboard size={15} />, count: null },
@@ -1690,7 +1735,7 @@ return (
       className={`premium-tab${activeTab === tab.key ? " active" : ""}`}
     >
       {React.cloneElement(tab.icon, {
-        color: activeTab === tab.key ? "#FA4616" : "#9ca3af"
+        color: activeTab === tab.key ? "#F97316" : "#9ca3af"
       })}
       {tab.label}
       {tab.count !== null && (
@@ -1952,11 +1997,11 @@ return (
             <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 20, overflow: "visible" }} aria-hidden="true">
               <defs>
                 <marker id="conn-arrow-c" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
-                  <polygon points="0 0, 7 2.5, 0 5" fill="#FA4616" fillOpacity="0.75" />
+                  <polygon points="0 0, 7 2.5, 0 5" fill="#F97316" fillOpacity="0.75" />
                 </marker>
               </defs>
-              <path d={`M ${connectorData.x1} ${connectorData.y1} C ${connectorData.x1 + 80} ${connectorData.y1}, ${connectorData.x2 - 80} ${connectorData.y2}, ${connectorData.x2} ${connectorData.y2}`} stroke="#FA4616" strokeWidth="1.5" strokeDasharray="5 3" fill="none" strokeOpacity="0.65" markerEnd="url(#conn-arrow-c)" />
-              <circle cx={connectorData.x1} cy={connectorData.y1} r="3.5" fill="#FA4616" fillOpacity="0.65" />
+              <path d={`M ${connectorData.x1} ${connectorData.y1} C ${connectorData.x1 + 80} ${connectorData.y1}, ${connectorData.x2 - 80} ${connectorData.y2}, ${connectorData.x2} ${connectorData.y2}`} stroke="#F97316" strokeWidth="1.5" strokeDasharray="5 3" fill="none" strokeOpacity="0.65" markerEnd="url(#conn-arrow-c)" />
+              <circle cx={connectorData.x1} cy={connectorData.y1} r="3.5" fill="#F97316" fillOpacity="0.65" />
             </svg>
           )}
           <div className="split-pane-row">
@@ -2176,24 +2221,23 @@ return (
               {/* Winner card — only when a real winner exists */}
               {winner && hasRealWinner && (
                 <div style={{
-                  background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
-                  border: "2px solid #22c55e",
-                  borderRadius: 14,
-                  padding: "20px 24px",
+                  background: "#f0fdf4",
+                  border: "1px solid #bbf7d0",
+                  borderRadius: 10,
+                  padding: "10px 16px",
                   display: "flex",
                   alignItems: "center",
-                  gap: 16,
-                  marginBottom: 10,
-                  boxShadow: "0 4px 16px rgba(34,197,94,0.15)"
+                  gap: 10,
+                  marginBottom: 8,
                 }}>
-                  <div style={{ fontSize: 40, lineHeight: 1, flexShrink: 0 }}>🏆</div>
+                  <div style={{ fontSize: 22, lineHeight: 1, flexShrink: 0 }}>🏆</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: "#16a34a", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 2 }}>Winner</div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: "#14532d", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{winner.label}</div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: "#16a34a", letterSpacing: "0.06em", textTransform: "uppercase" }}>Winner</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#14532d", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{winner.label}</div>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <div style={{ fontSize: 28, fontWeight: 800, color: "#16a34a", lineHeight: 1 }}>{winner.totalScore}</div>
-                    <div style={{ fontSize: 11, color: "#4ade80", fontWeight: 600 }}>pts</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: "#16a34a", lineHeight: 1 }}>{winner.totalScore}</div>
+                    <div style={{ fontSize: 10, color: "#4ade80", fontWeight: 600 }}>pts</div>
                   </div>
                 </div>
               )}
@@ -2285,7 +2329,7 @@ return (
 
           {/* SCORE DOTS */}
           {candidates.map((c) => {
-            const isWinner = getCompareWinnerForCandidate(attr, c.id);
+            const isWinner = getEvaluationForAttributeCandidate(attr, c.id)?.isWinner ?? false;
 
             return (
               <td
@@ -2338,7 +2382,7 @@ return (
                       (v) => v.candidateId === c.id
                     );
 
-                    const isWinner = getCompareWinnerForCandidate(attr, c.id);
+                    const isWinner = getEvaluationForAttributeCandidate(attr, c.id)?.isWinner ?? false;
 
                     return (
                       <div

@@ -1312,15 +1312,20 @@ private static bool TryParseDecimalSafe(object input, out decimal value)
 
         try
         {
+            var runRecord = service.Retrieve("ilx_analysisrun", runId,
+                new ColumnSet("ilx_totalprompttokens", "ilx_totalcompletiontokens"));
+            var existingPrompt     = runRecord.GetAttributeValue<int>("ilx_totalprompttokens");
+            var existingCompletion = runRecord.GetAttributeValue<int>("ilx_totalcompletiontokens");
+
             var attrTokenUpdate = new Entity("ilx_analysisrun", runId);
-            attrTokenUpdate["ilx_totalpromptokens"]      = totalPromptTokens;
-            attrTokenUpdate["ilx_totalcompletiontokens"] = totalCompletionTokens;
-            attrTokenUpdate["ilx_totaltokenusage"]       = totalPromptTokens + totalCompletionTokens;
+            attrTokenUpdate["ilx_totalprompttokens"]      = existingPrompt     + totalPromptTokens;
+            attrTokenUpdate["ilx_totalcompletiontokens"] = existingCompletion + totalCompletionTokens;
+            attrTokenUpdate["ilx_totaltokenusage"]       = existingPrompt + existingCompletion + totalPromptTokens + totalCompletionTokens;
             service.Update(attrTokenUpdate);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning($"Failed to write attribute token totals to run: {ex.Message}");
+            _logger.LogError($"Failed to write attribute token totals to run: {ex}");
         }
 
         return (totalPromptTokens, totalCompletionTokens);

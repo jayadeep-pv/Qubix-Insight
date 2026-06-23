@@ -219,19 +219,19 @@ using QubixInsight.Services; // 🔥 IMPORTANT (for AiSummaryService)
                 try
                 {
                     var runRecord = service.Retrieve("ilx_analysisrun", runId,
-                        new ColumnSet("ilx_totalpromptokens", "ilx_totalcompletiontokens"));
-                    var existingPrompt     = runRecord.GetAttributeValue<int>("ilx_totalpromptokens");
+                        new ColumnSet("ilx_totalprompttokens", "ilx_totalcompletiontokens"));
+                    var existingPrompt     = runRecord.GetAttributeValue<int>("ilx_totalprompttokens");
                     var existingCompletion = runRecord.GetAttributeValue<int>("ilx_totalcompletiontokens");
 
                     var tokenUpdate = new Entity("ilx_analysisrun", runId);
-                    tokenUpdate["ilx_totalpromptokens"]      = existingPrompt     + totalPromptTokens;
+                    tokenUpdate["ilx_totalprompttokens"]      = existingPrompt     + totalPromptTokens;
                     tokenUpdate["ilx_totalcompletiontokens"] = existingCompletion + totalCompletionTokens;
                     tokenUpdate["ilx_totaltokenusage"]       = existingPrompt + existingCompletion + totalPromptTokens + totalCompletionTokens;
                     service.Update(tokenUpdate);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning($"Failed to write profile token totals to run: {ex.Message}");
+                    _logger.LogError($"Failed to write profile token totals to run: {ex}");
                 }
             }
             catch (Exception ex)

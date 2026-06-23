@@ -28,7 +28,7 @@ export default function RulesList({ templateAttributeId, hideHeader, embedded }:
   const [pageSize, setPageSize] = useState(10)
 
   const navigate = useNavigate()
-  const { isTrial } = useUser()
+  const { isTrial, isAdmin } = useUser()
 
   useEffect(() => { load() }, [templateAttributeId])
 
@@ -152,8 +152,8 @@ export default function RulesList({ templateAttributeId, hideHeader, embedded }:
             </div>
             <button type="button" className="btn-primary"
               onClick={() => navigate(`/admin/rules/new${templateAttributeId ? `?attributeId=${templateAttributeId}` : ""}`)}
-              disabled={isTrial}
-              title={isTrial ? "Not available on trial" : undefined}>
+              disabled={isTrial || !isAdmin}
+              title={isTrial ? "Not available on trial" : !isAdmin ? "Admin access required" : undefined}>
               + New Rule
             </button>
           </div>
@@ -162,7 +162,9 @@ export default function RulesList({ templateAttributeId, hideHeader, embedded }:
         <div className="page-header">
           <div />
           <button type="button" className="btn-primary"
-            onClick={() => navigate(`/admin/rules/new${templateAttributeId ? `?attributeId=${templateAttributeId}` : ""}`)}>
+            onClick={() => navigate(`/admin/rules/new${templateAttributeId ? `?attributeId=${templateAttributeId}` : ""}`)}
+            disabled={isTrial || !isAdmin}
+            title={isTrial ? "Not available on trial" : !isAdmin ? "Admin access required" : undefined}>
             + New Rule
           </button>
         </div>
@@ -218,8 +220,8 @@ export default function RulesList({ templateAttributeId, hideHeader, embedded }:
                     type="button"
                     className="btn-icon deactivate"
                     onClick={e => { e.stopPropagation(); toggleActive(item) }}
-                    disabled={isTrial}
-                    title={isTrial ? "Not available on trial" : item.isActive ? "Deactivate" : "Reactivate"}
+                    disabled={isTrial || !isAdmin}
+                    title={isTrial ? "Not available on trial" : !isAdmin ? "Admin access required" : item.isActive ? "Deactivate" : "Reactivate"}
                   >{item.isActive ? "🚫" : "♻️"}</button>
                 </td>
               </tr>

@@ -172,7 +172,14 @@ namespace QubixInsight.Services
                             winners.Clear();
                         }
 
-                        
+                        // Stamp winning candidate on the evaluation record
+                        if (winners.Count == 1 && candidateMap.TryGetValue(winners[0], out var winnerCandidateId))
+                        {
+                            var evalUpdate = new Entity("ilx_analysisevaluation", evaluationId);
+                            evalUpdate["ilx_analysiscandidate"] = new EntityReference("ilx_analysiscandidate", winnerCandidateId);
+                            service.Update(evalUpdate);
+                        }
+
                         foreach (var doc in docList)
                         {
                             var evaluationResult = new Entity("ilx_analysisevaluationresult");
