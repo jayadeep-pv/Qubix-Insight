@@ -66,7 +66,7 @@ public class ExportComparisonPdf
         var run = service.Retrieve(
             "ilx_analysisrun", runGuid,
             new ColumnSet(
-                "ilx_name", "createdby", "createdon",
+                "ilx_runid", "createdby", "createdon",
                 "ilx_documenttype", "ilx_analysis",
                 "ilx_executedbyuser", "ilx_mode",
                 "ilx_rawresultjson"
@@ -76,7 +76,7 @@ public class ExportComparisonPdf
         bool isSummariseMode = modeValue == 857270001;
         string modeText = isSummariseMode ? "Summarise" : "Compare";
 
-        string runName     = run.GetAttributeValue<string>("ilx_name") ?? "";
+        string runName     = run.GetAttributeValue<string>("ilx_runid") ?? "";
         string reportTitle = run.GetAttributeValue<EntityReference>("ilx_analysis")?.Name ?? "";
         if (string.IsNullOrWhiteSpace(reportTitle))
             reportTitle = !string.IsNullOrWhiteSpace(runName) ? runName : "Comparison Report";
@@ -448,17 +448,25 @@ public class ExportComparisonPdf
                 });
 
                 // ── FOOTER ──────────────────────────────────────────────
-                page.Footer().PaddingHorizontal(14).PaddingVertical(6).Row(r =>
+                page.Footer().PaddingHorizontal(14).PaddingVertical(6).Column(f =>
                 {
-                    r.RelativeItem()
-                        .Text($"Generated {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC  •  Confidential")
-                        .FontSize(7).FontColor("#94a3b8");
-                    r.ConstantItem(80).AlignRight().Text(x =>
+                    f.Item().BorderTop(1).BorderColor("#e2e8f0").PaddingTop(4).Row(r =>
                     {
-                        x.Span("Page ").FontSize(7).FontColor("#94a3b8");
-                        x.CurrentPageNumber().FontSize(7).FontColor("#94a3b8");
-                        x.Span(" of ").FontSize(7).FontColor("#94a3b8");
-                        x.TotalPages().FontSize(7).FontColor("#94a3b8");
+                        r.RelativeItem().Column(c =>
+                        {
+                            c.Item().Text($"Generated {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC  •  Confidential")
+                                .FontSize(7).FontColor("#94a3b8");
+                            c.Item().PaddingTop(2)
+                                .Text("⚠ AI-generated content — results may not be 100% accurate. Please verify this report before use.")
+                                .FontSize(6.5f).FontColor("#b0bec5").Italic();
+                        });
+                        r.ConstantItem(80).AlignRight().AlignBottom().Text(x =>
+                        {
+                            x.Span("Page ").FontSize(7).FontColor("#94a3b8");
+                            x.CurrentPageNumber().FontSize(7).FontColor("#94a3b8");
+                            x.Span(" of ").FontSize(7).FontColor("#94a3b8");
+                            x.TotalPages().FontSize(7).FontColor("#94a3b8");
+                        });
                     });
                 });
 

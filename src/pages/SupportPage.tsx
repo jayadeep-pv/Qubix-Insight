@@ -338,7 +338,7 @@ const SupportPage: React.FC = () => {
           color: #111827;
           margin: 0 0 18px;
         }
-        .sp-section-title svg { color: #FA4616; flex-shrink: 0; }
+        .sp-section-title svg { color: #F97316; flex-shrink: 0; }
 
         /* ── Guides ── */
         .sp-guides-grid {
@@ -435,7 +435,7 @@ const SupportPage: React.FC = () => {
         }
         .sp-faq-chevron--open {
           transform: rotate(180deg);
-          color: #FA4616;
+          color: #F97316;
         }
 
         .sp-faq-a {
@@ -510,7 +510,7 @@ const SupportPage: React.FC = () => {
           box-sizing: border-box;
         }
         .sp-input:focus {
-          border-color: #FA4616;
+          border-color: #F97316;
           background: #ffffff;
         }
         .sp-textarea {
@@ -519,7 +519,7 @@ const SupportPage: React.FC = () => {
           font-family: inherit;
         }
         .sp-submit-btn {
-          background: #FA4616;
+          background: #F97316;
           color: #ffffff;
           border: none;
           padding: 10px 18px;

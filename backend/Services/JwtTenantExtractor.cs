@@ -55,12 +55,26 @@ public static class JwtTenantExtractor
             if (string.IsNullOrEmpty(oid))
                 oid = root.TryGetProperty("sub", out var sub) ? sub.GetString() : null;
             var issuer = root.TryGetProperty("iss",                out var i)   ? i.GetString()   : null;
-            // email claim varies by token type: prefer 'upn' for AAD, 'preferred_username'/'email' for External ID.
-            // CIAM tokens sometimes put an OID GUID in the 'email' claim — validate with '@' check.
+            var isCiamEarly = issuer?.IndexOf("ciamlogin.com", StringComparison.OrdinalIgnoreCase) >= 0;
+
+            // Email claim order differs by token type:
+            //   AAD:  upn → preferred_username → email  (UPN is canonical for corp accounts)
+            //   CIAM: email → preferred_username → upn  (email claim holds the real sign-up address;
+            //         preferred_username is the generated ilogixidentity.onmicrosoft.com UPN)
             static bool IsEmail(string? s) => s?.Contains('@') == true;
-            var rawEmail = root.TryGetProperty("upn",                out var upn) ? upn.GetString() :
+            string? rawEmail;
+            if (isCiamEarly)
+            {
+                rawEmail = root.TryGetProperty("email",              out var cem)  ? cem.GetString()  :
+                           root.TryGetProperty("preferred_username", out var cpu)  ? cpu.GetString()  :
+                           root.TryGetProperty("upn",                out var cupn) ? cupn.GetString() : null;
+            }
+            else
+            {
+                rawEmail = root.TryGetProperty("upn",                out var upn) ? upn.GetString() :
                            root.TryGetProperty("preferred_username", out var pu)  ? pu.GetString()  :
                            root.TryGetProperty("email",              out var em)  ? em.GetString()  : null;
+            }
             var email = IsEmail(rawEmail) ? rawEmail : null;
             // name claim: External ID does not auto-compose displayName — fall back to given_name + family_name
             var nameVal     = root.TryGetProperty("name",        out var n)   ? n.GetString()   : null;
@@ -88,8 +102,7 @@ public static class JwtTenantExtractor
             // CIAM (External ID) users all share the same JWT tid — the ilogixidentity tenant GUID.
             // Each trial user has their own ilx_tenantsetting keyed by their OID, so substitute
             // OID as the effective tenant ID for all TenantResolverService lookups.
-            var isCiam = issuer?.IndexOf("ciamlogin.com", StringComparison.OrdinalIgnoreCase) >= 0;
-            var effectiveTenantId = (isCiam && oid != null) ? oid : tid;
+            var effectiveTenantId = (isCiamEarly && oid != null) ? oid : tid;
 
             return new JwtUserInfo(effectiveTenantId, oid, email, name, issuer, companyName);
         }
@@ -98,4 +111,11 @@ public static class JwtTenantExtractor
             return null;
         }
     }
+
+    /// <summary>
+    /// Returns true when the token was issued by Azure AD External ID (CIAM / trial users).
+    /// These users bypass admin-only checks for Quick Scan template saves.
+    /// </summary>
+    public static bool IsCiamUser(JwtUserInfo userInfo) =>
+        userInfo.Issuer?.IndexOf("ciamlogin.com", StringComparison.OrdinalIgnoreCase) >= 0;
 }

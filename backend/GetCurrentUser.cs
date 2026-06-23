@@ -83,14 +83,18 @@ public class GetCurrentUser
                 }
             }
 
-            // For trial users look up the tenant user record
-            TenantUserRecord? trialUser = null;
-            if (tenant.IsTrial && userInfo.Oid is not null)
+            // Look up the tenant user record for all users to read the IsAdmin flag.
+            // Trial-only fields (runs, expiry) remain gated on tenant.IsTrial below.
+            TenantUserRecord? tenantUser = null;
+            if (userInfo.Oid is not null)
             {
-                trialUser = _tenantUserService.GetByOid(userInfo.Oid);
-                if (trialUser != null)
+                tenantUser = _tenantUserService.GetByOid(userInfo.Oid);
+                if (tenantUser != null && tenant.IsTrial)
                     _tenantUserService.UpdateLastLogin(userInfo.Oid);
             }
+
+            // Alias kept so trial-specific logic below compiles without changes
+            var trialUser = tenant.IsTrial ? tenantUser : null;
 
             var isExpired = trialUser?.TrialExpiry.HasValue == true
                 && trialUser.TrialExpiry.Value < DateTime.UtcNow;
@@ -101,9 +105,14 @@ public class GetCurrentUser
                 ? trialUser.RunsUsed
                 : 0;
 
+            // isAdmin: read from ilx_isadministrator on the TenantUser record.
+            // If no record exists for this user, default to true (unrestricted).
+            var isAdmin = tenantUser?.IsAdmin ?? true;
+
             var result = new
             {
                 isTrial          = tenant.IsTrial,
+                isAdmin          = isAdmin,
                 tenantName       = tenant.TenantName,
                 subscriptionTier = tenant.SubscriptionTier,
                 userEmail        = trialUser?.Email       ?? userInfo.Email       ?? "",
@@ -133,4 +142,5 @@ public class GetCurrentUser
             return error;
         }
     }
+
 }

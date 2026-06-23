@@ -12,7 +12,6 @@ public class SaveTemplateProfiles
 {
     private readonly TenantResolverService _tenantResolver;
     private readonly TenantDataverseService _tenantDataverseService;
-
     public SaveTemplateProfiles(
         TenantResolverService tenantResolver,
         TenantDataverseService tenantDataverseService)
@@ -42,9 +41,9 @@ public class SaveTemplateProfiles
 
         try
         {
-            var aadTenantId = JwtTenantExtractor.GetAadTenantId(req);
+            var userInfo = JwtTenantExtractor.GetUserInfo(req);
 
-            if (string.IsNullOrWhiteSpace(aadTenantId))
+            if (userInfo is null || string.IsNullOrWhiteSpace(userInfo.TenantId))
             {
                 var bad = req.CreateResponse(HttpStatusCode.Unauthorized);
                 await bad.WriteStringAsync("Unable to determine tenant from Bearer token.");
@@ -61,7 +60,7 @@ public class SaveTemplateProfiles
                 return response;
             }
 
-            var tenant = _tenantResolver.ResolveTenant(aadTenantId);
+            var tenant = _tenantResolver.ResolveTenant(userInfo.TenantId);
             var service = _tenantDataverseService.CreateClient(tenant.DataverseUrl);
 
             // Delete all existing junction records for this template

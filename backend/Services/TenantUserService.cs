@@ -10,6 +10,7 @@ namespace QubixInsight.Services;
 
 public record TenantUserRecord(
     Guid   RecordId,
+    bool   IsAdmin,
     string? FirstName,
     string? LastName,
     string? DisplayName,
@@ -53,6 +54,15 @@ public class TenantUserService
         return svc;
     }
 
+    public bool IsAdmin(JwtUserInfo userInfo)
+    {
+        if (string.IsNullOrEmpty(userInfo.Oid))
+            return true; // no OID to look up — allow by default
+
+        var record = GetByOid(userInfo.Oid);
+        return record?.IsAdmin ?? true; // no record means no explicit restriction
+    }
+
     public TenantUserRecord? GetByOid(string oid)
     {
         using var svc = CreateClient();
@@ -63,7 +73,8 @@ public class TenantUserService
                 "ilx_name", "ilx_firstname", "ilx_lastname",
                 "ilx_companyname", "ilx_jobtitle", "ilx_country", "ilx_email",
                 "ilx_runlimit", "ilx_runsused", "ilx_runmonth",
-                "ilx_trialstart", "ilx_trialexpiry", "ilx_userstatus")
+                "ilx_trialstart", "ilx_trialexpiry", "ilx_userstatus",
+                "ilx_isadministrator")
         };
         q.Criteria.AddCondition("ilx_externalobjectid", ConditionOperator.Equal, oid);
         q.Criteria.AddCondition("statecode", ConditionOperator.Equal, 0);
@@ -72,7 +83,8 @@ public class TenantUserService
         if (e == null) return null;
 
         return new TenantUserRecord(
-            RecordId:    e.Id,
+            RecordId: e.Id,
+            IsAdmin:  e.GetAttributeValue<bool>("ilx_isadministrator"),
             FirstName:   e.GetAttributeValue<string>("ilx_firstname"),
             LastName:    e.GetAttributeValue<string>("ilx_lastname"),
             DisplayName: e.GetAttributeValue<string>("ilx_name"),

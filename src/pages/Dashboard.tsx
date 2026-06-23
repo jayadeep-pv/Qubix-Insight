@@ -58,8 +58,9 @@ const Dashboard: React.FC = () => {
 
       setModeData([
         { name: "Compare",   value: data.modeSplit?.compare   || 0 },
-        { name: "Summarise", value: data.modeSplit?.summarise || 0 }
-      ]);
+        { name: "Summarise", value: data.modeSplit?.summarise || 0 },
+        { name: "Scoring",   value: data.modeSplit?.scoring   || 0 },
+      ].filter(m => m.value > 0));
 
       // Doc type breakdown
       if (data.docTypeSplit) {
@@ -98,8 +99,8 @@ const Dashboard: React.FC = () => {
     }
   }
 
-  const COLORS     = ["#FA4616", "#3b5bdb"];
-  const BAR_COLORS = ["#FA4616", "#f97316", "#fb923c", "#fdba74", "#fcd9bd"];
+  const COLORS     = ["#F97316", "#3b5bdb", "#7c3aed"];
+  const BAR_COLORS = ["#F97316", "#f97316", "#fb923c", "#fdba74", "#fcd9bd"];
   const totalModeRuns = modeData.reduce((a, b) => a + b.value, 0);
   const maxDocCount   = docTypeData.reduce((a, b) => Math.max(a, b.count), 1);
 
@@ -198,8 +199,8 @@ const Dashboard: React.FC = () => {
               <AreaChart data={usageData} margin={{ top: 8, right: 12, bottom: 0, left: -20 }}>
                 <defs>
                   <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#FA4616" stopOpacity={0.14} />
-                    <stop offset="95%" stopColor="#FA4616" stopOpacity={0} />
+                    <stop offset="5%"  stopColor="#F97316" stopOpacity={0.14} />
+                    <stop offset="95%" stopColor="#F97316" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="day" tick={{ fontSize: 11, fill: "#9ca3af" }}
@@ -209,9 +210,9 @@ const Dashboard: React.FC = () => {
                   textAnchor={period === "30d" ? "end" : "middle"} />
                 <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <Tooltip content={<CustomTooltip />} />
-                <Area type="monotone" dataKey="runs" stroke="#FA4616" strokeWidth={2.5}
+                <Area type="monotone" dataKey="runs" stroke="#F97316" strokeWidth={2.5}
                   fill="url(#areaGrad)" dot={false}
-                  activeDot={{ r: 5, fill: "#FA4616", stroke: "#fff", strokeWidth: 2 }} />
+                  activeDot={{ r: 5, fill: "#F97316", stroke: "#fff", strokeWidth: 2 }} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -330,7 +331,7 @@ const Dashboard: React.FC = () => {
                   <div className="db-doctype-name">{d.name}</div>
                   <div className="db-doctype-bar-wrap">
                     <div className="db-doctype-bar"
-                      style={{ width: `${Math.round((d.count / maxDocCount) * 100)}%`, background: BAR_COLORS[i] || "#FA4616" }} />
+                      style={{ width: `${Math.round((d.count / maxDocCount) * 100)}%`, background: BAR_COLORS[i] || "#F97316" }} />
                   </div>
                   <div className="db-doctype-count">{d.count}</div>
                 </div>

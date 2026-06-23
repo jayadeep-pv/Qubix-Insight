@@ -88,7 +88,7 @@ function BotAvatar({ size = 32 }: { size?: number }) {
   return (
     <div style={{
       width: size, height: size, borderRadius: size * 0.3,
-      background: "linear-gradient(135deg, #FA4616 0%, #c7340f 100%)",
+      background: "linear-gradient(135deg, #F97316 0%, #EA580C 100%)",
       display: "flex", alignItems: "center", justifyContent: "center",
       flexShrink: 0,
       boxShadow: "0 2px 8px rgba(250,70,22,0.3)",
@@ -222,9 +222,9 @@ export default function ChatTab({
                     transition: "all 0.15s",
                   }}
                   onMouseEnter={e => {
-                    e.currentTarget.style.borderColor = "#FA4616";
+                    e.currentTarget.style.borderColor = "#F97316";
                     e.currentTarget.style.background = "#fff7f5";
-                    e.currentTarget.style.color = "#FA4616";
+                    e.currentTarget.style.color = "#F97316";
                   }}
                   onMouseLeave={e => {
                     e.currentTarget.style.borderColor = "#e2e8f0";
@@ -232,7 +232,7 @@ export default function ChatTab({
                     e.currentTarget.style.color = "#334155";
                   }}
                 >
-                  <span style={{ color: "#FA4616", flexShrink: 0, fontSize: 13 }}>›</span>
+                  <span style={{ color: "#F97316", flexShrink: 0, fontSize: 13 }}>›</span>
                   {q}
                 </button>
               ))}
@@ -252,14 +252,14 @@ export default function ChatTab({
               {m.role === "ai" && <BotAvatar size={16} />}
               <span style={{
                 fontSize: 10, fontWeight: 600,
-                color: m.role === "user" ? "#64748b" : "#FA4616",
+                color: m.role === "user" ? "#64748b" : "#F97316",
                 textTransform: "uppercase", letterSpacing: "0.05em",
               }}>
                 {m.role === "user" ? "You" : "Qubix Bot"}
               </span>
             </div>
             <div style={{
-              background: m.role === "user" ? "#FA4616" : "#f8fafc",
+              background: m.role === "user" ? "#F97316" : "#f8fafc",
               color: m.role === "user" ? "#ffffff" : "#1e293b",
               padding: "8px 10px",
               borderRadius: m.role === "user" ? "10px 10px 2px 10px" : "2px 10px 10px 10px",
@@ -278,7 +278,7 @@ export default function ChatTab({
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 3 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
               <BotAvatar size={16} />
-              <span style={{ fontSize: 10, fontWeight: 600, color: "#FA4616",
+              <span style={{ fontSize: 10, fontWeight: 600, color: "#F97316",
                 textTransform: "uppercase", letterSpacing: "0.05em" }}>
                 Qubix Bot
               </span>
@@ -291,7 +291,7 @@ export default function ChatTab({
               {[0, 1, 2].map(i => (
                 <span key={i} style={{
                   width: 6, height: 6, borderRadius: "50%",
-                  background: "#FA4616",
+                  background: "#F97316",
                   animation: `chatDot 1.2s ease-in-out ${i * 0.2}s infinite`,
                   display: "inline-block",
                 }} />
@@ -341,7 +341,7 @@ export default function ChatTab({
             style={{
               width: 28, height: 28,
               borderRadius: 7,
-              background: chatInput.trim() ? "#FA4616" : "#e2e8f0",
+              background: chatInput.trim() ? "#F97316" : "#e2e8f0",
               border: "none",
               cursor: chatInput.trim() ? "pointer" : "default",
               display: "flex", alignItems: "center", justifyContent: "center",

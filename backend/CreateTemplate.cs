@@ -12,13 +12,16 @@ public class CreateTemplate
 {
     private readonly TenantResolverService _tenantResolver;
     private readonly TenantDataverseService _tenantDataverseService;
+    private readonly TenantUserService _tenantUserService;
 
     public CreateTemplate(
     TenantResolverService tenantResolver,
-    TenantDataverseService tenantDataverseService)
+    TenantDataverseService tenantDataverseService,
+    TenantUserService tenantUserService)
         {
             _tenantResolver = tenantResolver;
             _tenantDataverseService = tenantDataverseService;
+            _tenantUserService = tenantUserService;
         }
 
     public class CreateTemplateRequest
@@ -39,16 +42,16 @@ public class CreateTemplate
     {
         try
         {
-            var aadTenantId = JwtTenantExtractor.GetAadTenantId(req);
+            var userInfo = JwtTenantExtractor.GetUserInfo(req);
 
-            if (string.IsNullOrWhiteSpace(aadTenantId))
+            if (userInfo is null || string.IsNullOrWhiteSpace(userInfo.TenantId))
             {
                 var bad = req.CreateResponse(System.Net.HttpStatusCode.Unauthorized);
                 await bad.WriteStringAsync("Unable to determine tenant from Bearer token.");
                 return bad;
             }
 
-            var tenant = _tenantResolver.ResolveTenant(aadTenantId);
+            var tenant = _tenantResolver.ResolveTenant(userInfo.TenantId);
 
             var service = _tenantDataverseService.CreateClient(tenant.DataverseUrl);
 

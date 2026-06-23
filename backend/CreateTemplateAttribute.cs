@@ -14,15 +14,18 @@ public class CreateTemplateAttribute
     private readonly ILogger<CreateTemplateAttribute> _logger;
     private readonly TenantResolverService _tenantResolver;
     private readonly TenantDataverseService _tenantDataverseService;
+    private readonly TenantUserService _tenantUserService;
 
     public CreateTemplateAttribute(
         ILogger<CreateTemplateAttribute> logger,
         TenantResolverService tenantResolver,
-        TenantDataverseService tenantDataverseService)
+        TenantDataverseService tenantDataverseService,
+        TenantUserService tenantUserService)
     {
         _logger = logger;
         _tenantResolver = tenantResolver;
         _tenantDataverseService = tenantDataverseService;
+        _tenantUserService = tenantUserService;
     }
 
     // ── Typed request DTO — eliminates all JsonElement casting issues ──
@@ -74,16 +77,17 @@ public class CreateTemplateAttribute
         try
         {
             // ── Tenant resolution ──
-            var aadTenantId = JwtTenantExtractor.GetAadTenantId(req);
+            var userInfo = JwtTenantExtractor.GetUserInfo(req);
 
-            if (string.IsNullOrWhiteSpace(aadTenantId))
+            if (userInfo is null || string.IsNullOrWhiteSpace(userInfo.TenantId))
             {
                 var bad = req.CreateResponse(HttpStatusCode.Unauthorized);
                 await bad.WriteStringAsync("Unable to determine tenant from Bearer token.");
                 return bad;
             }
 
-            var tenant = _tenantResolver.ResolveTenant(aadTenantId);
+            var tenant = _tenantResolver.ResolveTenant(userInfo.TenantId);
+
             var service = _tenantDataverseService.CreateClient(tenant.DataverseUrl);
 
             // ── Deserialise into typed DTO (no manual JsonElement casts) ──

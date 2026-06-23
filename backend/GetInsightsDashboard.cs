@@ -183,6 +183,9 @@ public class GetInsightsDashboard
         int summariseCount = allRuns.Count(r =>
             r.GetAttributeValue<OptionSetValue>("ilx_mode")?.Value == MODE_SUMMARISE);
 
+        int scoringCount = allRuns.Count(r =>
+            r.GetAttributeValue<OptionSetValue>("ilx_mode")?.Value == MODE_SCORE);
+
 
         /* =============================
            TOTAL DOCUMENTS (ALL RUNS)
@@ -402,7 +405,8 @@ public class GetInsightsDashboard
             modeSplit = new
             {
                 compare = compareCount,
-                summarise = summariseCount
+                summarise = summariseCount,
+                scoring = scoringCount
             },
             recentRuns = recentRuns
         };

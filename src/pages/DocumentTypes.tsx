@@ -19,7 +19,7 @@ export default function DocumentTypes() {
   const [pageSize, setPageSize] = useState(10);
 
   const navigate = useNavigate();
-  const { isTrial } = useUser();
+  const { isTrial, isAdmin } = useUser();
 
   useEffect(() => { load(); }, []);
 
@@ -113,8 +113,8 @@ export default function DocumentTypes() {
           type="button"
           className="btn-primary"
           onClick={() => navigate("/document-types/new")}
-          disabled={isTrial}
-          title={isTrial ? "Not available on trial" : undefined}
+          disabled={isTrial || !isAdmin}
+          title={isTrial ? "Not available on trial" : !isAdmin ? "Admin access required" : undefined}
         >
           + New Document Type
         </button>
@@ -169,8 +169,8 @@ export default function DocumentTypes() {
                     type="button"
                     className="btn-icon deactivate"
                     onClick={e => { e.stopPropagation(); toggleActive(item); }}
-                    disabled={isTrial}
-                    title={isTrial ? "Not available on trial" : item.isActive ? "Deactivate" : "Reactivate"}
+                    disabled={isTrial || !isAdmin}
+                    title={isTrial ? "Not available on trial" : !isAdmin ? "Admin access required" : item.isActive ? "Deactivate" : "Reactivate"}
                   >{item.isActive ? "🚫" : "♻️"}</button>
                 </td>
               </tr>

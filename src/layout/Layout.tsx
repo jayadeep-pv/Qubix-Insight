@@ -25,7 +25,9 @@ interface LayoutProps {
 
 const PAGE_META: Record<string, { title: string; subtitle: string }> = {
   "/":                           { title: "Home",                 subtitle: "Your document intelligence workspace" },
+  "/home":                       { title: "Home",                 subtitle: "Your document intelligence workspace" },
   "/dashboard":                  { title: "My Insights",          subtitle: "Recent analysis runs" },
+  "/my-insights":                { title: "My Insights",          subtitle: "Recent analysis runs" },
   "/all-insights":               { title: "All Insights",         subtitle: "Organisation-wide analysis" },
   "/document-types":             { title: "Document Types",       subtitle: "Manage document classifications" },
   "/comparison-templates":       { title: "Templates",            subtitle: "Manage analysis templates" },
@@ -35,6 +37,25 @@ const PAGE_META: Record<string, { title: string; subtitle: string }> = {
   "/settings":                   { title: "Settings",             subtitle: "Tenant and account settings" },
   "/support":                    { title: "Support",              subtitle: "Help and resources" },
 };
+
+const PAGE_PREFIXES: [string, { title: string; subtitle: string }][] = [
+  ["/document-types/",            { title: "Document Types",       subtitle: "Manage document classifications" }],
+  ["/comparison/",                { title: "Templates",            subtitle: "Manage analysis templates" }],
+  ["/admin/template-attributes/", { title: "Template Attributes",  subtitle: "Configure template fields" }],
+  ["/admin/rules/",               { title: "Rules",                subtitle: "Compliance and scoring rules" }],
+  ["/admin/ai-insight-profiles/", { title: "AI Insight Profiles",  subtitle: "Configure AI extraction profiles" }],
+  ["/new",                        { title: "New Insight",          subtitle: "Start an analysis run" }],
+  ["/results/",                   { title: "Insight Results",      subtitle: "" }],
+  ["/runs/",                      { title: "Insight Results",      subtitle: "" }],
+];
+
+function getPageMeta(pathname: string): { title: string; subtitle: string } {
+  if (PAGE_META[pathname]) return PAGE_META[pathname];
+  for (const [prefix, meta] of PAGE_PREFIXES) {
+    if (pathname.startsWith(prefix)) return meta;
+  }
+  return { title: "Qubix Insight", subtitle: "" };
+}
 
 function initials(name: string, email: string): string {
   if (name) {
@@ -52,7 +73,7 @@ export default function Layout({ onLogout }: LayoutProps) {
   const { isTrial, userName, userEmail, tenantName } = useUser();
   const [iconOnly, setIconOnly] = useState(false);
 
-  const page = PAGE_META[location.pathname] ?? { title: "Qubix Insight", subtitle: "" };
+  const page = getPageMeta(location.pathname);
 
   return (
     <div className="app-layout">

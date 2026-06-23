@@ -315,7 +315,7 @@
   font-family: 'DM Sans', sans-serif;
 }
 
-.lf-input:focus { border-color: #FA4616; }
+.lf-input:focus { border-color: #F97316; }
 .lf-input--err  { border-color: #ef4444; }
 .lf-input--err:focus { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.1); }
 
@@ -382,7 +382,7 @@
 }
 
 .login-hero-tagline-accent {
-  color: #FA4616;
+  color: #F97316;
   text-shadow: 0 0 20px rgba(250,70,22,0.45);
 }
 

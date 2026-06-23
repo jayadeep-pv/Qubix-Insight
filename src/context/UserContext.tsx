@@ -8,6 +8,7 @@ import { getAppConfig } from "../appConfig";
 // Data fields stored in state (no function references)
 interface UserData {
   isTrial:         boolean;
+  isAdmin:         boolean;
   userEmail:       string;
   userName:        string;
   firstName:       string;
@@ -32,6 +33,7 @@ export interface UserContextType extends UserData {
 
 const defaultData: UserData = {
   isTrial:         false,
+  isAdmin:         true,
   userEmail:       "",
   userName:        "",
   firstName:       "",
@@ -125,6 +127,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
       setUserData({
         isTrial:          response.data.isTrial          ?? false,
+        isAdmin:          response.data.isAdmin          ?? true,
         tenantName:       response.data.tenantName        ?? "",
         subscriptionTier: response.data.subscriptionTier  ?? "",
         userEmail:        response.data.userEmail          ?? "",

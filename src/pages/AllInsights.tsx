@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { configApi } from "../services/configApi";
 import { useNavigate } from "react-router-dom";
-import { ChevronUp, ChevronDown, ChevronsUpDown, Zap } from "lucide-react";
+import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { PageBreadcrumb } from "../components/PageBreadcrumb";
 
 type SortKey = "insightName" | "documentType" | "documentCount" | "createdBy" | "createdDate" | "status" | "mode";
@@ -165,11 +165,8 @@ const AllInsights: React.FC = () => {
           <p className="page-subtitle">Insights generated across all comparison runs</p>
         </div>
         <div className="header-action-group">
-          <button type="button" className="btn-secondary" onClick={() => navigate("/new", { state: { mode: "extract" } })}>
-            <Zap size={14} /> Smart Builder
-          </button>
           <button type="button" className="btn-primary" onClick={() => navigate("/new")}>
-            + New Comparison
+            + New Insight
           </button>
         </div>
       </div>

@@ -139,7 +139,7 @@ export function AttributeReviewTable({
         <div>Description</div>
         <div>Data Type</div>
         <div>Category</div>
-        <div>Sample Value</div>
+        <div>Extracted Value</div>
         <div style={{textAlign:"center"}}>AI Insight</div>
         <div></div>
       </div>
@@ -184,8 +184,8 @@ export function AttributeReviewTable({
           <input
             value={attr.SampleValue ?? attr.sampleValue ?? ""}
             onChange={(e) => onUpdate(i, "SampleValue", e.target.value)}
-            placeholder="Sample value"
-            aria-label="Sample Value"
+            placeholder="Extracted value"
+            aria-label="Extracted Value"
           />
           <div style={{display:"flex",justifyContent:"center",alignItems:"center"}}>
             <input
@@ -226,7 +226,7 @@ export function AttributeReviewTable({
           <div className="tbs-discovered-table">
             <div className="tbs-discovered-head">
               <div>#</div><div>Field Name</div><div>Category</div>
-              <div>Data Type</div><div>Sample Value</div><div></div>
+              <div>Data Type</div><div>Extracted Value</div><div></div>
             </div>
             {discoveredAttributes.map((attr: any, i: number) => (
               <div key={i} className="tbs-discovered-row">
@@ -432,7 +432,7 @@ export function ConfirmStage({
             <div className="tbs-confirm-table">
               <div className="tbs-confirm-head">
                 <div>#</div><div>Field Name</div><div>Description</div>
-                <div>Data Type</div><div>Category</div><div>Sample Value</div>
+                <div>Data Type</div><div>Category</div><div>Extracted Value</div>
                 <div>AI Insight</div>
               </div>
               {attributes.map((attr, i) => {
@@ -725,7 +725,7 @@ export const TEMPLATE_BUILDER_STYLES = `
   .tbs-confirm-head > div:nth-child(2), .tbs-confirm-row > div:nth-child(2) { width:160px; max-width:160px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .tbs-confirm-head > div:nth-child(4), .tbs-confirm-row > div:nth-child(4) { width:80px; white-space:nowrap; }
   .tbs-confirm-head > div:nth-child(5), .tbs-confirm-row > div:nth-child(5) { width:160px; max-width:160px; white-space:nowrap; overflow:hidden; }
-  .tbs-confirm-head > div:nth-child(6), .tbs-confirm-row > div:nth-child(6) { width:140px; max-width:140px; font-style:italic; color:#6b7280; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tbs-confirm-head > div:nth-child(6), .tbs-confirm-row > div:nth-child(6) { width:220px; max-width:220px; font-style:italic; color:#6b7280; font-size:12px; }
   .tbs-confirm-head > div:nth-child(7), .tbs-confirm-row > div:nth-child(7) { width:72px; text-align:center; }
   .tbs-cai { text-align:center; }
   .tbs-ai-cb { width:15px; height:15px; cursor:pointer; accent-color:#f94b16; }
@@ -733,7 +733,7 @@ export const TEMPLATE_BUILDER_STYLES = `
   .tbs-ci { color:#9ca3af; font-size:11px; font-weight:600; }
   .tbs-cn { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .tbs-cd { font-size:12px; color:#6b7280; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .tbs-cs { font-size:12px; color:#6b7280; font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tbs-cs { font-size:12px; color:#6b7280; font-style:italic; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; line-height:1.4; }
   .tbs-none { color:#d1d5db; }
 
   /* ── SHARED CHIPS ── */
@@ -749,8 +749,8 @@ export const TEMPLATE_BUILDER_STYLES = `
   .tbs-flow-arrow { font-size:20px; color:#d1d5db; line-height:1; }
   .tbs-back-btn { background:#e5e7eb !important; color:#374151 !important; box-shadow:none !important; margin-top:0 !important; }
   .tbs-back-btn:hover { background:#d1d5db !important; }
-  .tbs-save-btn { background:linear-gradient(145deg,#FA4616,#c7340f) !important; box-shadow:0 4px 14px rgba(250,70,22,0.3) !important; margin-top:0 !important; }
-  .tbs-save-btn:hover { box-shadow:0 6px 18px rgba(250,70,22,0.45) !important; }
+  .tbs-save-btn { background:linear-gradient(145deg,#F97316,#EA580C) !important; box-shadow:0 4px 14px rgba(249,115,22,0.3) !important; margin-top:0 !important; }
+  .tbs-save-btn:hover { box-shadow:0 6px 18px rgba(249,115,22,0.45) !important; }
   .tbs-status { margin-top:10px; font-size:13px; color:#6b7280; text-align:center; }
 
   /* ── DONE ── */

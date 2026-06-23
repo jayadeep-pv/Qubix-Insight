@@ -19,7 +19,7 @@ export default function AiInsightProfiles() {
   const [pageSize, setPageSize] = useState(10);
 
   const navigate = useNavigate();
-  const { isTrial } = useUser();
+  const { isTrial, isAdmin } = useUser();
 
   useEffect(() => { init(); }, []);
 
@@ -131,8 +131,8 @@ export default function AiInsightProfiles() {
           type="button"
           className="btn-primary"
           onClick={() => navigate("/admin/ai-insight-profiles/new")}
-          disabled={isTrial}
-          title={isTrial ? "Not available on trial" : undefined}
+          disabled={isTrial || !isAdmin}
+          title={isTrial ? "Not available on trial" : !isAdmin ? "Admin access required" : undefined}
         >
           + New Profile
         </button>
@@ -180,8 +180,8 @@ export default function AiInsightProfiles() {
                     type="button"
                     className="btn-icon deactivate"
                     onClick={e => { e.stopPropagation(); toggleActive(item); }}
-                    disabled={isTrial}
-                    title={isTrial ? "Not available on trial" : item.statecode === 0 ? "Deactivate" : "Reactivate"}
+                    disabled={isTrial || !isAdmin}
+                    title={isTrial ? "Not available on trial" : !isAdmin ? "Admin access required" : item.statecode === 0 ? "Deactivate" : "Reactivate"}
                   >{item.statecode === 0 ? "🚫" : "♻️"}</button>
                 </td>
               </tr>

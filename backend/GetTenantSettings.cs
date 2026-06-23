@@ -82,8 +82,8 @@ public class GetTenantSettings
                 subscriptionTier    = entity.FormattedValues.TryGetValue("ilx_subscriptiontier", out var tierLabel)
                     ? tierLabel
                     : entity.GetAttributeValue<Microsoft.Xrm.Sdk.OptionSetValue>("ilx_subscriptiontier")?.Value.ToString() ?? "",
-                onboardedDate       = entity.GetAttributeValue<DateTime?>("ilx_onboardeddate"),
-                isActive            = entity.GetAttributeValue<bool>("ilx_isactive")
+                onboardedDate = entity.GetAttributeValue<DateTime?>("ilx_onboardeddate"),
+                isActive      = entity.GetAttributeValue<bool>("ilx_isactive")
             };
 
             var response = req.CreateResponse(HttpStatusCode.OK);

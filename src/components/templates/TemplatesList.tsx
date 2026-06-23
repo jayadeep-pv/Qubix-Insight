@@ -26,7 +26,7 @@ export default function TemplatesList({ documentTypeId, documentTypeName, hideHe
   const [pageSize, setPageSize] = useState(10)
 
   const navigate = useNavigate()
-  const { isTrial } = useUser()
+  const { isTrial, isAdmin } = useUser()
 
   useEffect(() => { load() }, [documentTypeId])
 
@@ -125,8 +125,8 @@ export default function TemplatesList({ documentTypeId, documentTypeName, hideHe
             </div>
             <button type="button" className="btn-primary"
               onClick={() => navigate(`/comparison/new?documentTypeId=${documentTypeId || ""}`)}
-              disabled={isTrial}
-              title={isTrial ? "Not available on trial" : undefined}>
+              disabled={isTrial || !isAdmin}
+              title={isTrial ? "Not available on trial" : !isAdmin ? "Admin access required" : undefined}>
               + New Template
             </button>
           </div>
@@ -135,7 +135,9 @@ export default function TemplatesList({ documentTypeId, documentTypeName, hideHe
         <div className="page-header">
           <div />
           <button type="button" className="btn-primary"
-            onClick={() => navigate(`/comparison/new?documentTypeId=${documentTypeId || ""}`)}>
+            onClick={() => navigate(`/comparison/new?documentTypeId=${documentTypeId || ""}`)}
+            disabled={isTrial || !isAdmin}
+            title={isTrial ? "Not available on trial" : !isAdmin ? "Admin access required" : undefined}>
             + New Template
           </button>
         </div>
@@ -181,8 +183,8 @@ export default function TemplatesList({ documentTypeId, documentTypeName, hideHe
                     type="button"
                     className="btn-icon deactivate"
                     onClick={e => { e.stopPropagation(); toggleActive(item) }}
-                    disabled={isTrial}
-                    title={isTrial ? "Not available on trial" : item.isActive ? "Deactivate" : "Reactivate"}
+                    disabled={isTrial || !isAdmin}
+                    title={isTrial ? "Not available on trial" : !isAdmin ? "Admin access required" : item.isActive ? "Deactivate" : "Reactivate"}
                   >{item.isActive ? "🚫" : "♻️"}</button>
                 </td>
               </tr>

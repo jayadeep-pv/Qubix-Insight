@@ -14,14 +14,18 @@ public class UpdateDocumentType
     private readonly TenantResolverService _tenantResolver;
     private readonly TenantDataverseService _tenantDataverseService;
     private readonly ILogger<UpdateDocumentType> _logger;
+    private readonly TenantUserService _tenantUserService;
+
     public UpdateDocumentType(
         TenantResolverService tenantResolver,
         TenantDataverseService tenantDataverseService,
-        ILogger<UpdateDocumentType> logger)
+        ILogger<UpdateDocumentType> logger,
+        TenantUserService tenantUserService)
     {
         _tenantResolver = tenantResolver;
         _tenantDataverseService = tenantDataverseService;
         _logger = logger;
+        _tenantUserService = tenantUserService;
     }
 
     [Function("UpdateDocumentType")]
@@ -32,16 +36,23 @@ public class UpdateDocumentType
     {
         try
         {
-            var aadTenantId = JwtTenantExtractor.GetAadTenantId(req);
+            var userInfo = JwtTenantExtractor.GetUserInfo(req);
 
-            if (string.IsNullOrWhiteSpace(aadTenantId))
+            if (userInfo is null || string.IsNullOrWhiteSpace(userInfo.TenantId))
             {
                 var bad = req.CreateResponse(System.Net.HttpStatusCode.Unauthorized);
                 await bad.WriteStringAsync("Unable to determine tenant from Bearer token.");
                 return bad;
             }
 
-            var tenant = _tenantResolver.ResolveTenant(aadTenantId);
+            if (!_tenantUserService.IsAdmin(userInfo))
+            {
+                var forbidden = req.CreateResponse(HttpStatusCode.Forbidden);
+                await forbidden.WriteStringAsync("Admin access required.");
+                return forbidden;
+            }
+
+            var tenant = _tenantResolver.ResolveTenant(userInfo.TenantId);
 
             var service = _tenantDataverseService.CreateClient(tenant.DataverseUrl);
 

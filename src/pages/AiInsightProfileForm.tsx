@@ -11,7 +11,7 @@ export default function AiInsightProfileForm() {
   const { id } = useParams()
   const navigate = useNavigate()
   const isEdit = !!id
-  const { isTrial } = useUser()
+  const { isTrial, isAdmin } = useUser()
 
   const [form, setForm] = useState<AiInsightProfile>({
     profileName: "",
@@ -136,21 +136,21 @@ export default function AiInsightProfileForm() {
         <PageBreadcrumb
           items={[
             { label: "AI Insight Profiles", onClick: () => navigate("/admin/ai-insight-profiles") },
-            { label: isEdit ? "Edit AI Insight Profile" : "New AI Insight Profile" },
+            { label: isEdit ? `AI Insight Profile — ${form.profileName}` : "New AI Insight Profile" },
           ]}
         />
         <div className="admin-form-header">
-          <h2>{isEdit ? "Edit AI Insight Profile" : "New AI Insight Profile"}</h2>
+          <h2>{isEdit ? `AI Insight Profile — ${form.profileName}` : "New AI Insight Profile"}</h2>
         </div>
       </div>
 
       <div className="top-grid">
-      <div className={`admin-form-card${isTrial ? " admin-form-card--readonly" : ""}`}>
+      <div className={`admin-form-card${(isTrial || !isAdmin) ? " admin-form-card--readonly" : ""}`}>
 
-        {isTrial && (
+        {(isTrial || !isAdmin) && (
           <div className="trial-banner">
             <span className="trial-banner-icon">🔒</span>
-            <span>Trial account — this record is read only. Upgrade to enable editing.</span>
+            <span>{isTrial ? "Trial account — this record is read only. Upgrade to enable editing." : "You do not have admin access to edit this record."}</span>
           </div>
         )}
 
@@ -222,8 +222,8 @@ export default function AiInsightProfileForm() {
         )}
 
         <div className="form-footer">
-          <button type="button" className="btn-primary" onClick={save} disabled={saving || isTrial}
-            title={isTrial ? "Not available on trial" : undefined}>
+          <button type="button" className="btn-primary" onClick={save} disabled={saving || isTrial || !isAdmin}
+            title={isTrial ? "Not available on trial" : !isAdmin ? "Admin access required" : undefined}>
             {saving ? "Saving…" : "Save"}
           </button>
           <button type="button" className="btn-secondary" onClick={() => navigate("/admin/ai-insight-profiles")}>

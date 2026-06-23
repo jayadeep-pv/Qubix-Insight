@@ -10,7 +10,7 @@ export default function ComparisonTemplateForm() {
 
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { isTrial } = useUser();
+  const { isTrial, isAdmin } = useUser();
 
 
 
@@ -215,12 +215,12 @@ export default function ComparisonTemplateForm() {
 
       {activeTab === "details" && (
       <div className="top-grid">
-      <div className={`admin-form-card${isTrial ? " admin-form-card--readonly" : ""}`}>
+      <div className={`admin-form-card${(isTrial || !isAdmin) ? " admin-form-card--readonly" : ""}`}>
 
-          {isTrial && (
+          {(isTrial || !isAdmin) && (
             <div className="trial-banner">
               <span className="trial-banner-icon">🔒</span>
-              <span>Trial account — this record is read only. Upgrade to enable editing.</span>
+              <span>{isTrial ? "Trial account — this record is read only. Upgrade to enable editing." : "You do not have admin access to edit this record."}</span>
             </div>
           )}
 
@@ -335,8 +335,8 @@ export default function ComparisonTemplateForm() {
           )}
 
           <div className="form-footer">
-            <button type="button" className="btn-primary" onClick={save} disabled={isTrial}
-              title={isTrial ? "Not available on trial" : undefined}>
+            <button type="button" className="btn-primary" onClick={save} disabled={isTrial || !isAdmin}
+              title={isTrial ? "Not available on trial" : !isAdmin ? "Admin access required" : undefined}>
               Save
             </button>
             <button type="button" className="btn-secondary" onClick={() => navigate("/comparison-templates")}>
@@ -371,11 +371,11 @@ export default function ComparisonTemplateForm() {
       )}
 
       {activeTab === "aiProfiles" && id && (
-        <div className={`admin-form-card${isTrial ? " admin-form-card--readonly" : ""}`}>
-          {isTrial && (
+        <div className={`admin-form-card${(isTrial || !isAdmin) ? " admin-form-card--readonly" : ""}`}>
+          {(isTrial || !isAdmin) && (
             <div className="trial-banner">
               <span className="trial-banner-icon">🔒</span>
-              <span>Trial account — this record is read only. Upgrade to enable editing.</span>
+              <span>{isTrial ? "Trial account — this record is read only. Upgrade to enable editing." : "You do not have admin access to edit this record."}</span>
             </div>
           )}
           <p className="tp-profiles-hint">
@@ -395,6 +395,7 @@ export default function ComparisonTemplateForm() {
                       <input
                         type="checkbox"
                         checked={attached}
+                        disabled={isTrial || !isAdmin}
                         onChange={() => toggleProfileAttached(profile.id, profile.profileName)}
                       />
                       <span className="tp-profile-name">{profile.profileName}</span>
@@ -404,6 +405,7 @@ export default function ComparisonTemplateForm() {
                         <input
                           type="checkbox"
                           checked={isDefault}
+                          disabled={isTrial || !isAdmin}
                           onChange={() => toggleProfileDefault(profile.id)}
                         />
                         <span>Default</span>
@@ -416,8 +418,8 @@ export default function ComparisonTemplateForm() {
           )}
 
           <div className="form-footer">
-            <button type="button" className="btn-primary" onClick={saveProfiles} disabled={profilesSaving || isTrial}
-              title={isTrial ? "Not available on trial" : undefined}>
+            <button type="button" className="btn-primary" onClick={saveProfiles} disabled={profilesSaving || isTrial || !isAdmin}
+              title={isTrial ? "Not available on trial" : !isAdmin ? "Admin access required" : undefined}>
               {profilesSaving ? "Saving…" : profilesSaved ? "Saved ✓" : "Save Profiles"}
             </button>
           </div>

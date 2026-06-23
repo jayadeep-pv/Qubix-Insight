@@ -309,8 +309,8 @@ function FeatureNetwork() {
 
       {/* ── Centre node ── */}
       <g transform={`translate(${cx},${cy})`} filter="url(#glow)">
-        <circle r="66" fill="rgba(250,70,22,0.1)" stroke="rgba(250,70,22,0.35)" strokeWidth="1.5" />
-        <circle r="52" fill="rgba(250,70,22,0.22)" stroke="#FA4616" strokeWidth="2" strokeOpacity="0.85" />
+        <circle r="66" fill="rgba(249,115,22,0.1)" stroke="rgba(249,115,22,0.35)" strokeWidth="1.5" />
+        <circle r="52" fill="rgba(249,115,22,0.22)" stroke="#F97316" strokeWidth="2" strokeOpacity="0.85" />
         <polygon points="0,-12 12,-6 0,0 -12,-6" fill="none" stroke="rgba(255,255,255,0.95)" strokeWidth="1.8" strokeLinejoin="round" />
         <polyline points="-12,-1 0,5 12,-1" fill="none" stroke="rgba(255,255,255,0.75)" strokeWidth="1.8" strokeLinejoin="round" />
         <polyline points="-12,4 0,10 12,4" fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="1.8" strokeLinejoin="round" />

@@ -428,7 +428,7 @@
   height: 24px;
   border-radius: 50%;
   background: #ffffff;
-  color: #FA4616;
+  color: var(--brand-orange);
   border: 1.5px solid #e5e7eb;
   box-shadow: 0 2px 6px rgba(0,0,0,0.15);
   cursor: pointer;
@@ -439,10 +439,10 @@
   z-index: 10;
 }
 .sidebar-collapse-btn:hover {
-  background: #FA4616;
+  background: var(--brand-orange);
   color: #ffffff;
-  border-color: #FA4616;
-  box-shadow: 0 3px 10px rgba(250,70,22,0.35);
+  border-color: var(--brand-orange);
+  box-shadow: 0 3px 10px var(--brand-orange-glow);
 }
 
 /* ── Icon-only sidebar ────────────────────────────────── */

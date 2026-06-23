@@ -181,7 +181,7 @@ function ErrorPanel({ message }: { message: string }) {
         </div>
         <div style={{ fontSize: 12, color: "#6b7280" }}>
           For further assistance, please contact your administrator at{" "}
-          <a href="mailto:support@qubixinsight.com" style={{ color: "#FA4616", textDecoration: "none", fontWeight: 500 }}>
+          <a href="mailto:support@qubixinsight.com" style={{ color: "#F97316", textDecoration: "none", fontWeight: 500 }}>
             support@qubixinsight.com
           </a>
         </div>
@@ -193,7 +193,7 @@ function ErrorPanel({ message }: { message: string }) {
 function StartReview() {
   const { instance, accounts, inProgress } = useMsal();
   const isAuthenticated = useIsAuthenticated();
-  const { isTrial, runsUsed, runLimit, refreshUser } = useUser();
+  const { isTrial, isAdmin, runsUsed, runLimit, refreshUser } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -502,7 +502,14 @@ function StartReview() {
     if (contextOverride) setRerunningWithContext(true);
 
     try {
-      startProgressAnim(28, 4000);  // stage 0: uploading
+      startProgressAnim(30, 2500);  // stage 0: uploading — quick 2.5s
+
+      // Auto-advance to "Detecting attributes" after upload animation completes
+      const detectTimer = setTimeout(() => {
+        setScanStageIdx(1);
+        startProgressAnim(92, 210000);  // stage 1: AI extraction — up to 3.5 min
+      }, 3000);
+      stageTimeoutsRef.current.push(detectTimer);
 
       const params = new URLSearchParams();
       if (contextOverride)   params.set("context",    contextOverride);
@@ -520,10 +527,8 @@ function StartReview() {
 
       if (!response.ok) throw new Error(await response.text() || `HTTP ${response.status}`);
 
-      // Upload done — switch to detecting stage
-      snapProgress(32);
-      setScanStageIdx(1);
-      startProgressAnim(95, 18000);  // stage 1: AI detection
+      // Response received — clear auto-advance timer and complete
+      clearStageTimers();
 
       const result   = await response.json();
       const attrs: any[] = result.attributes ?? result;
@@ -535,7 +540,8 @@ function StartReview() {
         const parsed = JSON.parse(rawCtx);
         rawCtx = Object.values(parsed)[0] as string ?? rawCtx;
       } catch { /* already a plain string */ }
-      const ctx: string  = rawCtx.trim().replace(/^["']|["']$/g, "");
+      const ctx: string  = rawCtx.trim().replace(/^["']|["']$/g, "")
+        .split(" ").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 
       const tmpl: boolean = result.hasTemplate ?? false;
 
@@ -1306,20 +1312,13 @@ function StartReview() {
           <p style={{ fontSize:13, color:"#374151", margin:0 }}>{activeMeta.docCount}</p>
         </div>
         <div style={{ borderTop:"1px dashed #e5e7eb", marginTop:14, paddingTop:14 }}>
-          <p className="guide-section-title" style={{ color:"#1D9E75" }}>Tip</p>
-          <p style={{ fontSize:12, color:"#6b7280", lineHeight:1.6, margin:"0 0 8px" }}>
-            Don't have a template yet? Create a new Document Type and Template in Admin, then return here to run any document against it.
+          <p className="guide-section-title" style={{ color:"#059669" }}>Tip</p>
+          <p style={{ fontSize:12, color:"#6b7280", lineHeight:1.6, margin:0 }}>
+            {(!isAdmin || isTrial)
+              ? <>No template yet? Use <strong>Quick Scan</strong> to discover and build one, or contact your admin.</>
+              : <>No template yet? Go to <strong>Admin → Document Types</strong> to create one, then return here.</>
+            }
           </p>
-          <button
-            type="button"
-            onClick={() => navigate("/admin/document-types")}
-            style={{
-              fontSize:12, fontWeight:600, color:"#1D9E75", background:"#E1F5EE",
-              border:"none", borderRadius:6, padding:"5px 12px", cursor:"pointer",
-            }}
-          >
-            Go to Admin →
-          </button>
         </div>
       </div>
       </div>
@@ -1433,8 +1432,14 @@ function StartReview() {
                   <div style={{display:"flex",gap:16,alignItems:"center"}}>
                     <label style={{display:"flex",alignItems:"center",gap:6,fontSize:13,color:"#374151",cursor:"pointer",userSelect:"none"}}>
                       <input type="checkbox" checked={enableAiInsight}
-                        onChange={(e)=>setEnableAiInsight(e.target.checked)} style={{width:14,height:14,marginTop:0}}/>
-                      <span style={{fontWeight:500,lineHeight:"1"}}>AI Insight</span>
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setEnableAiInsight(checked);
+                          setExtractedAttributes(prev => prev.map(a => ({ ...a, enableAiInsight: checked })));
+                          setDiscoveredAttributes(prev => prev.map(a => ({ ...a, enableAiInsight: checked })));
+                        }}
+                        style={{width:14,height:14,marginTop:0}}/>
+                      <span style={{fontWeight:500,lineHeight:"1"}}>Enable AI Insight for all</span>
                     </label>
                     <button className="primary-btn tbs-back-btn"
                       onClick={()=>{
@@ -1455,8 +1460,9 @@ function StartReview() {
                     </button>
                     <button className="primary-btn"
                       onClick={()=>{
-                        if(!templateName) setTemplateName(confirmedContext?`${confirmedContext} — Default Template`:`${insightName} — Default Template`);
-                        if(!newDocTypeName&&confirmedContext) setNewDocTypeName(confirmedContext.split(" ").map((w:string)=>w.charAt(0).toUpperCase()+w.slice(1)).join(" "));
+                        const toTitle = (s:string) => s.split(" ").map((w:string)=>w.charAt(0).toUpperCase()+w.slice(1)).join(" ");
+                        if(!templateName) setTemplateName(confirmedContext?`${toTitle(confirmedContext)} — Default Template`:`${toTitle(insightName)} — Default Template`);
+                        if(!newDocTypeName&&confirmedContext) setNewDocTypeName(toTitle(confirmedContext));
                         setExtractStage("classify");
                       }}
                       disabled={[...extractedAttributes,...discoveredAttributes].length===0}>
@@ -2132,10 +2138,10 @@ function StartReview() {
           white-space: nowrap;
         }
         .sr-context-btn--confirm {
-          background: #FA4616;
+          background: #F97316;
           color: white;
         }
-        .sr-context-btn--confirm:hover { background: #c7340f; }
+        .sr-context-btn--confirm:hover { background: #EA580C; }
         .sr-context-btn--rerun {
           background: #f3f4f6;
           color: #374151;
@@ -2161,14 +2167,14 @@ function StartReview() {
         .sr-action-btn--summarise,
         .sr-action-btn--compare,
         .sr-action-btn--compare-scoring {
-          background: linear-gradient(145deg, #FA4616, #c7340f);
+          background: linear-gradient(145deg, #F97316, #EA580C);
           box-shadow: 0 4px 12px rgba(250,70,22,0.3);
         }
 
         /* ── SAVE AS TEMPLATE BUTTON ── */
         .sr-save-template-btn {
           margin-top: 0 !important;
-          background: linear-gradient(145deg, #FA4616, #c7340f) !important;
+          background: linear-gradient(145deg, #F97316, #EA580C) !important;
           box-shadow: 0 4px 12px rgba(250,70,22,0.3) !important;
           font-size: 13px !important;
           padding: 8px 16px !important;
@@ -2179,7 +2185,7 @@ function StartReview() {
         .sr-save-template-btn-flow {
           margin-top: 20px;
           padding: 12px 22px;
-          background: linear-gradient(145deg, #FA4616, #c7340f);
+          background: linear-gradient(145deg, #F97316, #EA580C);
           color: white;
           border: none;
           border-radius: 10px;
@@ -2206,7 +2212,7 @@ function StartReview() {
           padding: 20px 24px;
           background: linear-gradient(135deg, #fff7f5, #fff3f0);
           border: 1px solid #fcd9bd;
-          border-left: 4px solid #FA4616;
+          border-left: 4px solid #F97316;
         }
         .qe-insight-prompt-icon {
           font-size: 28px;
@@ -2237,7 +2243,7 @@ function StartReview() {
         }
         .qe-insight-save-btn {
           margin: 0 !important;
-          background: linear-gradient(145deg, #FA4616, #c7340f) !important;
+          background: linear-gradient(145deg, #F97316, #EA580C) !important;
           box-shadow: 0 4px 12px rgba(250,70,22,0.3) !important;
           min-width: 150px;
           white-space: nowrap;

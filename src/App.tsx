@@ -46,6 +46,18 @@ function TrialGuard({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+// Redirects workflow-only pages back to home when landed via post-login redirect
+// (no navigation state = MSAL returned here after re-auth, not a deliberate click).
+function PostLoginGuard({ children }: { children: ReactNode }) {
+  const location = useLocation();
+  const WORKFLOW_PATHS = ["/new", "/new/compare", "/new/scored", "/new/summarise"];
+  if (WORKFLOW_PATHS.includes(location.pathname) && !location.state) {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+}
+
+
 function App() {
   const { instance, accounts, inProgress } = useMsal();
   const isAuthenticated = useIsAuthenticated();
@@ -173,13 +185,11 @@ function App() {
         <Route index element={<HomePage />} />
         <Route path="home" element={<HomePage />} />
 
-        {/* Start a new comparison */}
-        <Route path="new" element={<StartReview />} />
-
-        {/* New insight flows — all use StartReview with location state for mode pre-selection */}
-        <Route path="new/compare" element={<StartReview />} />
-        <Route path="new/scored" element={<StartReview />} />
-        <Route path="new/summarise" element={<StartReview />} />
+        {/* Start a new comparison — guarded so post-login redirect goes to home */}
+        <Route path="new" element={<PostLoginGuard><StartReview /></PostLoginGuard>} />
+        <Route path="new/compare" element={<PostLoginGuard><StartReview /></PostLoginGuard>} />
+        <Route path="new/scored" element={<PostLoginGuard><StartReview /></PostLoginGuard>} />
+        <Route path="new/summarise" element={<PostLoginGuard><StartReview /></PostLoginGuard>} />
 
         {/* Comparisons list */}
         <Route path="comparisons" element={<Comparisons />} />
@@ -191,7 +201,7 @@ function App() {
             CONFIGURATION SCREENS
         =============================== */}
 
-        {/* List pages — trial users can view but not create/edit */}
+        {/* List pages and forms — access controlled via isAdmin UI states */}
         <Route path="document-types" element={<DocumentTypes />} />
         <Route path="document-types/new" element={<DocumentTypeForm />} />
         <Route path="document-types/:id" element={<DocumentTypeForm />} />

@@ -10,12 +10,12 @@ export default function TrialBanner() {
       alignItems: "center",
       gap: "8px",
       padding: "5px 16px",
-      background: "rgba(250, 70, 22, 0.04)",
-      borderBottom: "1px solid rgba(250, 70, 22, 0.12)",
+      background: "rgba(249, 115, 22, 0.04)",
+      borderBottom: "1px solid rgba(249, 115, 22, 0.12)",
       fontSize: "12px",
       color: "#b45309",
     }}>
-      <Zap size={12} style={{ color: "#FA4616", flexShrink: 0 }} />
+      <Zap size={12} style={{ color: "#F97316", flexShrink: 0 }} />
       <span style={{ color: "#92400e" }}>
         <strong>Trial account</strong> — Quick Extract only, limited to first 5 pages per document.
       </span>
@@ -25,8 +25,8 @@ export default function TrialBanner() {
           marginLeft: "auto",
           padding: "2px 10px",
           background: "transparent",
-          color: "#FA4616",
-          border: "1px solid rgba(250,70,22,0.35)",
+          color: "#F97316",
+          border: "1px solid rgba(249,115,22,0.35)",
           borderRadius: "5px",
           fontSize: "11px",
           fontWeight: 600,
