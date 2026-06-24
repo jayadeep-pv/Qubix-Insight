@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Home,
   List,
@@ -7,6 +7,7 @@ import {
   FileText,
   Settings,
   HelpCircle,
+  Mail,
   FolderTree,
   BrainCircuit,
   ListChecks,
@@ -14,6 +15,8 @@ import {
   Power,
   ChevronLeft,
   ChevronRight,
+  Menu,
+  X,
 } from "lucide-react";
 import { useUser } from "../context/UserContext";
 
@@ -44,7 +47,7 @@ const PAGE_PREFIXES: [string, { title: string; subtitle: string }][] = [
   ["/admin/template-attributes/", { title: "Template Attributes",  subtitle: "Configure template fields" }],
   ["/admin/rules/",               { title: "Rules",                subtitle: "Compliance and scoring rules" }],
   ["/admin/ai-insight-profiles/", { title: "AI Insight Profiles",  subtitle: "Configure AI extraction profiles" }],
-  ["/new",                        { title: "New Insight",          subtitle: "Start an analysis run" }],
+  ["/analysis",                   { title: "New Insight",          subtitle: "Start an analysis run" }],
   ["/results/",                   { title: "Insight Results",      subtitle: "" }],
   ["/runs/",                      { title: "Insight Results",      subtitle: "" }],
 ];
@@ -72,14 +75,29 @@ export default function Layout({ onLogout }: LayoutProps) {
   const navigate = useNavigate();
   const { isTrial, userName, userEmail, tenantName } = useUser();
   const [iconOnly, setIconOnly] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Close mobile sidebar on route change
+  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
+
+  // Prevent body scroll when mobile sidebar is open
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileOpen]);
 
   const page = getPageMeta(location.pathname);
 
   return (
     <div className="app-layout">
 
+      {/* ── Mobile backdrop ── */}
+      {mobileOpen && (
+        <div className="sidebar-backdrop" onClick={() => setMobileOpen(false)} />
+      )}
+
       {/* ── Sidebar ── */}
-      <aside className={`sidebar${iconOnly ? " icon-only" : ""}`}>
+      <aside className={`sidebar${iconOnly ? " icon-only" : ""}${mobileOpen ? " mobile-open" : ""}`}>
         <div className="sidebar-grid" />
 
         {/* Logo */}
@@ -90,7 +108,7 @@ export default function Layout({ onLogout }: LayoutProps) {
           </div>
         </div>
 
-        {/* Collapse toggle — absolutely pinned top-right in both modes */}
+        {/* Collapse toggle — desktop only */}
         <button
           type="button"
           className="sidebar-collapse-btn"
@@ -98,6 +116,16 @@ export default function Layout({ onLogout }: LayoutProps) {
           title={iconOnly ? "Expand sidebar" : "Collapse sidebar"}
         >
           {iconOnly ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
+        </button>
+
+        {/* Mobile close button */}
+        <button
+          type="button"
+          className="sidebar-close-btn"
+          onClick={() => setMobileOpen(false)}
+          title="Close menu"
+        >
+          <X size={16} />
         </button>
 
         <nav>
@@ -168,9 +196,14 @@ export default function Layout({ onLogout }: LayoutProps) {
             </div>
           )}
 
-          <NavLink to="/support" className="sidebar-support" title={iconOnly ? "Support" : undefined}>
+          <NavLink to="/support" state={{ scrollToTop: true }} className="sidebar-support" title={iconOnly ? "Help" : undefined}>
             <HelpCircle size={16} />
-            <span>Support</span>
+            <span>Help</span>
+          </NavLink>
+
+          <NavLink to="/support" state={{ scrollToContact: true }} className="sidebar-support" title={iconOnly ? "Contact" : undefined}>
+            <Mail size={16} />
+            <span>Contact</span>
           </NavLink>
 
           <button type="button" className="logout-btn" onClick={onLogout} title={iconOnly ? "Logout" : undefined}>
@@ -186,6 +219,16 @@ export default function Layout({ onLogout }: LayoutProps) {
 
         {/* Topbar */}
         <header className="topbar">
+          {/* Hamburger — mobile only */}
+          <button
+            type="button"
+            className="topbar-hamburger"
+            onClick={() => setMobileOpen(v => !v)}
+            title="Open menu"
+          >
+            <Menu size={20} />
+          </button>
+
           {/* Page title */}
           <div className="topbar-title-area">
             <span className="topbar-title">{page.title}</span>

@@ -132,7 +132,7 @@ const MyInsights: React.FC = () => {
           <p className="page-subtitle">Insights generated from comparisons you executed</p>
         </div>
         <div className="header-action-group">
-          <button type="button" className="btn-primary" onClick={() => navigate("/new")}>
+          <button type="button" className="btn-primary" onClick={() => navigate("/analysis")}>
             + New Insight
           </button>
         </div>

@@ -950,20 +950,22 @@ const pdfViewer = pdfUrl ? (
                 width={pdfWidth - 12}
                 renderTextLayer={false}
                 renderAnnotationLayer={false}
-                onLoadSuccess={(page) => {
-                setPageSizes(prev => ({
-                  ...prev,
-                  [currentPage]: {
-                    width: page.width,
-                    height: page.height
-                  }
-                }));
+                onLoadSuccess={(page: any) => {
+                  // getViewport({scale:1}) is the PDF.js canonical source for natural page
+                  // dimensions in PDF points (72 pt = 1 in). page.width alone can return
+                  // view[2] (raw xMax) instead of the true width (xMax - xMin), or may
+                  // reflect rendered CSS pixels in some react-pdf versions.
+                  const vp = page.getViewport?.({ scale: 1 });
+                  const natW = vp ? vp.width  : page.view ? page.view[2] - (page.view[0] || 0) : page.width;
+                  const natH = vp ? vp.height : page.view ? page.view[3] - (page.view[1] || 0) : page.height;
+                  setPageSizes(prev => ({
+                    ...prev,
+                    [currentPage]: { width: natW, height: natH }
+                  }));
               }}
                               />
 
               
-              {/* Highlight disabled temporarily until polygon accuracy is fixed */}
-
               {highlight &&
                   highlight.page === currentPage &&
                   pageSizes[currentPage] &&
@@ -981,21 +983,23 @@ const pdfViewer = pdfUrl ? (
                     const minY = Math.min(...ys);
                     const maxY = Math.max(...ys);
 
+                    // Natural page size in PDF points (from getViewport — 72 pt = 1 inch).
+                    // Azure DI polygon coords for PDFs are in inches from the top-left.
+                    // pxPerInch = 72 * (renderedPx / naturalPts) = renderedPx / naturalInches
                     const renderedWidth = pdfWidth - 12;
-                    const pageNaturalWidth = pageSizes[currentPage].width;
-                    const scale = renderedWidth / pageNaturalWidth;
-                    // PDF page.width from react-pdf is in points (72 pts = 1 inch).
-                    // Azure OCR coords for PDFs are in inches from top-left.
-                    const pxPerInch = 72 * scale;
-                    const pad = 0.15; // inches of padding around the bounding box
+                    const natW = pageSizes[currentPage].width;   // pts
+                    const natH = pageSizes[currentPage].height;  // pts
+                    const pxPerInchX = 72 * (renderedWidth / natW);
+                    const pxPerInchY = 72 * (renderedWidth / natW); // same uniform scale
+                    const padTop = 0.22;  // extra clearance above first line
+                    const pad    = 0.15;  // left / right / bottom
 
                     console.log(
                       `[Highlight pg${currentPage}] coords:`, coords.map((v: number) => v.toFixed(3)),
-                      `| pageNaturalWidth(pts): ${pageNaturalWidth.toFixed(0)}`,
+                      `| natW(pts): ${natW.toFixed(0)} natH(pts): ${natH.toFixed(0)}`,
                       `| renderedWidth(px): ${renderedWidth}`,
-                      `| scale: ${scale.toFixed(4)} px/pt`,
-                      `| pxPerInch: ${pxPerInch.toFixed(1)}`,
-                      `| box: left=${((minX - pad) * pxPerInch).toFixed(0)} top=${((minY - pad) * pxPerInch).toFixed(0)} w=${((maxX - minX + pad * 2) * pxPerInch).toFixed(0)} h=${((maxY - minY + pad * 2) * pxPerInch).toFixed(0)}`
+                      `| pxPerInch: ${pxPerInchX.toFixed(1)}`,
+                      `| box: left=${((minX - pad) * pxPerInchX).toFixed(0)} top=${((minY - padTop) * pxPerInchY).toFixed(0)} w=${((maxX - minX + pad * 2) * pxPerInchX).toFixed(0)} h=${((maxY - minY + padTop + pad) * pxPerInchY).toFixed(0)}`
                     );
 
                     return (
@@ -1003,10 +1007,10 @@ const pdfViewer = pdfUrl ? (
                         className="pdf-highlight-overlay"
                         style={{
                           position: "absolute",
-                          left:   (minX - pad) * pxPerInch,
-                          top:    (minY - pad) * pxPerInch,
-                          width:  (maxX - minX + pad * 2) * pxPerInch,
-                          height: (maxY - minY + pad * 2) * pxPerInch,
+                          left:   (minX - pad)           * pxPerInchX,
+                          top:    (minY - padTop)         * pxPerInchY,
+                          width:  (maxX - minX + pad * 2) * pxPerInchX,
+                          height: (maxY - minY + padTop + pad) * pxPerInchY,
                         }}
                       />
                     );
@@ -2163,7 +2167,7 @@ return (
                 </select>
                 {selectedAttribute && (
                   <span className="pdf-active-field">
-                    \u21b3 {selectedAttribute.attributeName}
+                    {"\u21b3"} {selectedAttribute.attributeName}
                   </span>
                 )}
                 <span className="pdf-page-info">

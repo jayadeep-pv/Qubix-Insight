@@ -1,6 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="5" fill="#F97316"/>
-  <g transform="translate(5,5) scale(0.917)" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+  <defs>
+    <clipPath id="r">
+      <rect width="32" height="32" rx="7"/>
+    </clipPath>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F97316"/>
+      <stop offset="100%" stop-color="#EA580C"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="7" fill="url(#g)"/>
+  <g clip-path="url(#r)" transform="translate(5,5) scale(0.917)" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" fill="none">
     <polygon points="12 2 2 7 12 12 22 7 12 2"/>
     <polyline points="2 12 12 17 22 12"/>
     <polyline points="2 17 12 22 22 17"/>

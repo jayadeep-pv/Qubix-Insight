@@ -1132,27 +1132,27 @@ function StartReview() {
       <div className="dc-card" style={{ padding: 0, overflow: "hidden", marginTop: 0, marginBottom: 0 }}>
 
         {/* Section 1: Insight Name */}
-        <div style={{ padding:"16px 20px", borderBottom:"1px solid #f3f4f6" }}>
-          <label htmlFor="insightName" style={{ fontSize:12, fontWeight:600, color:"#374151", display:"block", marginBottom:5 }}>Insight Name</label>
+        <div style={{ padding:"12px 22px", borderBottom:"1px solid #f3f4f6" }}>
+          <label htmlFor="insightName" style={{ fontSize:13, fontWeight:600, color:"#374151", display:"block", marginBottom:4, letterSpacing:"0.01em" }}>Insight Name</label>
           <input id="insightName" value={insightName}
             onChange={(e) => setInsightName(e.target.value)}
             placeholder="e.g. Contract Risk Review Q2 2026"
-            style={{ margin:0, width:"100%", boxSizing:"border-box" }}/>
+            style={{ margin:0, width:"100%", boxSizing:"border-box", height:38, fontSize:14 }}/>
         </div>
 
-        {/* Section 2: Document Type + Template */}
-        <div style={{ padding:"14px 20px", borderBottom:"1px solid #f3f4f6", display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+        {/* Section 2: Document Type + Template — stacked so long names display in full */}
+        <div style={{ padding:"12px 22px", borderBottom:"1px solid #f3f4f6", display:"flex", flexDirection:"column", gap:10 }}>
           <div>
-            <label htmlFor="documentType" style={{ fontSize:12, fontWeight:600, color:"#374151", display:"block", marginBottom:5 }}>Document Type</label>
-            <select id="documentType" value={selectedDocumentType} style={{ margin:0, width:"100%" }}
+            <label htmlFor="documentType" style={{ fontSize:13, fontWeight:600, color:"#374151", display:"block", marginBottom:4, letterSpacing:"0.01em" }}>Document Type</label>
+            <select id="documentType" value={selectedDocumentType} style={{ margin:0, width:"100%", height:38, fontSize:14 }}
               onChange={(e) => setSelectedDocumentType(e.target.value)}>
               <option value="">Select document type</option>
               {filteredDocumentTypes.map((dt) => (<option key={dt.id} value={dt.id}>{dt.name}</option>))}
             </select>
           </div>
           <div>
-            <label htmlFor="reviewTemplate" style={{ fontSize:12, fontWeight:600, color:"#374151", display:"block", marginBottom:5 }}>Review Template</label>
-            <select id="reviewTemplate" value={selectedTemplate} style={{ margin:0, width:"100%" }}
+            <label htmlFor="reviewTemplate" style={{ fontSize:13, fontWeight:600, color:"#374151", display:"block", marginBottom:4, letterSpacing:"0.01em" }}>Review Template</label>
+            <select id="reviewTemplate" value={selectedTemplate} style={{ margin:0, width:"100%", height:38, fontSize:14 }}
               onChange={(e) => setSelectedTemplate(e.target.value)} disabled={!selectedDocumentType}>
               <option value="">Select template</option>
               {templates.map((t) => (<option key={t.id} value={t.id}>{t.name}</option>))}
@@ -1161,9 +1161,9 @@ function StartReview() {
         </div>
 
         {/* Section 3: Upload */}
-        <div style={{ padding:"14px 20px", borderBottom:"1px solid #f3f4f6" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-            <label style={{ fontSize:12, fontWeight:600, color:"#374151", margin:0 }}>{isCompare ? "Upload Documents" : "Upload Document"}</label>
+        <div style={{ padding:"12px 22px", borderBottom:"1px solid #f3f4f6" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
+            <label style={{ fontSize:13, fontWeight:600, color:"#374151", margin:0, letterSpacing:"0.01em" }}>{isCompare ? "Upload Documents" : "Upload Document"}</label>
             {isCompare ? (
               <span className={`sr-file-count-badge${uploadedFiles.length >= 2 ? " sr-file-count-badge--ok" : ""}`}>{uploadedFiles.length} / 2 minimum</span>
             ) : (
@@ -1201,7 +1201,7 @@ function StartReview() {
           ) : (
             <div
               className={`dc-dropzone${scanning ? " disabled-zone" : ""}${isDragging ? " dc-dropzone--dragging" : ""}`}
-              style={{ minHeight: 56 }}
+              style={{ minHeight: 70 }}
               onClick={() => !scanning && fileInputRef.current?.click()}
               onDragEnter={onDragEnter}
               onDragLeave={onDragLeave}
@@ -1210,7 +1210,7 @@ function StartReview() {
             >
               <div className="dropzone-inner">
                 <div className="dropzone-icon">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M16 16l-4-4-4 4"/><path d="M12 12v7"/>
                     <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 4 16.3"/>
                   </svg>
@@ -1226,9 +1226,9 @@ function StartReview() {
         </div>
 
         {/* Section 4: AI Insight Profiles */}
-        <div style={{ padding:"14px 20px", borderBottom:"1px solid #f3f4f6" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: aiProfiles.length > 0 ? 10 : 0 }}>
-            <label style={{ fontSize:12, fontWeight:600, color:"#374151", margin:0 }}>AI Insight Profiles</label>
+        <div style={{ padding:"12px 22px", borderBottom:"1px solid #f3f4f6" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: aiProfiles.length > 0 ? 8 : 0 }}>
+            <label style={{ fontSize:13, fontWeight:600, color:"#374151", margin:0, letterSpacing:"0.01em" }}>AI Insight Profiles</label>
             {aiProfiles.length > 0 && (
               <span style={{ fontSize:11, color:"#6b7280" }}>{selectedProfiles.length} of {aiProfiles.length} selected</span>
             )}
@@ -1236,13 +1236,13 @@ function StartReview() {
           {aiProfiles.length === 0 ? (
             <p className="aip-no-profiles" style={{ margin:0 }}>Select a template to load its configured profiles.</p>
           ) : (
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
               {aiProfiles.map((profile) => {
                 const isSelected = selectedProfiles.includes(profile.id);
                 return (
                   <button key={profile.id} type="button"
                     className={`aip-profile-card${isSelected ? " aip-profile-card--on" : ""}`}
-                    style={{ padding:"9px 12px" }}
+                    style={{ padding:"8px 11px" }}
                     onClick={() => isSelected
                       ? setSelectedProfiles(selectedProfiles.filter((id) => id !== profile.id))
                       : setSelectedProfiles([...selectedProfiles, profile.id])}>
@@ -1259,7 +1259,7 @@ function StartReview() {
         </div>
 
         {/* Section 5: Action footer */}
-        <div style={{ padding:"12px 20px", background:"#fafafa" }}>
+        <div style={{ padding:"10px 22px", background:"#fafafa" }}>
           {error && <ErrorPanel message={error} />}
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
             {aiProfiles.length > 0 ? (
@@ -1277,6 +1277,7 @@ function StartReview() {
                   uploadedFiles.length === 0 ||
                   (isCompare && uploadedFiles.length < 2)
                 }
+                style={{ padding:"11px 28px", fontSize:15, letterSpacing:"0.01em" }}
               >
                 Start Analysis →
               </button>
@@ -1285,11 +1286,11 @@ function StartReview() {
         </div>
       </div>
       <div className="dc-card guidance-card">
-        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
-          <span className="guide-about" style={{ margin:0 }}>{activeMeta.label}</span>
-          <span style={{ fontSize:11, fontWeight:600, padding:"3px 10px", borderRadius:999, background:activeMeta.badgeBg, color:activeMeta.badgeColor }}>{activeMeta.badge}</span>
+        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
+          <span className="guide-about" style={{ margin:0, fontSize:15 }}>{activeMeta.label}</span>
+          <span style={{ fontSize:11, fontWeight:700, padding:"3px 10px", borderRadius:999, background:activeMeta.badgeBg, color:activeMeta.badgeColor }}>{activeMeta.badge}</span>
         </div>
-        <p className="guide-about-desc">{activeMeta.description}</p>
+        <p className="guide-about-desc" style={{ fontSize:13.5 }}>{activeMeta.description}</p>
         <div className="guide-steps" style={{ marginBottom: 16 }}>
           {mode === "summarise" && <>
             <div className="guide-step"><div className="guide-step-num">1</div><div>Select document type and template</div></div>
@@ -1315,7 +1316,7 @@ function StartReview() {
           <p className="guide-section-title" style={{ color:"#059669" }}>Tip</p>
           <p style={{ fontSize:12, color:"#6b7280", lineHeight:1.6, margin:0 }}>
             {(!isAdmin || isTrial)
-              ? <>No template yet? Use <strong>Quick Scan</strong> to discover and build one, or contact your admin.</>
+              ? <>No template yet? Use <strong>Quick Scan</strong> to discover and build one, or contact your System Administrator.</>
               : <>No template yet? Go to <strong>Admin → Document Types</strong> to create one, then return here.</>
             }
           </p>

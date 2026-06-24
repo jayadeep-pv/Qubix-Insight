@@ -129,10 +129,10 @@ const Dashboard: React.FC = () => {
           />
         </div>
         <div className="db-topbar-actions">
-          <button className="btn btn-secondary db-action-btn" onClick={() => navigate("/new", { state: { mode: "extract", from: "dashboard" } })}>
+          <button className="btn btn-secondary db-action-btn" onClick={() => navigate("/analysis", { state: { mode: "extract", from: "dashboard" } })}>
             <Zap size={14} /> Smart Builder
           </button>
-          <button className="btn btn-primary db-action-btn" onClick={() => navigate("/new")}>
+          <button className="btn btn-primary db-action-btn" onClick={() => navigate("/analysis")}>
             <Plus size={14} /> New Insight
           </button>
         </div>

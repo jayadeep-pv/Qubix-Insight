@@ -50,7 +50,7 @@ function TrialGuard({ children }: { children: ReactNode }) {
 // (no navigation state = MSAL returned here after re-auth, not a deliberate click).
 function PostLoginGuard({ children }: { children: ReactNode }) {
   const location = useLocation();
-  const WORKFLOW_PATHS = ["/new", "/new/compare", "/new/scored", "/new/summarise"];
+  const WORKFLOW_PATHS = ["/analysis", "/analysis/compare", "/analysis/scored", "/analysis/summarise"];
   if (WORKFLOW_PATHS.includes(location.pathname) && !location.state) {
     return <Navigate to="/" replace />;
   }
@@ -186,10 +186,10 @@ function App() {
         <Route path="home" element={<HomePage />} />
 
         {/* Start a new comparison — guarded so post-login redirect goes to home */}
-        <Route path="new" element={<PostLoginGuard><StartReview /></PostLoginGuard>} />
-        <Route path="new/compare" element={<PostLoginGuard><StartReview /></PostLoginGuard>} />
-        <Route path="new/scored" element={<PostLoginGuard><StartReview /></PostLoginGuard>} />
-        <Route path="new/summarise" element={<PostLoginGuard><StartReview /></PostLoginGuard>} />
+        <Route path="analysis" element={<PostLoginGuard><StartReview /></PostLoginGuard>} />
+        <Route path="analysis/compare" element={<PostLoginGuard><StartReview /></PostLoginGuard>} />
+        <Route path="analysis/scored" element={<PostLoginGuard><StartReview /></PostLoginGuard>} />
+        <Route path="analysis/summarise" element={<PostLoginGuard><StartReview /></PostLoginGuard>} />
 
         {/* Comparisons list */}
         <Route path="comparisons" element={<Comparisons />} />

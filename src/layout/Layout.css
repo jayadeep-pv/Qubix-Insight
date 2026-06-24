@@ -497,3 +497,105 @@
   margin-top: 10px;
   padding-top: 10px;
 }
+
+/* ── Hamburger (hidden on desktop) ───────────────────── */
+.topbar-hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #334155;
+  padding: 6px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.topbar-hamburger:hover { background: #f1f5f9; }
+
+/* Mobile close button (hidden on desktop) */
+.sidebar-close-btn {
+  display: none;
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  color: #e2e8f0;
+  cursor: pointer;
+  padding: 5px;
+  z-index: 2;
+}
+
+/* Mobile backdrop */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 99;
+}
+
+/* ── Mobile breakpoint ────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* Show hamburger, hide desktop collapse button */
+  .topbar-hamburger { display: flex; }
+  .sidebar-collapse-btn { display: none; }
+  .sidebar-close-btn { display: flex; }
+
+  /* Sidebar becomes fixed overlay */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    width: 260px !important; /* always full width on mobile, never icon-only */
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  /* Show backdrop when open */
+  .sidebar.mobile-open ~ * .sidebar-backdrop,
+  .sidebar-backdrop { display: block; }
+
+  /* Icon-only has no effect on mobile */
+  .sidebar.icon-only {
+    width: 260px !important;
+    padding: 0 16px 16px;
+  }
+  .sidebar.icon-only .logo-text,
+  .sidebar.icon-only .sidebar-group-title,
+  .sidebar.icon-only a span,
+  .sidebar.icon-only .logout-btn span,
+  .sidebar.icon-only .sidebar-support span,
+  .sidebar.icon-only .sidebar-user-info { display: flex; }
+
+  .sidebar.icon-only .logo { justify-content: flex-start; }
+  .sidebar.icon-only a,
+  .sidebar.icon-only .sidebar-support { justify-content: flex-start; padding: 7px 10px; }
+  .sidebar.icon-only .logout-btn { justify-content: flex-start; padding: 7px 10px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.04); }
+  .sidebar.icon-only .sidebar-user { justify-content: flex-start; padding: 8px 10px; }
+  .sidebar.icon-only a.active::before { display: block; }
+
+  /* Full-width layout right (no sidebar space) */
+  .layout-right { width: 100%; }
+
+  /* Topbar padding reduced */
+  .topbar { padding: 0 16px; gap: 12px; }
+
+  /* Hide user text in topbar on small screens */
+  .topbar-user { display: none; }
+
+  /* Reduce tenant pill text on small screens */
+  .topbar-tenant { font-size: 11px; padding: 4px 8px; }
+
+  /* Content padding reduced */
+  .content { padding: 16px; }
+}

@@ -245,21 +245,21 @@ const HomePage: React.FC = () => {
                   pillCls="hp-pill--orange" pillLabel="Any document · no template"
                   title="Quick Scan"
                   description="AI detects and builds a template from your document instantly"
-                  onClick={() => navigate("/new", { state: { mode: "extract", from: "home" } })}
+                  onClick={() => navigate("/analysis", { state: { mode: "extract", from: "home" } })}
                 />
                 <ActionCard
                   icon={<AlignLeft size={22} />} iconCls="hp-icon--teal" cardCls="hp-card--teal"
                   pillCls="hp-pill--teal" pillLabel="1 document · template required"
                   title="Summarise Document"
                   description="Extract key insights and attributes from a single document"
-                  onClick={() => navigate("/new", { state: { mode: "summarise", from: "home" } })}
+                  onClick={() => navigate("/analysis", { state: { mode: "summarise", from: "home" } })}
                 />
                 <ActionCard
                   icon={<GitCompare size={22} />} iconCls="hp-icon--blue" cardCls="hp-card--blue"
                   pillCls="hp-pill--blue" pillLabel="2+ documents · template required"
                   title="Compare Documents"
                   description="Extract and compare fields across two or more documents side by side"
-                  onClick={() => navigate("/new", { state: { mode: "compare", from: "home" } })}
+                  onClick={() => navigate("/analysis", { state: { mode: "compare", from: "home" } })}
                   locked={isTrial}
                 />
                 <ActionCard
@@ -267,7 +267,7 @@ const HomePage: React.FC = () => {
                   pillCls="hp-pill--purple" pillLabel="2+ documents · template + rules"
                   title="Scoring"
                   description="Rank documents against weighted criteria with a scored winner"
-                  onClick={() => navigate("/new", { state: { mode: "compare-scoring", from: "home" } })}
+                  onClick={() => navigate("/analysis", { state: { mode: "compare-scoring", from: "home" } })}
                   locked={isTrial}
                 />
               </div>
@@ -649,7 +649,7 @@ const HomePage: React.FC = () => {
         }
 
         .hp-ic-badges { display: flex; flex-direction: row; align-items: center; gap: 5px; flex-shrink: 0; }
-        .hp-ic-mode { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
+        .hp-ic-mode { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 999px; white-space: nowrap; min-width: 72px; text-align: center; display: inline-block; box-sizing: border-box; }
         .hp-ic-mode--sum { background: #E6F1FB; color: #185FA5; }
         .hp-ic-mode--cmp { background: #FAECE7; color: #993C1D; }
         .hp-ic-mode--scr { background: #EDE9FE; color: #5B21B6; }

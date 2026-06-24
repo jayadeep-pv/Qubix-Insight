@@ -94,6 +94,7 @@ private (int? Page, string? PolygonJson) FindPosition(
     int bestPage = 0;
     int bestScore = 0;
     IReadOnlyList<float>? bestPolygon = null;
+    int bestLineIndex = -1;
 
     foreach (var page in byPage)
     {
@@ -157,19 +158,63 @@ private (int? Page, string? PolygonJson) FindPosition(
                 bestScore = score;
                 bestPage = page.Page;
                 bestPolygon = current.Polygon;
+                bestLineIndex = i;
             }
         }
     }
 
-    if (bestScore <= 0)
+    if (bestScore <= 0 || bestPolygon == null || bestPolygon.Count < 8)
         return (null, null);
 
-    return (
-        bestPage,
-        bestPolygon != null && bestPolygon.Count > 0
-            ? JsonSerializer.Serialize(bestPolygon)
-            : null
-    );
+    // Expand bounding box to cover consecutive lines that are part of the same value.
+    // Multi-line values (e.g. a full address) can wrap across several OCR lines; we
+    // merge all matching continuation lines into one rectangle.
+    var pageLines = byPage.FirstOrDefault(p => p.Page == bestPage)?.Lines;
+    var polygonsToMerge = new List<IReadOnlyList<float>> { bestPolygon };
+
+    if (pageLines != null && bestLineIndex >= 0)
+    {
+        var valueTokens = normalizedValue
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Where(w => w.Length > 2)
+            .ToHashSet();
+
+        for (int j = bestLineIndex + 1; j < Math.Min(bestLineIndex + 6, pageLines.Count); j++)
+        {
+            var nextLine = pageLines[j];
+            if (string.IsNullOrWhiteSpace(nextLine.Normalized)) break;
+            if (nextLine.Polygon == null || nextLine.Polygon.Count < 8) continue;
+
+            // Include if ≥50 % of the next line's meaningful tokens appear in the value
+            var nextTokens = nextLine.Normalized
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Where(w => w.Length > 2)
+                .ToList();
+
+            if (nextTokens.Count == 0) break;
+
+            int overlap = nextTokens.Count(w => valueTokens.Contains(w) || normalizedValue.Contains(w));
+            if ((double)overlap / nextTokens.Count >= 0.5)
+                polygonsToMerge.Add(nextLine.Polygon);
+            else
+                break;
+        }
+    }
+
+    // Merge all collected polygons into a single axis-aligned bounding box
+    float minX = float.MaxValue, minY = float.MaxValue;
+    float maxX = float.MinValue, maxY = float.MinValue;
+    foreach (var poly in polygonsToMerge)
+    {
+        minX = Math.Min(minX, Math.Min(Math.Min(poly[0], poly[2]), Math.Min(poly[4], poly[6])));
+        minY = Math.Min(minY, Math.Min(Math.Min(poly[1], poly[3]), Math.Min(poly[5], poly[7])));
+        maxX = Math.Max(maxX, Math.Max(Math.Max(poly[0], poly[2]), Math.Max(poly[4], poly[6])));
+        maxY = Math.Max(maxY, Math.Max(Math.Max(poly[1], poly[3]), Math.Max(poly[5], poly[7])));
+    }
+
+    // Return as a clockwise 4-point rectangle: TL, TR, BR, BL
+    var merged = new float[] { minX, minY, maxX, minY, maxX, maxY, minX, maxY };
+    return (bestPage, JsonSerializer.Serialize(merged));
 }
 
 
