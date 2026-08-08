@@ -25,6 +25,36 @@ const IMPACT_STYLE: Record<string, { border: string; badge: string; text: string
   low:    { border: "#22c55e", badge: "#22c55e", text: "#fff" },
 };
 
+function parseSummaryToBullets(text: string): string[] {
+  if (!text) return [];
+  const normalized = text.trim();
+
+  // Newline-separated already
+  const byNewline = normalized.split(/\n+/).map(s => s.trim()).filter(s => s.length > 10);
+  if (byNewline.length > 1) return byNewline;
+
+  // Split on sentence boundaries: period/colon + space + capital letter
+  const sentences: string[] = [];
+  let current = "";
+  const words = normalized.split(" ");
+
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+    current += (current ? " " : "") + word;
+    if (i < words.length - 1 && current.length > 25) {
+      const endsClause = word.endsWith(".") || word.endsWith(";");
+      const nextIsCapital = /^[A-Z0-9]/.test(words[i + 1] ?? "");
+      if (endsClause && nextIsCapital) {
+        sentences.push(current.trim());
+        current = "";
+      }
+    }
+  }
+  if (current.trim().length > 10) sentences.push(current.trim());
+
+  return sentences.length > 1 ? sentences : [normalized];
+}
+
 const AiInsightsSection: React.FC<Props> = ({ selectedInsight }) => {
   const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
 
@@ -45,21 +75,38 @@ const AiInsightsSection: React.FC<Props> = ({ selectedInsight }) => {
   }
 
   const insights = Array.isArray(selectedInsight.keyInsights) ? selectedInsight.keyInsights : [];
+  const bullets = parseSummaryToBullets(selectedInsight.executiveSummary ?? "");
 
   return (
     <div>
-      {selectedInsight.executiveSummary && (
+      {bullets.length > 0 && (
         <div style={{
           background: "#f9fafb",
           border: "1px solid #f0f0f0",
           borderRadius: 8,
-          padding: "12px 16px",
+          padding: "4px 14px",
           marginBottom: 14,
-          fontSize: 13.5,
-          color: "#374151",
-          lineHeight: 1.65,
         }}>
-          {selectedInsight.executiveSummary}
+          {bullets.map((point, i) => (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 10,
+                padding: "8px 0",
+                borderBottom: i < bullets.length - 1 ? "1px solid #f0f0f0" : "none",
+              }}
+            >
+              <span style={{
+                width: 6, height: 6, borderRadius: "50%",
+                background: "#9ca3af", flexShrink: 0, marginTop: 6,
+              }} />
+              <span style={{ fontSize: 13.5, color: "#374151", lineHeight: 1.6 }}>
+                {point}
+              </span>
+            </div>
+          ))}
         </div>
       )}
 
@@ -122,12 +169,11 @@ const AiInsightsSection: React.FC<Props> = ({ selectedInsight }) => {
                 </button>
                 {isOpen && (
                   <div style={{
-                    padding: "0 14px 14px 90px",
+                    padding: "10px 14px 14px 90px",
                     fontSize: 13,
                     color: "#4b5563",
                     lineHeight: 1.65,
                     borderTop: "1px solid #f5f5f5",
-                    paddingTop: 10,
                   }}>
                     {k?.Description ?? k?.description}
                   </div>
@@ -138,7 +184,7 @@ const AiInsightsSection: React.FC<Props> = ({ selectedInsight }) => {
         </div>
       )}
 
-      {insights.length === 0 && !selectedInsight.executiveSummary && (
+      {insights.length === 0 && bullets.length === 0 && (
         <div style={{ color: "#9ca3af", fontSize: 13, textAlign: "center", padding: "16px 0" }}>
           No findings for this profile.
         </div>
