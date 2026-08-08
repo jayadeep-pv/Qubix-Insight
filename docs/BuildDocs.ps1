@@ -248,6 +248,12 @@ $docs = @(
         Docx    = "$OutputDir\Identity_Management_Architecture.docx"
         Title   = "Identity Management Architecture v1.1"
         Footer  = "Qubix Insight | Identity Management Architecture v1.1 | June 2026 | Confidential"
+    },
+    @{
+        Md      = "$OutputDir\Custom_Domain_Setup_Guide.md"
+        Docx    = "$OutputDir\Custom_Domain_Setup_Guide.docx"
+        Title   = "Custom Domain Setup Guide v1.0"
+        Footer  = "Qubix Insight | Custom Domain Setup Guide v1.0 | August 2026 | Confidential"
     }
 )
 

@@ -247,7 +247,7 @@ function FeatureNetwork() {
     { angle: 330, label: "Compare",       sub: "Side-by-side",     color: "#60a5fa" },
     { angle:  30, label: "Scoring",       sub: "Ranked results",   color: "#fbbf24" },
     { angle:  90, label: "Summarise",     sub: "Key highlights",   color: "#34d399" },
-    { angle: 150, label: "Quick Scan",    sub: "Instant analysis", color: "#818cf8" },
+    { angle: 150, label: "Discovery",     sub: "Instant analysis", color: "#818cf8" },
     { angle: 210, label: "Risk Analysis", sub: "Flag & comply",    color: "#f87171" },
   ].map(n => {
     const rad = (n.angle * Math.PI) / 180;

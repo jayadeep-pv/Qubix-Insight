@@ -345,7 +345,7 @@ To enable the trial login button (currently active if `externalIdClientId` is se
 | Admin Save buttons | `disabled` attribute set; tooltip: *"Not available on trial"* |
 | Run screen — Compare mode | Card greyed out; "Upgrade →" label shown instead of "Start →" |
 | Run screen — Scoring mode | Card greyed out; "Upgrade →" label shown instead of "Start →" |
-| Quick Extract | Available to trial users — no restriction |
+| Discovery | Available to trial users — no restriction |
 | Summarise | Available to trial users — no restriction |
 
 ### 9.3 Read-Only Admin Forms

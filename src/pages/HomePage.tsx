@@ -243,21 +243,21 @@ const HomePage: React.FC = () => {
                 <ActionCard
                   icon={<Zap size={22} />} iconCls="hp-icon--orange" cardCls="hp-card--orange"
                   pillCls="hp-pill--orange" pillLabel="Any document · no template"
-                  title="Quick Scan"
+                  title="Discovery"
                   description="AI detects and builds a template from your document instantly"
                   onClick={() => navigate("/analysis", { state: { mode: "extract", from: "home" } })}
                 />
                 <ActionCard
                   icon={<AlignLeft size={22} />} iconCls="hp-icon--teal" cardCls="hp-card--teal"
                   pillCls="hp-pill--teal" pillLabel="1 document · template required"
-                  title="Summarise Document"
+                  title="Summarise"
                   description="Extract key insights and attributes from a single document"
                   onClick={() => navigate("/analysis", { state: { mode: "summarise", from: "home" } })}
                 />
                 <ActionCard
                   icon={<GitCompare size={22} />} iconCls="hp-icon--blue" cardCls="hp-card--blue"
                   pillCls="hp-pill--blue" pillLabel="2+ documents · template required"
-                  title="Compare Documents"
+                  title="Compare"
                   description="Extract and compare fields across two or more documents side by side"
                   onClick={() => navigate("/analysis", { state: { mode: "compare", from: "home" } })}
                   locked={isTrial}

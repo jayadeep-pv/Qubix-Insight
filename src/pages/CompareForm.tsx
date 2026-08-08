@@ -10,7 +10,7 @@ const CompareForm: React.FC = () => {
         <ArrowLeft size={15} /> Back
       </button>
       <div className="stub-icon stub-icon--blue"><GitCompare size={28} /></div>
-      <h1 className="stub-title">Compare Documents</h1>
+      <h1 className="stub-title">Compare</h1>
       <p className="stub-sub">This page is coming soon. The full comparison form will be built here.</p>
     </div>
   );

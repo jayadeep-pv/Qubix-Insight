@@ -68,7 +68,7 @@ const MODES: {
 }[] = [
   {
     id: "extract",
-    label: "Quick Extract",
+    label: "Discovery",
     badge: "Discovery",
     badgeColor: "#0F6E56",
     badgeBg: "#E1F5EE",
@@ -1316,7 +1316,7 @@ function StartReview() {
           <p className="guide-section-title" style={{ color:"#059669" }}>Tip</p>
           <p style={{ fontSize:12, color:"#6b7280", lineHeight:1.6, margin:0 }}>
             {(!isAdmin || isTrial)
-              ? <>No template yet? Use <strong>Quick Scan</strong> to discover and build one, or contact your System Administrator.</>
+              ? <>No template yet? Use <strong>Discovery</strong> to discover and build one, or contact your System Administrator.</>
               : <>No template yet? Go to <strong>Admin → Document Types</strong> to create one, then return here.</>
             }
           </p>

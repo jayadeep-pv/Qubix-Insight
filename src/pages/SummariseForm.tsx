@@ -10,7 +10,7 @@ const SummariseForm: React.FC = () => {
         <ArrowLeft size={15} /> Back
       </button>
       <div className="stub-icon stub-icon--teal"><AlignLeft size={28} /></div>
-      <h1 className="stub-title">Summarise Document</h1>
+      <h1 className="stub-title">Summarise</h1>
       <p className="stub-sub">This page is coming soon. The summarise form will be built here.</p>
     </div>
   );

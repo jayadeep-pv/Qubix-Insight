@@ -15,7 +15,7 @@ const USER_MODULES = [
   {
     icon: <Zap size={18} />,
     iconCls: "sp-mod--orange",
-    title: "Quick Scan",
+    title: "Discovery",
     badge: "Any document",
     desc: "Upload any document without a template. The AI automatically detects and extracts all key fields, then lets you save the result as a reusable template.",
   },
@@ -128,11 +128,11 @@ const GUIDES = [
   {
     icon: <Zap size={20} />,
     iconCls: "sp-guide-icon--orange",
-    title: "Quick Scan",
+    title: "Discovery",
     badge: "No template needed",
     badgeCls: "sp-guide-badge--orange",
     steps: [
-      "Go to New Insight → Quick Scan",
+      "Go to New Insight → Discovery",
       "Upload any PDF or Word document",
       "Click Scan Document",
       "Review and edit the AI-detected fields",
@@ -142,11 +142,11 @@ const GUIDES = [
   {
     icon: <AlignLeft size={20} />,
     iconCls: "sp-guide-icon--teal",
-    title: "Summarise Document",
+    title: "Summarise",
     badge: "Template required",
     badgeCls: "sp-guide-badge--teal",
     steps: [
-      "Go to New Insight → Summarise Document",
+      "Go to New Insight → Summarise",
       "Select your Document Type and Template",
       "Upload the document",
       "Select AI Insight Profiles (optional)",
@@ -156,11 +156,11 @@ const GUIDES = [
   {
     icon: <GitCompare size={20} />,
     iconCls: "sp-guide-icon--blue",
-    title: "Compare Documents",
+    title: "Compare",
     badge: "Template required",
     badgeCls: "sp-guide-badge--blue",
     steps: [
-      "Go to New Insight → Compare Documents",
+      "Go to New Insight → Compare",
       "Select your Document Type and Template",
       "Upload 2 or more documents",
       "Select AI Insight Profiles (optional)",
@@ -195,7 +195,7 @@ const FAQS: FaqItem[] = [
       <div>
         <p>Qubix Insight offers four analysis workflows:</p>
         <ul>
-          <li><strong>Quick Scan</strong> — No template required. Best for exploring a new document type or one-off extractions. The AI discovers fields automatically.</li>
+          <li><strong>Discovery</strong> — No template required. Best for exploring a new document type or one-off extractions. The AI discovers fields automatically.</li>
           <li><strong>Summarise</strong> — Requires a template. Extracts all configured fields from a single document and generates an executive summary.</li>
           <li><strong>Compare</strong> — Requires a template. Extracts the same fields from 2 or more documents side-by-side for easy comparison.</li>
           <li><strong>Scoring</strong> — Requires a template with rules. Same as Compare but also scores and ranks each document against your rule set.</li>
@@ -239,7 +239,7 @@ const FAQS: FaqItem[] = [
   },
   {
     q: "How many documents can I compare at once?",
-    a: "There is no hard limit on the number of documents you can upload for Compare or Scoring. For performance and clarity, we recommend no more than 10 documents per run. Summarise and Quick Scan accept one document per run only.",
+    a: "There is no hard limit on the number of documents you can upload for Compare or Scoring. For performance and clarity, we recommend no more than 10 documents per run. Summarise and Discovery accept one document per run only.",
   },
   {
     q: "Can I export or download my results?",
@@ -494,7 +494,7 @@ const SupportPage: React.FC = () => {
           <div className="sp-tips-card">
             <h3 className="sp-tips-title">Quick Tips</h3>
             <ul className="sp-tips-list">
-              <li>Use <strong>Quick Scan</strong> to auto-generate a template from any new document type in minutes.</li>
+              <li>Use <strong>Discovery</strong> to auto-generate a template from any new document type in minutes.</li>
               <li>Templates, attributes, and rules must be configured by a <strong>System Administrator</strong> before Summarise, Compare, or Scoring can be used.</li>
               <li>Click any field value in the results panel to highlight its exact position in the PDF viewer.</li>
               <li>Ask <strong>Qubix Bot</strong> on the results page to answer questions about the document content.</li>

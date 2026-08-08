@@ -453,7 +453,7 @@ Route `/new` — a single React component handles all four insight modes:
 
 | Mode | Template required | Min documents | Notes |
 |---|---|---|---|
-| Quick Extract | No | 1 | Freely detects all attributes; results can be saved as a template |
+| Discovery | No | 1 | Freely detects all attributes; results can be saved as a template |
 | Summarise | Yes | 1 | Extracts template fields + executive summary |
 | Compare | Yes | 2+ | Side-by-side field extraction, no scoring |
 | Scoring | Yes | 2+ | Field extraction + rules-based scoring and ranking |
@@ -474,7 +474,7 @@ Both run screens and admin forms use a shared set of CSS classes for guidance ca
 | `.guide-step` | Row: number circle + text |
 | `.guide-step-num` | Filled circle, background `#1D9E75` (green), white number |
 
-This ensures visual consistency — the green numbered circles on the Quick Extract form, the Scoring run screen, and all admin form guidance cards look identical.
+This ensures visual consistency — the green numbered circles on the Discovery form, the Scoring run screen, and all admin form guidance cards look identical.
 
 ### 11.6 Frontend Key Source Files
 
@@ -483,7 +483,7 @@ This ensures visual consistency — the green numbered circles on the Quick Extr
 | `src/layout/Layout.tsx` + `Layout.css` | Sidebar (collapsible), topbar, `.content` shell |
 | `src/App.css` | Global styles: `.dc-container`, `.top-grid`, `.guide-*`, buttons, cards, `TrialGuard` |
 | `src/styles/admin.css` | Admin page styles: `.page`, `.admin-form-card`, `.admin-tab-panel`, `admin-form-card--readonly` |
-| `src/pages/StartReview.tsx` | New Insight — all four modes (Quick Extract, Summarise, Compare, Scoring) |
+| `src/pages/StartReview.tsx` | New Insight — all four modes (Discovery, Summarise, Compare, Scoring) |
 | `src/pages/HomePage.tsx` | Home dashboard — KPIs, Quick Actions, Recent Insights (max-width: 1200px containers) |
 | `src/pages/DocumentTypeForm.tsx` | Admin form: two-column layout, Details + Templates tabs |
 | `src/pages/ComparisonTemplateForm.tsx` | Admin form: two-column layout, Details + Attributes + AI Profiles tabs |

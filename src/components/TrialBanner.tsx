@@ -17,7 +17,7 @@ export default function TrialBanner() {
     }}>
       <Zap size={12} style={{ color: "#F97316", flexShrink: 0 }} />
       <span style={{ color: "#92400e" }}>
-        <strong>Trial account</strong> — Quick Extract only, limited to first 5 pages per document.
+        <strong>Trial account</strong> — Discovery only, limited to first 5 pages per document.
       </span>
       <button
         onClick={() => navigate("/support")}
