@@ -1437,18 +1437,35 @@ private async Task<byte[]> GetDocumentBytesAsync(Entity doc, string containerNam
 }
 private static List<Guid> GetDefaultInsightProfilesForTemplate(ServiceClient service, Guid templateId)
 {
-    var query = new QueryExpression("ilx_templateaiprofile")
+    // First: template-specific defaults from the junction table
+    var junctionQuery = new QueryExpression("ilx_templateaiprofile")
     {
         ColumnSet = new ColumnSet("ilx_aiinsightprofile")
     };
-    query.Criteria.AddCondition("ilx_analysistemplate", ConditionOperator.Equal, templateId);
-    query.Criteria.AddCondition("ilx_isdefault", ConditionOperator.Equal, true);
-    query.Criteria.AddCondition("statecode", ConditionOperator.Equal, 0);
+    junctionQuery.Criteria.AddCondition("ilx_analysistemplate", ConditionOperator.Equal, templateId);
+    junctionQuery.Criteria.AddCondition("ilx_isdefault", ConditionOperator.Equal, true);
+    junctionQuery.Criteria.AddCondition("statecode", ConditionOperator.Equal, 0);
 
-    return service.RetrieveMultiple(query).Entities
+    var templateDefaults = service.RetrieveMultiple(junctionQuery).Entities
         .Select(e => e.GetAttributeValue<EntityReference>("ilx_aiinsightprofile")?.Id)
         .Where(id => id.HasValue)
         .Select(id => id!.Value)
+        .ToList();
+
+    if (templateDefaults.Count > 0)
+        return templateDefaults;
+
+    // Fallback: profiles marked isDefault=true on the profile entity itself
+    // Used on first scans where no template-specific junction records exist yet
+    var globalQuery = new QueryExpression("ilx_aiinsightprofile")
+    {
+        ColumnSet = new ColumnSet("ilx_aiinsightprofileid")
+    };
+    globalQuery.Criteria.AddCondition("ilx_isdefault", ConditionOperator.Equal, true);
+    globalQuery.Criteria.AddCondition("statecode", ConditionOperator.Equal, 0);
+
+    return service.RetrieveMultiple(globalQuery).Entities
+        .Select(e => e.Id)
         .ToList();
 }
 
