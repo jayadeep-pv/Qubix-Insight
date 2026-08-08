@@ -817,11 +817,11 @@ private (int? Page, string? PolygonJson) FindPosition(
                 }
                 _logger.LogInformation("Run updated with results JSON");
 
-                // Extract mode has no profile-selection UI — auto-seed the template's default profile
+                // Extract mode has no profile-selection UI — auto-seed all default profiles for the template
                 try
                 {
-                    var defaultProfileId = GetDefaultInsightProfileForTemplate(service, templateRef.Id);
-                    if (defaultProfileId.HasValue)
+                    var defaultProfileIds = GetDefaultInsightProfilesForTemplate(service, templateRef.Id);
+                    if (defaultProfileIds.Count > 0)
                     {
                         var checkQuery = new QueryExpression("ilx_analysisruninsight")
                         {
@@ -832,18 +832,22 @@ private (int? Page, string? PolygonJson) FindPosition(
 
                         if (!service.RetrieveMultiple(checkQuery).Entities.Any())
                         {
-                            var runRec     = service.Retrieve("ilx_analysisrun",     runId,                 new ColumnSet("ilx_runid"));
-                            var profileRec = service.Retrieve("ilx_aiinsightprofile", defaultProfileId.Value, new ColumnSet("ilx_name"));
-                            var runDisplayId  = runRec.GetAttributeValue<string>("ilx_runid") ?? runId.ToString();
-                            var profileName   = profileRec.GetAttributeValue<string>("ilx_name") ?? "";
+                            var runRec       = service.Retrieve("ilx_analysisrun", runId, new ColumnSet("ilx_runid"));
+                            var runDisplayId = runRec.GetAttributeValue<string>("ilx_runid") ?? runId.ToString();
 
-                            var insightSeed = new Entity("ilx_analysisruninsight");
-                            insightSeed["ilx_name"]             = $"{runDisplayId} — {profileName}";
-                            insightSeed["ilx_analysisrun"]       = new EntityReference("ilx_analysisrun", runId);
-                            insightSeed["ilx_aiinsightprofile"]  = new EntityReference("ilx_aiinsightprofile", defaultProfileId.Value);
-                            insightSeed["ilx_runstatus"]         = new OptionSetValue(INSIGHT_PENDING);
-                            insightSeed["ilx_tenantid"]          = tenant.TenantRecordId.ToString();
-                            service.Create(insightSeed);
+                            foreach (var profileId in defaultProfileIds)
+                            {
+                                var profileRec  = service.Retrieve("ilx_aiinsightprofile", profileId, new ColumnSet("ilx_name"));
+                                var profileName = profileRec.GetAttributeValue<string>("ilx_name") ?? "";
+
+                                var insightSeed = new Entity("ilx_analysisruninsight");
+                                insightSeed["ilx_name"]            = $"{runDisplayId} — {profileName}";
+                                insightSeed["ilx_analysisrun"]      = new EntityReference("ilx_analysisrun", runId);
+                                insightSeed["ilx_aiinsightprofile"] = new EntityReference("ilx_aiinsightprofile", profileId);
+                                insightSeed["ilx_runstatus"]        = new OptionSetValue(INSIGHT_PENDING);
+                                insightSeed["ilx_tenantid"]         = tenant.TenantRecordId.ToString();
+                                service.Create(insightSeed);
+                            }
                         }
                     }
 
@@ -1431,7 +1435,7 @@ private async Task<byte[]> GetDocumentBytesAsync(Entity doc, string containerNam
 
     return stream.ToArray();
 }
-private static Guid? GetDefaultInsightProfileForTemplate(ServiceClient service, Guid templateId)
+private static List<Guid> GetDefaultInsightProfilesForTemplate(ServiceClient service, Guid templateId)
 {
     var query = new QueryExpression("ilx_templateaiprofile")
     {
@@ -1441,8 +1445,11 @@ private static Guid? GetDefaultInsightProfileForTemplate(ServiceClient service, 
     query.Criteria.AddCondition("ilx_isdefault", ConditionOperator.Equal, true);
     query.Criteria.AddCondition("statecode", ConditionOperator.Equal, 0);
 
-    var result = service.RetrieveMultiple(query).Entities.FirstOrDefault();
-    return result?.GetAttributeValue<EntityReference>("ilx_aiinsightprofile")?.Id;
+    return service.RetrieveMultiple(query).Entities
+        .Select(e => e.GetAttributeValue<EntityReference>("ilx_aiinsightprofile")?.Id)
+        .Where(id => id.HasValue)
+        .Select(id => id!.Value)
+        .ToList();
 }
 
 private static string NormalizeForAnchorMatch(string input)
