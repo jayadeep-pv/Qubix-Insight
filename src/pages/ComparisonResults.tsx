@@ -2109,7 +2109,7 @@ return (
                                   </span>
                                   {isWinner && <span className="badge badge-positive">Winner</span>}
                                 </div>
-                                <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", lineHeight: 1.4 }}>
+                                <div style={{ fontSize: 13.5, fontWeight: 400, color: "#111827", lineHeight: 1.55 }}>
                                   <FormatValue name={attr.attributeName} value={v.value} />
                                 </div>
                                 {(v.confidenceScore !== undefined || v.pageNumber) && (
