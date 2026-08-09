@@ -938,6 +938,48 @@ private (int? Page, string? PolygonJson) FindPosition(
                 }
                 _logger.LogInformation("Run updated with results JSON (with scoring)");
 
+                if (runAi && templateRef != null)
+                {
+                    try
+                    {
+                        var defaultProfileIds = GetDefaultInsightProfilesForTemplate(service, templateRef.Id);
+                        if (defaultProfileIds.Count > 0)
+                        {
+                            var checkQuery = new QueryExpression("ilx_analysisruninsight") { ColumnSet = new ColumnSet(false) };
+                            checkQuery.Criteria.AddCondition("ilx_analysisrun", ConditionOperator.Equal, runId);
+                            TenantQueryHelper.AddTenantFilter(checkQuery, tenant.TenantRecordId.ToString());
+                            if (!service.RetrieveMultiple(checkQuery).Entities.Any())
+                            {
+                                var runRec = service.Retrieve("ilx_analysisrun", runId, new ColumnSet("ilx_runid"));
+                                var runDisplayId = runRec.GetAttributeValue<string>("ilx_runid") ?? runId.ToString();
+                                foreach (var profileId in defaultProfileIds)
+                                {
+                                    var profileRec = service.Retrieve("ilx_aiinsightprofile", profileId, new ColumnSet("ilx_name"));
+                                    var profileName = profileRec.GetAttributeValue<string>("ilx_name") ?? "";
+                                    var insightSeed = new Entity("ilx_analysisruninsight");
+                                    insightSeed["ilx_name"] = $"{runDisplayId} — {profileName}";
+                                    insightSeed["ilx_analysisrun"] = new EntityReference("ilx_analysisrun", runId);
+                                    insightSeed["ilx_aiinsightprofile"] = new EntityReference("ilx_aiinsightprofile", profileId);
+                                    insightSeed["ilx_runstatus"] = new OptionSetValue(INSIGHT_PENDING);
+                                    insightSeed["ilx_tenantid"] = tenant.TenantRecordId.ToString();
+                                    service.Create(insightSeed);
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex) { _logger.LogWarning($"AI profile seeding failed (Scoring mode): {ex.Message}"); }
+                }
+
+                try
+                {
+                    await _aiInsightsService.ExecuteAiInsightsForRun(
+                        service, runId, docs, extracted, outputScoring, tenant.TenantRecordId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"AI Insights execution failed (Scoring mode): {ex.Message}");
+                }
+
                 LogStage("TOTAL ExecuteComparisonRun", totalSw);
 
                 return response;
@@ -968,6 +1010,38 @@ private (int? Page, string? PolygonJson) FindPosition(
                     service.Update(analysisUpdate);
                 }
                 _logger.LogInformation("Run updated with results JSON (no scoring)");
+
+                if (runAi && templateRef != null)
+                {
+                    try
+                    {
+                        var defaultProfileIds = GetDefaultInsightProfilesForTemplate(service, templateRef.Id);
+                        if (defaultProfileIds.Count > 0)
+                        {
+                            var checkQuery = new QueryExpression("ilx_analysisruninsight") { ColumnSet = new ColumnSet(false) };
+                            checkQuery.Criteria.AddCondition("ilx_analysisrun", ConditionOperator.Equal, runId);
+                            TenantQueryHelper.AddTenantFilter(checkQuery, tenant.TenantRecordId.ToString());
+                            if (!service.RetrieveMultiple(checkQuery).Entities.Any())
+                            {
+                                var runRec = service.Retrieve("ilx_analysisrun", runId, new ColumnSet("ilx_runid"));
+                                var runDisplayId = runRec.GetAttributeValue<string>("ilx_runid") ?? runId.ToString();
+                                foreach (var profileId in defaultProfileIds)
+                                {
+                                    var profileRec = service.Retrieve("ilx_aiinsightprofile", profileId, new ColumnSet("ilx_name"));
+                                    var profileName = profileRec.GetAttributeValue<string>("ilx_name") ?? "";
+                                    var insightSeed = new Entity("ilx_analysisruninsight");
+                                    insightSeed["ilx_name"] = $"{runDisplayId} — {profileName}";
+                                    insightSeed["ilx_analysisrun"] = new EntityReference("ilx_analysisrun", runId);
+                                    insightSeed["ilx_aiinsightprofile"] = new EntityReference("ilx_aiinsightprofile", profileId);
+                                    insightSeed["ilx_runstatus"] = new OptionSetValue(INSIGHT_PENDING);
+                                    insightSeed["ilx_tenantid"] = tenant.TenantRecordId.ToString();
+                                    service.Create(insightSeed);
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex) { _logger.LogWarning($"AI profile seeding failed (Compare mode): {ex.Message}"); }
+                }
 
                 try
                 {
