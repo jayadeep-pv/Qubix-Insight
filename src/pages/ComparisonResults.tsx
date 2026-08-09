@@ -828,6 +828,13 @@ const sendChatQuestion = async () => {
     return value;
   };
 
+  const shortDocName = (name: string, max = 28): string => {
+    if (!name) return "Document";
+    const noExt = name.replace(/\.[^.]+$/, "");
+    if (noExt.length <= max) return noExt;
+    return noExt.slice(0, max - 1) + "…";
+  };
+
   // Renders a value as a bulleted list when it's a JSON array, otherwise plain text.
   const FormatValue = ({ name, value }: { name: string; value?: string }) => {
     if (!value) return <span>—</span>;
@@ -1368,28 +1375,20 @@ const pdfViewer = pdfUrl ? (
                 <span className={`attr-card-chevron${isExpanded ? " expanded" : ""}`}>▾</span>
               </div>
 
-              {/* VALUE CHIPS — one per candidate */}
-              <div className="attr-values-row">
+              {/* VALUE — clean display, no filename label */}
+              <div className="attr-values-preview">
                 {attr.values.map((v: any, vIdx: number) => {
-                  const cand = candidates.find((c: any) => c.id === v.candidateId);
-                  const doc = documents.find((d: any) => d.id === v.documentId) || documents[vIdx];
-                  const displayLabel = cand?.label || doc?.name || `Document ${vIdx + 1}`;
                   const isWinner = evaluations.find(
                     (e: any) => e.candidateId === v.candidateId &&
                       (e.attributeId === attr.attributeId || e.attributeName === attr.attributeName)
                   )?.isWinner;
                   return (
                     <span
-                      key={v.documentId ?? v.candidateId}
-                      className={`val-chip${isWinner ? " winner" : ""}`}
-                      style={isExpanded ? { whiteSpace: "normal", overflow: "visible" } : {}}
+                      key={v.documentId ?? v.candidateId ?? vIdx}
+                      className={`attr-value-pill${isWinner ? " winner" : ""}`}
                       onClick={(e) => { e.stopPropagation(); handleAttributeRowClick(attr, v.candidateId, v.documentId, vIdx); }}
-                      title={isExpanded ? undefined : `${displayLabel}: ${v.value || "\u2014"}`}
                     >
-                      {documents.length > 1 && <span className="val-chip-label">{displayLabel}:</span>}
-                      <span className="val-chip-value" style={isExpanded ? { whiteSpace: "normal", overflow: "visible", textOverflow: "unset" } : {}}>
-                        <FormatValue name={attr.attributeName} value={v.value} />
-                      </span>
+                      <FormatValue name={attr.attributeName} value={v.value} />
                     </span>
                   );
                 })}
@@ -2063,75 +2062,68 @@ return (
                         <span className={`attr-card-chevron${isExpanded ? " expanded" : ""}`}>▾</span>
                       </div>
 
-                      {/* VALUE CHIPS — one per candidate */}
-                      <div className="attr-values-row">
-                        {attr.values.map((v: any, vIdx: number) => {
-                          const cand = candidates.find((c: any) => c.id === v.candidateId);
-                          const doc = documents.find((d: any) => d.id === v.documentId) || documents[vIdx];
-                          const displayLabel = cand?.label || doc?.name || `Document ${vIdx + 1}`;
-                          const evaluation = evaluations.find(
-                            (e: any) => e.candidateId === v.candidateId &&
-                              (e.attributeId === attr.attributeId || e.attributeName === attr.attributeName)
-                          );
-                          const isWinner = evaluation?.isWinner;
-                          return (
-                            <span
-                              key={v.documentId ?? v.candidateId}
-                              className={`val-chip${isWinner ? " winner" : ""}`}
-                              style={isExpanded ? { whiteSpace: "normal", overflow: "visible" } : {}}
-                              onClick={(e) => { e.stopPropagation(); handleAttributeRowClick(attr, v.candidateId, v.documentId, vIdx); }}
-                              title={isExpanded ? undefined : `${displayLabel}: ${v.value || "\u2014"}`}
-                            >
-                              {documents.length > 1 && <span className="val-chip-label">{displayLabel}:</span>}
-                              <span className="val-chip-value" style={isExpanded ? { whiteSpace: "normal", overflow: "visible", textOverflow: "unset" } : {}}>
+                      {/* COLLAPSED: value-only preview, no filename noise */}
+                      {!isExpanded && (
+                        <div className="attr-values-preview">
+                          {attr.values.map((v: any, vIdx: number) => {
+                            const evaluation = evaluations.find(
+                              (e: any) => e.candidateId === v.candidateId &&
+                                (e.attributeId === attr.attributeId || e.attributeName === attr.attributeName)
+                            );
+                            const isWinner = evaluation?.isWinner;
+                            return (
+                              <span
+                                key={v.documentId ?? v.candidateId ?? vIdx}
+                                className={`attr-value-pill${isWinner ? " winner" : ""}`}
+                                onClick={(e) => { e.stopPropagation(); handleAttributeRowClick(attr, v.candidateId, v.documentId, vIdx); }}
+                              >
                                 <FormatValue name={attr.attributeName} value={v.value} />
                               </span>
-                            </span>
-                          );
-                        })}
-                      </div>
+                            );
+                          })}
+                        </div>
+                      )}
 
-                      {/* EXPANDED VIEW — iterates attr.values so data always shows correctly */}
+                      {/* EXPANDED: clean per-document cards, no duplicate chips */}
                       {isExpanded && (
-                        <div style={{ marginTop: 6 }}>
+                        <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
                           {attr.values.map((v: any, vIdx: number) => {
                             const cand = candidates.find((c: any) => c.id === v.candidateId);
                             const doc = documents.find((d: any) => d.id === v.documentId) || documents[vIdx];
-                            const displayLabel = cand?.label || doc?.name || `Document ${vIdx + 1}`;
+                            const fullLabel = cand?.label || doc?.name || `Document ${vIdx + 1}`;
+                            const shortLabel = shortDocName(fullLabel);
                             const evaluation = evaluations.find(
-                              (e) =>
-                                e.candidateId === v.candidateId &&
-                                (e.attributeId === attr.attributeId ||
-                                  e.attributeName === attr.attributeName)
+                              (e) => e.candidateId === v.candidateId &&
+                                (e.attributeId === attr.attributeId || e.attributeName === attr.attributeName)
                             );
                             const isWinner = evaluation?.isWinner;
-
                             return (
                               <div
                                 key={v.documentId ?? v.candidateId}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleAttributeRowClick(attr, v.candidateId, v.documentId, vIdx);
-                                }}
+                                onClick={(e) => { e.stopPropagation(); handleAttributeRowClick(attr, v.candidateId, v.documentId, vIdx); }}
                                 className={`candidate-value-row${isWinner ? " winner" : ""}`}
                               >
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                  <strong style={{ fontSize: 14 }}>{displayLabel}</strong>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
+                                  <span style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                    {shortLabel}
+                                  </span>
                                   {isWinner && <span className="badge badge-positive">Winner</span>}
                                 </div>
-                                <div style={{ marginTop: 4, fontSize: 14 }}>
+                                <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", lineHeight: 1.4 }}>
                                   <FormatValue name={attr.attributeName} value={v.value} />
                                 </div>
-                                <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
-                                  {v.confidenceScore !== undefined && (
-                                    <span style={{ fontSize: 12, color: "#6b7280" }}>
-                                      {Math.round(v.confidenceScore * 100)}% confidence
-                                    </span>
-                                  )}
-                                  {v.pageNumber && (
-                                    <span style={{ fontSize: 12, color: "#6b7280" }}>Pg {v.pageNumber}</span>
-                                  )}
-                                </div>
+                                {(v.confidenceScore !== undefined || v.pageNumber) && (
+                                  <div style={{ display: "flex", gap: 8, marginTop: 3 }}>
+                                    {v.confidenceScore !== undefined && (
+                                      <span style={{ fontSize: 11, color: "#9ca3af" }}>
+                                        {Math.round(v.confidenceScore * 100)}% confidence
+                                      </span>
+                                    )}
+                                    {v.pageNumber && (
+                                      <span style={{ fontSize: 11, color: "#9ca3af" }}>Pg {v.pageNumber}</span>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             );
                           })}

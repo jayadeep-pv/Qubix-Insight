@@ -882,6 +882,30 @@ body {
   margin-top: 5px;
 }
 
+.attr-values-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 5px;
+}
+
+.attr-value-pill {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  padding: 4px 2px;
+  border-bottom: 1px solid #f3f4f6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.1s;
+}
+.attr-value-pill:last-child { border-bottom: none; }
+.attr-value-pill:hover { color: var(--brand-orange); }
+.attr-value-pill.winner { color: #15803d; font-weight: 600; }
+
 .val-chip {
   display: flex;
   align-items: center;
@@ -929,12 +953,11 @@ body {
 }
 
 .candidate-value-row {
-  margin-bottom: 6px;
   background: #f9fafb;
   border: 1px solid #e5e7eb;
-  border-left: 4px solid #d1d5db;
-  border-radius: 8px;
-  padding: 7px 10px;
+  border-left: 3px solid #d1d5db;
+  border-radius: 7px;
+  padding: 8px 10px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
