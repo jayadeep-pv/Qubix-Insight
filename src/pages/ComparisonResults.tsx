@@ -2290,7 +2290,7 @@ return (
         {/* BODY */}
         
       <tbody>
-  {attributes.map((attr) => {
+  {attributes.filter(attr => candidates.some(c => getEvaluationForAttributeCandidate(attr, c.id) != null)).map((attr) => {
     return (
       <React.Fragment key={attr.attributeId}>
 

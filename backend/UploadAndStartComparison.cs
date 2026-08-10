@@ -9,6 +9,7 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.PowerPlatform.Dataverse.Client;
 using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Query;
 using QubixInsight.Services;
 
 namespace QubixInsight.Functions;
@@ -209,6 +210,24 @@ public class UploadAndStartComparison
             var runRecordId = service.Create(runEntity);
 
             _logger.LogInformation($"Comparison Run created: {runRecordId}");
+
+            // Stamp ilx_name with the auto-generated run ID so lookup columns display correctly in views.
+            try
+            {
+                var createdRun = service.Retrieve("ilx_analysisrun", runRecordId, new ColumnSet("ilx_runid"));
+                var runDisplayId = createdRun.GetAttributeValue<string>("ilx_runid");
+                if (!string.IsNullOrWhiteSpace(runDisplayId))
+                {
+                    var nameUpdate = new Entity("ilx_analysisrun", runRecordId);
+                    nameUpdate["ilx_name"] = runDisplayId;
+                    service.Update(nameUpdate);
+                    _logger.LogInformation($"Run ilx_name set to: {runDisplayId}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"Could not set run ilx_name: {ex.Message}");
+            }
 
             /* =========================================================
              * 6. Upload files + create Comparison Documents
