@@ -20,6 +20,7 @@ export default function TemplatesList({ documentTypeId, documentTypeName, hideHe
 
   const [data, setData] = useState<ComparisonTemplate[]>([])
   const [search, setSearch] = useState("")
+  const [filterDocType, setFilterDocType] = useState("")
   const [sortKey, setSortKey] = useState<SortKey>("name")
   const [sortDir, setSortDir] = useState<SortDir>("asc")
   const [currentPage, setCurrentPage] = useState(1)
@@ -59,14 +60,22 @@ export default function TemplatesList({ documentTypeId, documentTypeName, hideHe
     }
   }
 
+  const docTypeOptions = useMemo(() => {
+    const seen = new Set<string>()
+    return data
+      .filter(t => t.documentType && !seen.has(t.documentType) && seen.add(t.documentType))
+      .map(t => t.documentType as string)
+      .sort((a, b) => a.localeCompare(b))
+  }, [data])
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
-    return data.filter(item =>
-      !q ||
-      (item.name || "").toLowerCase().includes(q) ||
-      (item.documentType || "").toLowerCase().includes(q)
-    )
-  }, [data, search])
+    return data.filter(item => {
+      if (q && ![(item.name || ""), (item.documentType || "")].some(v => v.toLowerCase().includes(q))) return false
+      if (filterDocType && item.documentType !== filterDocType) return false
+      return true
+    })
+  }, [data, search, filterDocType])
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -151,6 +160,16 @@ export default function TemplatesList({ documentTypeId, documentTypeName, hideHe
           value={search}
           onChange={e => { setSearch(e.target.value); setCurrentPage(1) }}
         />
+        {!documentTypeId && (
+          <select
+            className="filter-select"
+            value={filterDocType}
+            onChange={e => { setFilterDocType(e.target.value); setCurrentPage(1) }}
+          >
+            <option value="">All Document Types</option>
+            {docTypeOptions.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+        )}
         <span className="grid-filter-count">{totalItems} templates</span>
       </div>
 
