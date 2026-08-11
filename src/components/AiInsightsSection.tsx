@@ -80,7 +80,13 @@ const AiInsightsSection: React.FC<Props> = ({ selectedInsight }) => {
   return (
     <div>
       {bullets.length > 0 && (
-        <div style={{ marginBottom: 14 }}>
+        <div style={{
+          background: "#f9fafb",
+          border: "1px solid #f0f0f0",
+          borderRadius: 8,
+          padding: "4px 14px",
+          marginBottom: 14,
+        }}>
           {bullets.map((point, i) => (
             <div
               key={i}
@@ -88,14 +94,15 @@ const AiInsightsSection: React.FC<Props> = ({ selectedInsight }) => {
                 display: "flex",
                 alignItems: "flex-start",
                 gap: 10,
-                padding: "6px 0",
+                padding: "7px 0",
+                borderBottom: i < bullets.length - 1 ? "1px solid #f3f4f6" : "none",
               }}
             >
               <span style={{
                 width: 5, height: 5, borderRadius: "50%",
                 background: "#d1d5db", flexShrink: 0, marginTop: 7,
               }} />
-              <span style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.65 }}>
+              <span style={{ fontSize: 13, color: "#4b5563", lineHeight: 1.65 }}>
                 {point}
               </span>
             </div>
