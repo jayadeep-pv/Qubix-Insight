@@ -99,12 +99,18 @@ function App() {
 
   const handleTrialLogin = async (profile: TrialProfileData) => {
     sessionStorage.setItem("trial_signup_profile", JSON.stringify(profile));
+    sessionStorage.removeItem("extid_token");
     const extId = getExternalIdInstance();
-    if (extId) await extId.loginRedirect({
-      ...trialLoginRequest,
-      prompt: "create",
-      loginHint: profile.email,
-    });
+    if (extId) {
+      // Clear any cached External ID accounts so a previous user's email
+      // doesn't appear in the account picker for a new sign-up.
+      await extId.clearCache();
+      await extId.loginRedirect({
+        ...trialLoginRequest,
+        prompt: "create",
+        loginHint: profile.email,
+      });
+    }
   };
 
   const handleTrialSignIn = async () => {
