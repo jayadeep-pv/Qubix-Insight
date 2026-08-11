@@ -113,10 +113,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
       // ID token claims — shown immediately so the name appears without waiting for the API.
       const idClaims = (auth.account.idTokenClaims ?? {}) as Record<string, any>;
+      // External ID sets displayName to "Unknown" for new users before profile update — treat as absent.
+      const validName = (s?: string | null) => (s && s.toLowerCase() !== "unknown") ? s : "";
       const nameFromIdToken =
-        [idClaims["given_name"], idClaims["family_name"]].filter(Boolean).join(" ") ||
-        idClaims["name"] ||
-        auth.account.name ||
+        [idClaims["given_name"], idClaims["family_name"]].map(validName).filter(Boolean).join(" ").trim() ||
+        validName(idClaims["name"]) ||
+        validName(auth.account.name) ||
         auth.account.username?.split("@")[0] || "";
       const emailFromIdToken = idClaims["email"] || idClaims["preferred_username"] || auth.account.username || "";
 
