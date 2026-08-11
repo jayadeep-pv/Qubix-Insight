@@ -111,14 +111,21 @@ export function UserProvider({ children }: { children: ReactNode }) {
         accessToken = result.accessToken;
       }
 
-      // ID token claims — used only as last-resort fallback for name display.
-      // GetCurrentUser (Dataverse) is the authoritative source.
+      // ID token claims — shown immediately so the name appears without waiting for the API.
       const idClaims = (auth.account.idTokenClaims ?? {}) as Record<string, any>;
       const nameFromIdToken =
         [idClaims["given_name"], idClaims["family_name"]].filter(Boolean).join(" ") ||
         idClaims["name"] ||
-        auth.account.name ||                              // MSAL account display name
-        auth.account.username?.split("@")[0] || "";       // email prefix as last resort
+        auth.account.name ||
+        auth.account.username?.split("@")[0] || "";
+      const emailFromIdToken = idClaims["email"] || idClaims["preferred_username"] || auth.account.username || "";
+
+      // Show name & email immediately from the token — no spinner wait for user identity
+      setUserData(prev => ({
+        ...prev,
+        userName:  nameFromIdToken,
+        userEmail: emailFromIdToken,
+      }));
 
       const response = await axios.get(
         `${getAppConfig().apiBase}/GetCurrentUser`,

@@ -9,22 +9,40 @@ namespace QubixInsight.Services;
 
 public class TenantResolverService
 {
-    private readonly IConfiguration _config;
     private readonly IMemoryCache _cache;
+    private readonly ServiceClient _masterService;
 
-    // Cache resolved settings for 5 minutes to avoid hitting Dataverse on every request
-    private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(5);
+    // Tenant settings rarely change — cache for 30 minutes to avoid repeated Dataverse roundtrips
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(30);
 
     public TenantResolverService(IConfiguration config, IMemoryCache cache)
     {
-        _config = config;
         _cache = cache;
+
+        var url          = config["Qubix_MainDataverseUrl"];
+        var clientId     = config["Qubix_ClientId"];
+        var clientSecret = config["Qubix_ClientSecret"];
+        var tenantId     = config["Qubix_TenantId"];
+
+        if (string.IsNullOrWhiteSpace(url))
+            throw new InvalidOperationException("Qubix_MainDataverseUrl is not configured.");
+
+        // Create the connection once at startup and reuse across all requests.
+        // RequireNewInstance is intentionally omitted so the SDK can pool the connection.
+        var connectionString =
+            $"AuthType=ClientSecret;" +
+            $"Url={url};" +
+            $"ClientId={clientId};" +
+            $"ClientSecret={clientSecret};" +
+            $"TenantId={tenantId};";
+
+        _masterService = new ServiceClient(connectionString);
     }
 
     /// <summary>
     /// Resolves tenant settings from the AAD tenant ID extracted from the validated JWT tid claim.
     /// Lookup is performed against ilx_aadtenantid in the master Dataverse environment.
-    /// Results are cached per aadTenantId for 5 minutes.
+    /// Results are cached per aadTenantId for 30 minutes.
     /// </summary>
     public TenantSettings ResolveTenant(string aadTenantId)
     {
@@ -45,27 +63,8 @@ public class TenantResolverService
 
     private TenantSettings LookupFromDataverse(string aadTenantId)
     {
-        var mainDataverseUrl = _config["Qubix_MainDataverseUrl"];
-
-        if (string.IsNullOrWhiteSpace(mainDataverseUrl))
-            throw new Exception("MainDataverseUrl is not configured.");
-
-        var clientId     = _config["Qubix_ClientId"];
-        var clientSecret = _config["Qubix_ClientSecret"];
-        var tenantId     = _config["Qubix_TenantId"];
-
-        var connectionString =
-            $"AuthType=ClientSecret;" +
-            $"Url={mainDataverseUrl};" +
-            $"ClientId={clientId};" +
-            $"ClientSecret={clientSecret};" +
-            $"TenantId={tenantId};" +
-            $"RequireNewInstance=true;";
-
-        using var service = new ServiceClient(connectionString);
-
-        if (!service.IsReady)
-            throw new Exception($"Unable to connect to master Dataverse: {service.LastError}");
+        if (!_masterService.IsReady)
+            throw new Exception($"Unable to connect to master Dataverse: {_masterService.LastError}");
 
         var query = new QueryExpression("ilx_tenantsetting")
         {
@@ -88,7 +87,7 @@ public class TenantResolverService
         query.Criteria.AddCondition("ilx_aadtenantid", ConditionOperator.Equal, aadTenantId);
         query.Criteria.AddCondition("ilx_isactive",    ConditionOperator.Equal, true);
 
-        var result = service.RetrieveMultiple(query).Entities.FirstOrDefault();
+        var result = _masterService.RetrieveMultiple(query).Entities.FirstOrDefault();
 
         if (result == null)
             throw new Exception($"Tenant not found or inactive for AAD tenant: {aadTenantId}");

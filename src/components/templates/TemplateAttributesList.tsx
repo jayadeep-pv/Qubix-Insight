@@ -5,7 +5,7 @@ import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react"
 import { PageBreadcrumb } from "../PageBreadcrumb"
 import { useUser } from "../../context/UserContext"
 
-type SortKey = "name" | "displayName" | "category" | "expectedDataType" | "order" | "isActive";
+type SortKey = "name" | "templateName" | "displayName" | "category" | "expectedDataType" | "order" | "isActive";
 type SortDir = "asc" | "desc";
 
 type Props = {
@@ -17,7 +17,10 @@ type Props = {
 export default function TemplateAttributesList({ templateId, hideHeader, embedded }: Props) {
 
   const [data, setData] = useState<any[]>([])
+  const [templates, setTemplates] = useState<any[]>([])
   const [search, setSearch] = useState("")
+  const [filterDocType, setFilterDocType] = useState("")
+  const [filterTemplate, setFilterTemplate] = useState("")
   const [sortKey, setSortKey] = useState<SortKey>("name")
   const [sortDir, setSortDir] = useState<SortDir>("asc")
   const [currentPage, setCurrentPage] = useState(1)
@@ -30,10 +33,14 @@ export default function TemplateAttributesList({ templateId, hideHeader, embedde
 
   async function load() {
     try {
-      const result = templateId
-        ? await configApi.getTemplateAttributesByTemplate(templateId)
-        : await configApi.getAllTemplateAttributes()
+      const [result, allTemplates] = await Promise.all([
+        templateId
+          ? configApi.getTemplateAttributesByTemplate(templateId)
+          : configApi.getAllTemplateAttributes(),
+        configApi.getAllTemplates(),
+      ])
       setData(result || [])
+      setTemplates(allTemplates || [])
     } catch (err) {
       console.error("Failed to load attributes", err)
     }
@@ -59,16 +66,39 @@ export default function TemplateAttributesList({ templateId, hideHeader, embedde
     }
   }
 
+  // templateId → document type name
+  const templateDocTypeMap = useMemo(() => {
+    const m: Record<string, string> = {}
+    templates.forEach(t => { if (t.id) m[t.id] = t.documentType || "" })
+    return m
+  }, [templates])
+
+  // unique document types from the loaded templates
+  const docTypeOptions = useMemo(() => {
+    const seen = new Set<string>()
+    return templates
+      .filter(t => t.documentType && !seen.has(t.documentType) && seen.add(t.documentType))
+      .map(t => t.documentType as string)
+      .sort((a, b) => a.localeCompare(b))
+  }, [templates])
+
+  // templates filtered by selected document type (for the second dropdown)
+  const templateOptions = useMemo(() => {
+    return templates
+      .filter(t => !filterDocType || t.documentType === filterDocType)
+      .sort((a, b) => (a.name || "").localeCompare(b.name || ""))
+  }, [templates, filterDocType])
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
-    return data.filter(item =>
-      !q ||
-      (item.name || "").toLowerCase().includes(q) ||
-      (item.displayName || "").toLowerCase().includes(q) ||
-      (item.category || "").toLowerCase().includes(q) ||
-      (item.expectedDataType || "").toLowerCase().includes(q)
-    )
-  }, [data, search])
+    return data.filter(item => {
+      if (q && ![item.name, item.displayName, item.category, item.expectedDataType, item.templateName]
+        .some(v => (v || "").toLowerCase().includes(q))) return false
+      if (filterDocType && templateDocTypeMap[item.templateId] !== filterDocType) return false
+      if (filterTemplate && item.templateId !== filterTemplate) return false
+      return true
+    })
+  }, [data, search, filterDocType, filterTemplate, templateDocTypeMap])
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -115,6 +145,9 @@ export default function TemplateAttributesList({ templateId, hideHeader, embedde
       ? <ChevronUp size={12} className="sort-icon active" />
       : <ChevronDown size={12} className="sort-icon active" />
   }
+
+  // Only show the doc type / template dropdowns when not already scoped to a single template
+  const showFilters = !templateId
 
   return (
     <div className={embedded ? undefined : "content-page"}>
@@ -163,6 +196,30 @@ export default function TemplateAttributesList({ templateId, hideHeader, embedde
           value={search}
           onChange={e => { setSearch(e.target.value); setCurrentPage(1) }}
         />
+        {showFilters && (
+          <>
+            <select
+              className="filter-select"
+              value={filterDocType}
+              onChange={e => {
+                setFilterDocType(e.target.value)
+                setFilterTemplate("")
+                setCurrentPage(1)
+              }}
+            >
+              <option value="">All Document Types</option>
+              {docTypeOptions.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+            <select
+              className="filter-select"
+              value={filterTemplate}
+              onChange={e => { setFilterTemplate(e.target.value); setCurrentPage(1) }}
+            >
+              <option value="">All Templates</option>
+              {templateOptions.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </>
+        )}
         <span className="grid-filter-count">{totalItems} attributes</span>
       </div>
 
@@ -172,6 +229,9 @@ export default function TemplateAttributesList({ templateId, hideHeader, embedde
           <thead>
             <tr>
               <th className="col-sortable" onClick={() => handleSort("name")}>Name <SortIcon col="name" /></th>
+              {showFilters && (
+                <th className="col-sortable" onClick={() => handleSort("templateName")}>Template <SortIcon col="templateName" /></th>
+              )}
               <th className="col-sortable" onClick={() => handleSort("displayName")}>Display Name <SortIcon col="displayName" /></th>
               <th className="col-sortable" onClick={() => handleSort("category")}>Category <SortIcon col="category" /></th>
               <th className="col-sortable" onClick={() => handleSort("expectedDataType")}>Data Type <SortIcon col="expectedDataType" /></th>
@@ -182,11 +242,12 @@ export default function TemplateAttributesList({ templateId, hideHeader, embedde
           </thead>
           <tbody>
             {pageData.length === 0 && (
-              <tr><td colSpan={7} className="grid-empty">No template attributes found</td></tr>
+              <tr><td colSpan={showFilters ? 8 : 7} className="grid-empty">No template attributes found</td></tr>
             )}
             {pageData.map(item => (
               <tr key={item.id} className="grid-row" onClick={() => navigate(`/admin/template-attributes/${item.id}`)}>
                 <td>{item.name}</td>
+                {showFilters && <td style={{ color: "#6b7280", fontSize: 13 }}>{item.templateName || ""}</td>}
                 <td>{item.displayName || ""}</td>
                 <td>{item.category || ""}</td>
                 <td>{item.expectedDataType || ""}</td>

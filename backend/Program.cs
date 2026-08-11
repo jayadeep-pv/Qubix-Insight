@@ -32,23 +32,9 @@ var host = new HostBuilder()
         });
 
         // Dataverse
+        // Share the same connection — avoids a second OAuth handshake at startup
         services.AddSingleton<IOrganizationService>(sp =>
-        {
-            var connectionString =
-                Environment.GetEnvironmentVariable("Qubix_DataverseConnection");
-
-            if (string.IsNullOrEmpty(connectionString))
-                throw new InvalidOperationException(
-                    "DataverseConnection environment variable not set.");
-
-            var serviceClient = new ServiceClient(connectionString);
-
-            if (!serviceClient.IsReady)
-                throw new InvalidOperationException(
-                    "Dataverse ServiceClient failed to connect.");
-
-            return serviceClient;
-        });
+            sp.GetRequiredService<ServiceClient>());
 
         // Azure OpenAI
         services.AddSingleton<AzureOpenAIClient>(sp =>

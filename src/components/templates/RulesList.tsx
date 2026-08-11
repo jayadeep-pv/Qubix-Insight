@@ -18,10 +18,13 @@ type Props = {
 export default function RulesList({ templateAttributeId, hideHeader, embedded }: Props) {
 
   const [data, setData] = useState<Rule[]>([])
+  const [templates, setTemplates] = useState<any[]>([])
   const [comparisonDirections, setComparisonDirections] = useState<any[]>([])
   const [impactCategories, setImpactCategories] = useState<any[]>([])
   const [severities, setSeverities] = useState<any[]>([])
   const [search, setSearch] = useState("")
+  const [filterDocType, setFilterDocType] = useState("")
+  const [filterTemplate, setFilterTemplate] = useState("")
   const [sortKey, setSortKey] = useState<SortKey>("name")
   const [sortDir, setSortDir] = useState<SortDir>("asc")
   const [currentPage, setCurrentPage] = useState(1)
@@ -39,17 +42,18 @@ export default function RulesList({ templateAttributeId, hideHeader, embedded }:
 
   async function load() {
     try {
-      const rules = templateAttributeId
-        ? await configApi.getRulesByTemplateAttribute(templateAttributeId)
-        : await configApi.getRules()
-
-      const [directions, impacts, severityChoices] = await Promise.all([
+      const [rules, allTemplates, directions, impacts, severityChoices] = await Promise.all([
+        templateAttributeId
+          ? configApi.getRulesByTemplateAttribute(templateAttributeId)
+          : configApi.getRules(),
+        configApi.getAllTemplates(),
         configApi.getChoiceOptions("ilx_analysisrule", "ilx_analysisdirection"),
         configApi.getChoiceOptions("ilx_analysisrule", "ilx_impactcategory"),
         configApi.getChoiceOptions("ilx_analysisrule", "ilx_severity"),
       ])
 
       setData(rules || [])
+      setTemplates(allTemplates || [])
       setComparisonDirections(directions || [])
       setImpactCategories(impacts || [])
       setSeverities(severityChoices || [])
@@ -68,15 +72,37 @@ export default function RulesList({ templateAttributeId, hideHeader, embedded }:
     }
   }
 
+  // templateId → document type name
+  const templateDocTypeMap = useMemo(() => {
+    const m: Record<string, string> = {}
+    templates.forEach(t => { if (t.id) m[t.id] = t.documentType || "" })
+    return m
+  }, [templates])
+
+  const docTypeOptions = useMemo(() => {
+    const seen = new Set<string>()
+    return templates
+      .filter(t => t.documentType && !seen.has(t.documentType) && seen.add(t.documentType))
+      .map(t => t.documentType as string)
+      .sort((a, b) => a.localeCompare(b))
+  }, [templates])
+
+  const templateOptions = useMemo(() => {
+    return templates
+      .filter(t => !filterDocType || t.documentType === filterDocType)
+      .sort((a, b) => (a.name || "").localeCompare(b.name || ""))
+  }, [templates, filterDocType])
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
-    return data.filter(item =>
-      !q ||
-      (item.name || "").toLowerCase().includes(q) ||
-      (item.templateName || "").toLowerCase().includes(q) ||
-      (item.templateAttributeName || "").toLowerCase().includes(q)
-    )
-  }, [data, search])
+    return data.filter(item => {
+      if (q && ![(item.name || ""), (item.templateName || ""), (item.templateAttributeName || "")]
+        .some(v => v.toLowerCase().includes(q))) return false
+      if (filterDocType && templateDocTypeMap[item.templateId as string] !== filterDocType) return false
+      if (filterTemplate && item.templateId !== filterTemplate) return false
+      return true
+    })
+  }, [data, search, filterDocType, filterTemplate, templateDocTypeMap])
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -178,6 +204,30 @@ export default function RulesList({ templateAttributeId, hideHeader, embedded }:
           value={search}
           onChange={e => { setSearch(e.target.value); setCurrentPage(1) }}
         />
+        {!templateAttributeId && (
+          <>
+            <select
+              className="filter-select"
+              value={filterDocType}
+              onChange={e => {
+                setFilterDocType(e.target.value)
+                setFilterTemplate("")
+                setCurrentPage(1)
+              }}
+            >
+              <option value="">All Document Types</option>
+              {docTypeOptions.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+            <select
+              className="filter-select"
+              value={filterTemplate}
+              onChange={e => { setFilterTemplate(e.target.value); setCurrentPage(1) }}
+            >
+              <option value="">All Templates</option>
+              {templateOptions.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </>
+        )}
         <span className="grid-filter-count">{totalItems} rules</span>
       </div>
 
