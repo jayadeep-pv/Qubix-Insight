@@ -1086,7 +1086,7 @@ const pdfViewer = pdfUrl ? (
     a.values.map((v: any) => v.confidenceScore).filter((s: any) => s != null && !isNaN(Number(s)))
   ) as number[];
   const avgConfidence = allConfScores.length > 0
-    ? Math.round(allConfScores.reduce((sum, s) => sum + s, 0) / allConfScores.length)
+    ? Math.round((allConfScores.reduce((sum, s) => sum + s, 0) / allConfScores.length) * 100)
     : null;
 
   /* =====================================================
@@ -1212,7 +1212,6 @@ const pdfViewer = pdfUrl ? (
                   <div className="ov-stat-card">
                     <div className="ov-stat-label">Profiles run</div>
                     <div className="ov-stat-value">{insightRows.length}</div>
-                    <div className="ov-stat-sub">{insightRows.map(r => r.profileName).join(" · ")}</div>
                   </div>
                   <div className="ov-stat-card">
                     <div className="ov-stat-label">Total findings</div>
