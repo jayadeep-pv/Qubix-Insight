@@ -625,6 +625,25 @@ private (int? Page, string? PolygonJson) FindPosition(
                                         }
                                     }
                                 }
+                                else if (el.ValueKind == JsonValueKind.Array)
+                                {
+                                    var parts = new List<string>();
+                                    foreach (var arrayItem in el.EnumerateArray())
+                                    {
+                                        if (arrayItem.ValueKind == JsonValueKind.String)
+                                            parts.Add(arrayItem.GetString() ?? "");
+                                        else if (arrayItem.ValueKind == JsonValueKind.Object)
+                                        {
+                                            var props = arrayItem.EnumerateObject()
+                                                .Select(p => p.Value.ValueKind == JsonValueKind.String ? p.Value.GetString() ?? "" : p.Value.ToString())
+                                                .Where(v => !string.IsNullOrWhiteSpace(v));
+                                            parts.Add(string.Join(", ", props));
+                                        }
+                                        else
+                                            parts.Add(arrayItem.ToString());
+                                    }
+                                    valueText = string.Join("; ", parts);
+                                }
                             }
                             else
                             {
@@ -649,9 +668,10 @@ private (int? Page, string? PolygonJson) FindPosition(
                         result["ilx_name"] =
                             $"{doc.GetAttributeValue<string>("ilx_name")} - {kv.Key}";
 
-                        // Value
+                        // Value — use the human-readable valueText when available
                         result["ilx_normalisedvalue"] =
-                            kv.Value != null ? kv.Value.ToString() : "—";
+                            !string.IsNullOrWhiteSpace(valueText) ? valueText
+                            : kv.Value != null ? kv.Value.ToString() : "—";
 
                         int riskLevelValue;
 

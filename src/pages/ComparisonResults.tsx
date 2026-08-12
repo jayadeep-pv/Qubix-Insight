@@ -849,9 +849,12 @@ const sendChatQuestion = async () => {
       if (Array.isArray(parsed) && parsed.length > 0) {
         return (
           <ul style={{ margin: "4px 0 0 0", paddingLeft: 16, display: "flex", flexDirection: "column", gap: 2 }}>
-            {parsed.map((item, i) => (
-              <li key={i} style={{ fontSize: "inherit", lineHeight: 1.5 }}>{String(item)}</li>
-            ))}
+            {parsed.map((item, i) => {
+              const label = typeof item === 'object' && item !== null
+                ? Object.values(item as Record<string, unknown>).filter(v => v !== null && v !== undefined && v !== '').join(' — ')
+                : String(item);
+              return <li key={i} style={{ fontSize: "inherit", lineHeight: 1.5 }}>{label}</li>;
+            })}
           </ul>
         );
       }
