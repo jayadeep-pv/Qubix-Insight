@@ -114,6 +114,8 @@ public class GetCurrentUser
                 isTrial          = tenant.IsTrial && !tenant.IsInternal,
                 isAdmin          = isAdmin,
                 tenantName       = tenant.TenantName,
+                _dbgTenantKey    = tenant.TenantKey,
+                _dbgIsInternal   = tenant.IsInternal,
                 subscriptionTier = tenant.SubscriptionTier,
                 userEmail        = trialUser?.Email       ?? userInfo.Email       ?? "",
                 userName         = trialUser?.DisplayName ?? userInfo.Name        ?? "",
