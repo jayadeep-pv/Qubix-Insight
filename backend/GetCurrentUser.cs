@@ -116,6 +116,7 @@ public class GetCurrentUser
                 tenantName       = tenant.TenantName,
                 _dbgTenantKey    = tenant.TenantKey,
                 _dbgIsInternal   = tenant.IsInternal,
+                _dbgInternalKeys = Environment.GetEnvironmentVariable("Qubix_InternalTenantKeys") ?? "(null)",
                 subscriptionTier = tenant.SubscriptionTier,
                 userEmail        = trialUser?.Email       ?? userInfo.Email       ?? "",
                 userName         = trialUser?.DisplayName ?? userInfo.Name        ?? "",
