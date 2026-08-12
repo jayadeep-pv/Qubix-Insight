@@ -76,7 +76,7 @@ public class GetAllInsights
         query.Criteria.AddCondition("statecode", ConditionOperator.LessThan, 2); // include Active (0) and Inactive (1)
 
         // Trial users also see shared sample records
-        if (tenant.IsTrial)
+        if (tenant.NeedsSampleData)
             TenantQueryHelper.AddTenantFilterWithSamples(query, tenant.TenantRecordId.ToString());
         else
             TenantQueryHelper.AddTenantFilter(query, tenant.TenantRecordId.ToString());

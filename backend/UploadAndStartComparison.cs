@@ -86,8 +86,8 @@ public class UploadAndStartComparison
             var templateId = form.GetParameterValue("comparisonTemplateId");
             var modeString = form.GetParameterValue("mode") ?? "Compare";
 
-            // Trial accounts may only upload for Summarise mode
-            var isTrialBlockedMode = tenant.IsTrial &&
+            // Trial accounts may only upload for Summarise mode (internal accounts bypass this)
+            var isTrialBlockedMode = (tenant.IsTrial && !tenant.IsInternal) &&
                 !modeString.Equals("Summarise", StringComparison.OrdinalIgnoreCase);
 
             if (isTrialBlockedMode)
@@ -97,8 +97,8 @@ public class UploadAndStartComparison
                 return forbidden;
             }
 
-            // Trial monthly run limit check
-            if (tenant.IsTrial && !string.IsNullOrWhiteSpace(userAadId))
+            // Trial monthly run limit check (internal accounts are exempt)
+            if (tenant.IsTrial && !tenant.IsInternal && !string.IsNullOrWhiteSpace(userAadId))
             {
                 var (allowed, runsUsed, runLimit) = _tenantUserService.CheckAndIncrementRun(userAadId);
                 if (!allowed)

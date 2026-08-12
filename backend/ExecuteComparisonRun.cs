@@ -71,7 +71,7 @@ private (int? Page, string? PolygonJson) FindPosition(
         return (null, null);
 
     var normalizedValue = NormalizeForAnchorMatch(value);
-    var normalizedHint = NormalizeForAnchorMatch(attributeHint ?? "");
+    var normalizedHint  = NormalizeForAnchorMatch(attributeHint ?? "");
 
     if (string.IsNullOrWhiteSpace(normalizedValue))
         return (null, null);
@@ -342,8 +342,8 @@ private (int? Page, string? PolygonJson) FindPosition(
 
             _logger.LogInformation($"Run Mode Value: {mode}");
 
-            // Trial tenants may only run Summarise mode
-            if (tenant.IsTrial && mode != MODE_SUMMARISE)
+            // Trial tenants may only run Summarise mode (internal accounts bypass this)
+            if (tenant.IsTrial && !tenant.IsInternal && mode != MODE_SUMMARISE)
             {
                 var forbidden = req.CreateResponse(System.Net.HttpStatusCode.Forbidden);
                 await forbidden.WriteStringAsync("Trial accounts can only use Quick Extract. Upgrade to run full comparisons.");
@@ -429,7 +429,7 @@ private (int? Page, string? PolygonJson) FindPosition(
 
             var loadAttributesSw = Stopwatch.StartNew();
 
-            var attributes = await LoadAttributes(service, templateRef.Id, tenant.TenantRecordId);
+            var attributes = await LoadAttributes(service, templateRef.Id, tenant.TenantRecordId, tenant.NeedsSampleData);
 
             var attributesForMode = attributes.ToList(); // 🔥 DO NOT FILTER HERE
 
@@ -496,9 +496,9 @@ private (int? Page, string? PolygonJson) FindPosition(
                     ))
                     .ToList();
 
-                // Trial accounts are limited to the first 5 pages
-                if (tenant.IsTrial)
-                    lines = lines.Where(l => l.Page <= 5).ToList();
+                // Note: OCR runs on the full document regardless of tier (cost already incurred).
+                // Filtering lines here only breaks FindPosition for content beyond page 5
+                // without saving any Azure DI cost — so we keep all pages for position finding.
 
                 // Cache text to Dataverse on first run only (memo field, max ~1 MB).
                 var existingText = doc.GetAttributeValue<string>("ilx_extractedtext");
@@ -531,7 +531,7 @@ private (int? Page, string? PolygonJson) FindPosition(
 
                var extractionService = new ExtractionService(_aiSummaryService);
 
-                var values = await extractionService.ExtractAttributesAsync(
+                var (values, extractionAnchors) = await extractionService.ExtractAttributesAsync(
                     text,
                     attributesForMode,
                     basePrompt,
@@ -541,15 +541,17 @@ private (int? Page, string? PolygonJson) FindPosition(
                 LogStage($"AI structured extraction | {docName}", aiExtractSw);
 
                 // 🔵 NORMALISE AI EXTRACTION KEYS
-                var normalizedValues = new Dictionary<string, object>();
+                var normalizedValues  = new Dictionary<string, object>();
+                var normalizedAnchors = new Dictionary<string, string>();
 
                 foreach (var kv in values)
-                {
-                    var normalizedKey = Normalize(kv.Key);
-                    normalizedValues[normalizedKey] = kv.Value;
-                }
+                    normalizedValues[Normalize(kv.Key)] = kv.Value;
 
-                values = normalizedValues;
+                foreach (var kv in extractionAnchors)
+                    normalizedAnchors[Normalize(kv.Key)] = kv.Value;
+
+                values            = normalizedValues;
+                var anchors       = normalizedAnchors;
 
 
 
@@ -694,8 +696,10 @@ private (int? Page, string? PolygonJson) FindPosition(
                             var attributeHintForPosition =
                                 matchedAttrForPosition?.GetAttributeValue<string>("ilx_name") ?? kv.Key;
 
+                            // Use verbatim anchor phrase when available — more reliable than paraphrased value
+                            var anchorForPosition = anchors.TryGetValue(kv.Key, out var a) && !string.IsNullOrWhiteSpace(a) ? a : valueText;
                             var (page, polygonJson) = FindPosition(
-                                valueText,
+                                anchorForPosition,
                                 lines,
                                 attributeHintForPosition
                             );
@@ -889,7 +893,7 @@ private (int? Page, string? PolygonJson) FindPosition(
             {
                 var loadRulesSw = Stopwatch.StartNew();
 
-                var rules = LoadRules(service, templateRef.Id, tenant.TenantRecordId);
+                var rules = LoadRules(service, templateRef.Id, tenant.TenantRecordId, tenant.NeedsSampleData);
 
                 var allowedAttributeIds = attributesForMode.Select(a => a.Id).ToHashSet();
 
@@ -1233,7 +1237,7 @@ private static bool TryParseDecimalSafe(object input, out decimal value)
 
     return decimal.TryParse(cleaned, out value);
 }
-    private static List<ComparisonRule> LoadRules(ServiceClient client, Guid templateId, Guid tenantRecordId)
+    private static List<ComparisonRule> LoadRules(ServiceClient client, Guid templateId, Guid tenantRecordId, bool isTrial = false)
     {
         var rules = new List<ComparisonRule>();
 
@@ -1251,7 +1255,10 @@ private static bool TryParseDecimalSafe(object input, out decimal value)
             templateId
         );
 
-        TenantQueryHelper.AddTenantFilter(attrQuery, tenantRecordId.ToString());
+        if (isTrial)
+            TenantQueryHelper.AddTenantFilterWithSamples(attrQuery, tenantRecordId.ToString());
+        else
+            TenantQueryHelper.AddTenantFilter(attrQuery, tenantRecordId.ToString());
 
         var attributes = client.RetrieveMultiple(attrQuery).Entities;
 
@@ -1277,7 +1284,10 @@ private static bool TryParseDecimalSafe(object input, out decimal value)
             attributeIds.Cast<object>().ToArray()
         );
 
-        TenantQueryHelper.AddTenantFilter(ruleQuery, tenantRecordId.ToString());
+        if (isTrial)
+            TenantQueryHelper.AddTenantFilterWithSamples(ruleQuery, tenantRecordId.ToString());
+        else
+            TenantQueryHelper.AddTenantFilter(ruleQuery, tenantRecordId.ToString());
 
         foreach (var entity in client.RetrieveMultiple(ruleQuery).Entities)
         {
@@ -1455,7 +1465,7 @@ private static bool TryParseDecimalSafe(object input, out decimal value)
     }
 
 
-private async Task<List<Entity>> LoadAttributes(ServiceClient service, Guid templateId, Guid tenantRecordId)
+private async Task<List<Entity>> LoadAttributes(ServiceClient service, Guid templateId, Guid tenantRecordId, bool isTrial = false)
 {
     var query = new QueryExpression("ilx_templateattribute")
     {
@@ -1481,7 +1491,10 @@ private async Task<List<Entity>> LoadAttributes(ServiceClient service, Guid temp
         }
     };
 
-    TenantQueryHelper.AddTenantFilter(query, tenantRecordId.ToString());
+    if (isTrial)
+        TenantQueryHelper.AddTenantFilterWithSamples(query, tenantRecordId.ToString());
+    else
+        TenantQueryHelper.AddTenantFilter(query, tenantRecordId.ToString());
 
     var result = await service.RetrieveMultipleAsync(query);
 

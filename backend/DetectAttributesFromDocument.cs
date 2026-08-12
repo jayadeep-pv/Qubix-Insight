@@ -71,7 +71,7 @@ namespace QubixInsight.Functions
                     try
                     {
                         var tenant = _tenantResolver.ResolveTenant(tenantKey);
-                        if (tenant.IsTrial && !string.IsNullOrWhiteSpace(jwtUserInfo.Oid))
+                        if (tenant.IsTrial && !tenant.IsInternal && !string.IsNullOrWhiteSpace(jwtUserInfo.Oid))
                         {
                             var (allowed, runsUsed, runLimit) = _tenantUserService.CheckAndIncrementRun(jwtUserInfo.Oid);
                             if (!allowed)

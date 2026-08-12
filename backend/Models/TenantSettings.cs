@@ -37,4 +37,11 @@ public class TenantSettings
     // True when the tenant's subscription tier is "Trial" — enforced in backend endpoints
     // and surfaced to the frontend via GetCurrentUser
     public bool IsTrial { get; set; } = false;
+
+    // True when the tenant key appears in Qubix_InternalTenantKeys app setting.
+    // Internal accounts see sys-sample data like trial users but bypass all mode/run restrictions.
+    public bool IsInternal { get; set; } = false;
+
+    // True when sys-sample shared records should be included in Dataverse queries.
+    public bool NeedsSampleData => IsTrial || IsInternal;
 }

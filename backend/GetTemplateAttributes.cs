@@ -52,7 +52,7 @@ public class GetTemplateAttributes
             "ilx_analysistemplate"
         );
 
-        if (tenant.IsTrial)
+        if (tenant.NeedsSampleData)
             TenantQueryHelper.AddTenantFilterWithSamples(query, tenant.TenantRecordId.ToString());
         else
             TenantQueryHelper.AddTenantFilter(query, tenant.TenantRecordId.ToString());

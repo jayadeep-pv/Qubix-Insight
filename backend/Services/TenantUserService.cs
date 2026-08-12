@@ -164,10 +164,13 @@ public class TenantUserService
         q.Criteria.AddCondition("ilx_externalobjectid", ConditionOperator.Equal, oid);
         var existing = svc.RetrieveMultiple(q).Entities.FirstOrDefault();
 
-        // Prefer form-supplied first/last name over JWT display name (which can be "unknown" for new External ID users)
+        // Prefer form-supplied first/last name over JWT display name.
+        // External ID sets displayName to "Unknown" for new users — treat it as absent.
+        static bool IsUsable(string? s) => !string.IsNullOrWhiteSpace(s) &&
+            !s.Equals("Unknown", StringComparison.OrdinalIgnoreCase);
         var composedName = (!string.IsNullOrWhiteSpace(firstName) || !string.IsNullOrWhiteSpace(lastName))
             ? $"{firstName} {lastName}".Trim()
-            : !string.IsNullOrWhiteSpace(displayName) ? displayName : "";
+            : IsUsable(displayName) ? displayName! : "";
 
         var entity = new Entity("ilx_tenantuser");
         entity["ilx_externalobjectid"] = oid;
@@ -263,11 +266,11 @@ public class TenantUserService
         if (!string.IsNullOrWhiteSpace(configured) && int.TryParse(configured, out var parsed))
             return parsed;
 
-        // Read from any existing Trial record — avoids hard-coding the Dataverse integer.
+        // Scan all active tenant records to find one labelled "Trial" — no TopCount so we
+        // don't accidentally return a Standard/Internal record when that happens to be first.
         var q = new QueryExpression("ilx_tenantsetting")
         {
             ColumnSet  = new ColumnSet("ilx_subscriptiontier"),
-            TopCount   = 1,
             Criteria   = { Conditions = { new ConditionExpression("ilx_isactive", ConditionOperator.Equal, true) } }
         };
         // Filter by formatted value not possible in QueryExpression; we read candidates and

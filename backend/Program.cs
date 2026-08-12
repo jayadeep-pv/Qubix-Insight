@@ -8,6 +8,10 @@ using Azure;
 using Azure.AI.OpenAI;
 using QubixInsight.Services;
 
+// Allow JwtTenantExtractor to detect External ID users by tenant GUID when the
+// issuer doesn't contain "ciamlogin.com" (e.g. custom domain setups).
+JwtTenantExtractor.Configure(Environment.GetEnvironmentVariable("Qubix_ExtIdTenantId"));
+
 var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults()
     .ConfigureServices(services =>

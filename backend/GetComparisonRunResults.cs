@@ -130,7 +130,7 @@ public class GetComparisonRunResults
             };
 
             candidateQuery.Criteria.AddCondition("ilx_analysisrun", ConditionOperator.Equal, runId);
-            if (tenant.IsTrial)
+            if (tenant.NeedsSampleData)
                 TenantQueryHelper.AddTenantFilterWithSamples(candidateQuery, tenant.TenantRecordId.ToString());
             else
                 TenantQueryHelper.AddTenantFilter(candidateQuery, tenant.TenantRecordId.ToString());
@@ -294,7 +294,7 @@ public class GetComparisonRunResults
             };
 
             resultQuery.Criteria.AddCondition("ilx_analysisrun", ConditionOperator.Equal, runId);
-            if (tenant.IsTrial)
+            if (tenant.NeedsSampleData)
                 TenantQueryHelper.AddTenantFilterWithSamples(resultQuery, tenant.TenantRecordId.ToString());
             else
                 TenantQueryHelper.AddTenantFilter(resultQuery, tenant.TenantRecordId.ToString());
@@ -409,12 +409,13 @@ var docQuery = new QueryExpression("ilx_analysisdocument")
         "ilx_name",
         "ilx_documentname",
         "ilx_blobpath",
-        "ilx_extractedtext"
+        "ilx_extractedtext",
+        "ilx_tenantid"   // needed to pick the right blob container for sample docs
     )
 };
 
 docQuery.Criteria.AddCondition("ilx_analysisrun", ConditionOperator.Equal, runId);
-if (tenant.IsTrial)
+if (tenant.NeedsSampleData)
     TenantQueryHelper.AddTenantFilterWithSamples(docQuery, tenant.TenantRecordId.ToString());
 else
     TenantQueryHelper.AddTenantFilter(docQuery, tenant.TenantRecordId.ToString());
@@ -422,6 +423,12 @@ else
 var docEntities = service.RetrieveMultiple(docQuery).Entities;
 
 var blobServiceClient = BlobHelper.CreateServiceClient();
+
+// For trial users viewing sample documents, blobs live in the sample tenant's
+// container — not the trial user's personal container.
+var sampleContainerName = tenant.NeedsSampleData
+    ? _tenantResolver.ResolveSampleContainerName()
+    : "";
 
 // User-delegation key is only needed when the client uses DefaultAzureCredential
 // (Managed Identity in Azure). Locally with a connection string the blob client
@@ -441,7 +448,13 @@ if (!testBlob.CanGenerateSasUri)
 foreach (var d in docEntities)
 {
     var blobPath = d.GetAttributeValue<string>("ilx_blobpath");
-    var containerName = tenant.BlobContainerName;
+    var docTenantId = d.GetAttributeValue<string>("ilx_tenantid") ?? "";
+
+    // Sample documents belong to the sys-sample tenant — use its container.
+    // Documents the trial user uploaded themselves use their personal container.
+    var containerName = (tenant.NeedsSampleData && TenantQueryHelper.IsSampleTenant(docTenantId))
+        ? sampleContainerName
+        : tenant.BlobContainerName;
 
     string documentUrl = null;
 

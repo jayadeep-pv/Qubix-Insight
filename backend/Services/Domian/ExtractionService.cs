@@ -13,9 +13,9 @@ namespace QubixInsight.Services.Domain
             _aiSummaryService = aiSummaryService;
         }
 
-        public async Task<Dictionary<string, object>> ExtractAttributesAsync(
+        public async Task<(Dictionary<string, object> Values, Dictionary<string, string> Anchors)> ExtractAttributesAsync(
             string text,
-            IEnumerable<Entity> attributes,   // ✅ FIXED
+            IEnumerable<Entity> attributes,
             string basePrompt,
             string templatePrompt)
         {
@@ -23,7 +23,7 @@ namespace QubixInsight.Services.Domain
 
             return await aiExtractionService.ExtractAttributesAsync(
                 text,
-                attributes,   // ✅ now matches expected type
+                attributes,
                 basePrompt,
                 templatePrompt
             );

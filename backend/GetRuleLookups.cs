@@ -55,7 +55,7 @@ public class GetRuleLookups
                 )
             };
 
-            if (tenant.IsTrial)
+            if (tenant.NeedsSampleData)
                 TenantQueryHelper.AddTenantFilterWithSamples(templateQuery, tenant.TenantRecordId.ToString());
             else
                 TenantQueryHelper.AddTenantFilter(templateQuery, tenant.TenantRecordId.ToString());
@@ -83,7 +83,7 @@ public class GetRuleLookups
                 )
             };
 
-            if (tenant.IsTrial)
+            if (tenant.NeedsSampleData)
                 TenantQueryHelper.AddTenantFilterWithSamples(attributeQuery, tenant.TenantRecordId.ToString());
             else
                 TenantQueryHelper.AddTenantFilter(attributeQuery, tenant.TenantRecordId.ToString());

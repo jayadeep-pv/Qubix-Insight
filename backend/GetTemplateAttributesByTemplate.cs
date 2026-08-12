@@ -66,7 +66,7 @@ public class GetTemplateAttributesByTemplate
 
         query.Criteria.AddCondition("statecode", ConditionOperator.Equal, 0);
         query.Criteria.AddCondition("ilx_analysistemplate", ConditionOperator.Equal, templateGuid);
-        if (tenant.IsTrial)
+        if (tenant.NeedsSampleData)
             TenantQueryHelper.AddTenantFilterWithSamples(query, tenant.TenantRecordId.ToString());
         else
             TenantQueryHelper.AddTenantFilter(query, tenant.TenantRecordId.ToString());

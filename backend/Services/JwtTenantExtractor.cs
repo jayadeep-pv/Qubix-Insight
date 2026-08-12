@@ -12,6 +12,13 @@ public record JwtUserInfo(string? TenantId, string? Oid, string? Email, string? 
 /// </summary>
 public static class JwtTenantExtractor
 {
+    // Set once at startup so CIAM users can be detected by tenant GUID
+    // as a fallback when the issuer doesn't contain "ciamlogin.com".
+    private static string? _extIdTenantId;
+
+    /// <summary>Call from Program.cs to enable reliable External ID user detection.</summary>
+    public static void Configure(string? extIdTenantId) => _extIdTenantId = extIdTenantId;
+
     public static string? GetAadTenantId(HttpRequestData req) =>
         GetUserInfo(req)?.TenantId;
 
@@ -55,7 +62,11 @@ public static class JwtTenantExtractor
             if (string.IsNullOrEmpty(oid))
                 oid = root.TryGetProperty("sub", out var sub) ? sub.GetString() : null;
             var issuer = root.TryGetProperty("iss",                out var i)   ? i.GetString()   : null;
-            var isCiamEarly = issuer?.IndexOf("ciamlogin.com", StringComparison.OrdinalIgnoreCase) >= 0;
+            // A token is CIAM if the issuer contains "ciamlogin.com" OR the tid matches
+            // the configured External ID tenant GUID (fallback for custom-domain setups).
+            var isCiamEarly = issuer?.IndexOf("ciamlogin.com", StringComparison.OrdinalIgnoreCase) >= 0
+                || (!string.IsNullOrEmpty(_extIdTenantId) &&
+                    tid?.Equals(_extIdTenantId, StringComparison.OrdinalIgnoreCase) == true);
 
             // Email claim order differs by token type:
             //   AAD:  upn → preferred_username → email  (UPN is canonical for corp accounts)
@@ -117,5 +128,7 @@ public static class JwtTenantExtractor
     /// These users bypass admin-only checks for Quick Scan template saves.
     /// </summary>
     public static bool IsCiamUser(JwtUserInfo userInfo) =>
-        userInfo.Issuer?.IndexOf("ciamlogin.com", StringComparison.OrdinalIgnoreCase) >= 0;
+        userInfo.Issuer?.IndexOf("ciamlogin.com", StringComparison.OrdinalIgnoreCase) >= 0
+        || (!string.IsNullOrEmpty(_extIdTenantId) &&
+            userInfo.TenantId?.Equals(_extIdTenantId, StringComparison.OrdinalIgnoreCase) == true);
 }

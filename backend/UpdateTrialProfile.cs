@@ -28,6 +28,7 @@ public class UpdateTrialProfile
     private record ProfileRequest(
         string? FirstName,
         string? LastName,
+        string? Email,
         string? CompanyName,
         string? JobTitle,
         string? Country
@@ -58,28 +59,27 @@ public class UpdateTrialProfile
             var profile = JsonSerializer.Deserialize<ProfileRequest>(body ?? "{}",
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-            // Resolve the tenant for this user.
-            // For CIAM users, JwtTenantExtractor sets TenantId = OID so the lookup targets
-            // their personal ilx_tenantsetting row (keyed by OID in ilx_aadtenantid).
-            // On first sign-up that row does not exist yet — provision it now.
-            Guid tenantSettingId;
-            try
-            {
-                tenantSettingId = _tenantResolver.ResolveTenant(userInfo.TenantId!).TenantRecordId;
-            }
-            catch (Exception ex) when (ex.Message.Contains("Tenant not found or inactive"))
-            {
-                // New trial user — create their personal ilx_tenantsetting + blob container.
-                tenantSettingId = await _tenantUserService.ProvisionTrialTenantAsync(
-                    oid:         userInfo.Oid!,
-                    email:       userInfo.Email ?? "",
-                    companyName: profile?.CompanyName
-                );
-            }
+            // This endpoint is trial/CIAM-only. Always provision a personal ilx_tenantsetting
+            // keyed by OID — ProvisionTrialTenantAsync is idempotent (returns existing record
+            // if already created). This ensures each trial user is isolated even if a shared
+            // trial tenant record was set up during Phase 3 Azure portal configuration.
+            //
+            // Prefer the email the user typed in the sign-up form — External ID JWT tokens
+            // often return the generated @ilogixidentity.onmicrosoft.com UPN rather than
+            // the user's real work email, which would produce the wrong allowed domain.
+            var resolvedEmail = !string.IsNullOrWhiteSpace(profile?.Email)
+                ? profile.Email
+                : userInfo.Email ?? "";
+
+            var tenantSettingId = await _tenantUserService.ProvisionTrialTenantAsync(
+                oid:         userInfo.Oid!,
+                email:       resolvedEmail,
+                companyName: profile?.CompanyName
+            );
 
             _tenantUserService.CreateOrUpdate(
                 oid:             userInfo.Oid,
-                email:           userInfo.Email,
+                email:           resolvedEmail,
                 displayName:     userInfo.Name,
                 tenantSettingId: tenantSettingId,
                 firstName:       profile?.FirstName,

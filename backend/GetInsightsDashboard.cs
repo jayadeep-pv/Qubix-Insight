@@ -79,7 +79,7 @@ public class GetInsightsDashboard
             ColumnSet = new ColumnSet(false)
         };
 
-        if (tenant.IsTrial)
+        if (tenant.NeedsSampleData)
             TenantQueryHelper.AddTenantFilterWithSamples(insightQuery, tenant.TenantRecordId.ToString());
         else
             TenantQueryHelper.AddTenantFilter(insightQuery, tenant.TenantRecordId.ToString());
@@ -96,7 +96,7 @@ public class GetInsightsDashboard
         };
 
         monthQuery.Criteria.AddCondition("createdon", ConditionOperator.ThisMonth);
-        if (tenant.IsTrial)
+        if (tenant.NeedsSampleData)
             TenantQueryHelper.AddTenantFilterWithSamples(monthQuery, tenant.TenantRecordId.ToString());
         else
             TenantQueryHelper.AddTenantFilter(monthQuery, tenant.TenantRecordId.ToString());
@@ -113,7 +113,7 @@ public class GetInsightsDashboard
             ColumnSet = new ColumnSet(false)
         };
 
-        if (tenant.IsTrial)
+        if (tenant.NeedsSampleData)
             TenantQueryHelper.AddTenantFilterWithSamples(runCountQuery, tenant.TenantRecordId.ToString());
         else
             TenantQueryHelper.AddTenantFilter(runCountQuery, tenant.TenantRecordId.ToString());
@@ -129,7 +129,7 @@ public class GetInsightsDashboard
             ColumnSet = new ColumnSet("createdon", "ilx_mode")
         };
 
-        if (tenant.IsTrial)
+        if (tenant.NeedsSampleData)
             TenantQueryHelper.AddTenantFilterWithSamples(allRunsQuery, tenant.TenantRecordId.ToString());
         else
             TenantQueryHelper.AddTenantFilter(allRunsQuery, tenant.TenantRecordId.ToString());
@@ -195,7 +195,7 @@ public class GetInsightsDashboard
         {
             ColumnSet = new ColumnSet(false)
         };
-        if (tenant.IsTrial)
+        if (tenant.NeedsSampleData)
             TenantQueryHelper.AddTenantFilterWithSamples(totalDocsQuery, tenant.TenantRecordId.ToString());
         else
             TenantQueryHelper.AddTenantFilter(totalDocsQuery, tenant.TenantRecordId.ToString());
@@ -209,7 +209,7 @@ public class GetInsightsDashboard
         {
             ColumnSet = new ColumnSet(false)
         };
-        if (tenant.IsTrial)
+        if (tenant.NeedsSampleData)
             TenantQueryHelper.AddTenantFilterWithSamples(highRiskQuery, tenant.TenantRecordId.ToString());
         else
             TenantQueryHelper.AddTenantFilter(highRiskQuery, tenant.TenantRecordId.ToString());
@@ -234,7 +234,7 @@ public class GetInsightsDashboard
         };
 
         // Trial users also see shared sample records in the recent runs list
-        if (tenant.IsTrial)
+        if (tenant.NeedsSampleData)
             TenantQueryHelper.AddTenantFilterWithSamples(runQuery, tenant.TenantRecordId.ToString());
         else
             TenantQueryHelper.AddTenantFilter(runQuery, tenant.TenantRecordId.ToString());

@@ -89,7 +89,7 @@ namespace QubixInsight.Functions
                     ColumnSet = new ColumnSet("ilx_name", "ilx_extractedtext")
                 };
                 docQuery.Criteria.AddCondition("ilx_analysisrun", ConditionOperator.Equal, runId);
-                if (tenant.IsTrial)
+                if (tenant.NeedsSampleData)
                     TenantQueryHelper.AddTenantFilterWithSamples(docQuery, tenant.TenantRecordId.ToString());
                 else
                     TenantQueryHelper.AddTenantFilter(docQuery, tenant.TenantRecordId.ToString());
@@ -109,7 +109,7 @@ namespace QubixInsight.Functions
                     ColumnSet = new ColumnSet("ilx_name", "ilx_normalisedvalue")
                 };
                 attrQuery.Criteria.AddCondition("ilx_analysisrun", ConditionOperator.Equal, runId);
-                if (tenant.IsTrial)
+                if (tenant.NeedsSampleData)
                     TenantQueryHelper.AddTenantFilterWithSamples(attrQuery, tenant.TenantRecordId.ToString());
                 else
                     TenantQueryHelper.AddTenantFilter(attrQuery, tenant.TenantRecordId.ToString());

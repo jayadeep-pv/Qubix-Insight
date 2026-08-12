@@ -35,7 +35,7 @@ namespace QubixInsight.Services
                 var text = doc.GetAttributeValue<string>("ilx_extractedtext");
 
                 // 🔥 DO NOT CHANGE CALL — SAME METHOD
-                var aiResult = await _aiExtractionService.ExtractAttributesAsync(
+                var (aiResult, _) = await _aiExtractionService.ExtractAttributesAsync(
                     text,
                     attributes,
                     basePrompt,

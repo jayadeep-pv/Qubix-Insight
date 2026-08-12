@@ -11,6 +11,7 @@ public class TenantResolverService
 {
     private readonly IMemoryCache _cache;
     private readonly ServiceClient _masterService;
+    private readonly HashSet<string> _internalTenantKeys;
 
     // Tenant settings rarely change — cache for 30 minutes to avoid repeated Dataverse roundtrips
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(30);
@@ -18,6 +19,13 @@ public class TenantResolverService
     public TenantResolverService(IConfiguration config, IMemoryCache cache)
     {
         _cache = cache;
+
+        // Comma-separated list of tenant keys that bypass trial restrictions but see sample data.
+        // Example app setting: Qubix_InternalTenantKeys = css-4a181735,dev-abc12345
+        var internalKeys = config["Qubix_InternalTenantKeys"] ?? "";
+        _internalTenantKeys = new HashSet<string>(
+            internalKeys.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+            StringComparer.OrdinalIgnoreCase);
 
         var url          = config["Qubix_MainDataverseUrl"];
         var clientId     = config["Qubix_ClientId"];
@@ -61,6 +69,35 @@ public class TenantResolverService
         return settings;
     }
 
+    /// <summary>
+    /// Returns the blob container name for the sys-sample tenant, used when trial users
+    /// view sample documents whose blobs live in the sample tenant's container.
+    /// Result is cached. Returns empty string if no sys-sample record exists.
+    /// </summary>
+    public string ResolveSampleContainerName()
+    {
+        const string cacheKey = "tenant:sys-sample:container";
+
+        if (_cache.TryGetValue(cacheKey, out string? cached))
+            return cached ?? "";
+
+        if (!_masterService.IsReady)
+            return "";
+
+        var query = new QueryExpression("ilx_tenantsetting")
+        {
+            ColumnSet = new ColumnSet("ilx_storagecontainername"),
+            TopCount  = 1
+        };
+        query.Criteria.AddCondition("ilx_tenantname", ConditionOperator.Equal, TenantQueryHelper.SampleTenantId);
+
+        var result = _masterService.RetrieveMultiple(query).Entities.FirstOrDefault();
+        var container = result?.GetAttributeValue<string>("ilx_storagecontainername") ?? "";
+
+        _cache.Set(cacheKey, container, CacheTtl);
+        return container;
+    }
+
     private TenantSettings LookupFromDataverse(string aadTenantId)
     {
         if (!_masterService.IsReady)
@@ -94,10 +131,12 @@ public class TenantResolverService
 
         var tierLabel = result.FormattedValues.TryGetValue("ilx_subscriptiontier", out var lbl) ? lbl : "";
 
+        var tenantKey = result.GetAttributeValue<string>("ilx_tenantid") ?? "";
+
         return new TenantSettings
         {
             TenantRecordId     = result.Id,
-            TenantKey          = result.GetAttributeValue<string>("ilx_tenantid")            ?? "",
+            TenantKey          = tenantKey,
             TenantName         = result.GetAttributeValue<string>("ilx_tenantname")          ?? "",
             AadTenantId        = result.GetAttributeValue<string>("ilx_aadtenantid")         ?? "",
             AllowedDomains     = result.GetAttributeValue<string>("ilx_alloweddomains")      ?? "",
@@ -108,7 +147,8 @@ public class TenantResolverService
             SubscriptionTier   = result.GetAttributeValue<OptionSetValue>("ilx_subscriptiontier")?.Value.ToString() ?? "",
             OnboardedDate      = result.GetAttributeValue<DateTime?>("ilx_onboardeddate"),
             IsActive           = result.GetAttributeValue<bool>("ilx_isactive"),
-            IsTrial            = tierLabel.Equals("Trial", StringComparison.OrdinalIgnoreCase)
+            IsTrial            = tierLabel.Equals("Trial", StringComparison.OrdinalIgnoreCase),
+            IsInternal         = _internalTenantKeys.Contains(tenantKey)
         };
     }
 }

@@ -17,7 +17,7 @@ public class AiExtractionService
         _ai = ai;
     }
 
-    public async Task<Dictionary<string, object>> ExtractAttributesAsync(
+    public async Task<(Dictionary<string, object> Values, Dictionary<string, string> Anchors)> ExtractAttributesAsync(
             string text,
             IEnumerable<Entity> attributes,
             string basePrompt,
@@ -81,6 +81,10 @@ public class AiExtractionService
         sb.AppendLine("If a field is described in a sentence or clause, extract a short summary.");
         sb.AppendLine("Do not require exact wording match between field name and document text.");
         sb.AppendLine();
+        sb.AppendLine("For each field return an object with exactly TWO properties:");
+        sb.AppendLine("  \"value\": the extracted or inferred value (a summary or verbatim excerpt, as appropriate for display)");
+        sb.AppendLine("  \"anchor\": a short verbatim phrase of 5-12 words copied EXACTLY from the document that is the strongest evidence for this value. If the value is inferred, pick the phrase in the document that most directly implies it. Use empty string only if the field is genuinely not present anywhere in the document.");
+        sb.AppendLine();
 
         // =============================
         // 🔥 JSON TEMPLATE
@@ -98,7 +102,7 @@ public class AiExtractionService
 
             var comma = index < count ? "," : "";
 
-            sb.AppendLine($"  \"{key}\": \"Not Found\"{comma}");
+            sb.AppendLine($"  \"{key}\": {{ \"value\": \"Not Found\", \"anchor\": \"\" }}{comma}");
         }
 
         sb.AppendLine("}");
@@ -114,14 +118,15 @@ public class AiExtractionService
     }
 
 
-private Dictionary<string, object> ParseJson(
+private (Dictionary<string, object> Values, Dictionary<string, string> Anchors) ParseJson(
     string response,
     IEnumerable<Entity> attributes)
 {
-    var result = new Dictionary<string, object>();
+    var result  = new Dictionary<string, object>();
+    var anchors = new Dictionary<string, string>();
 
     if (string.IsNullOrWhiteSpace(response))
-        return result;
+        return (result, anchors);
 
     try
     {
@@ -135,18 +140,33 @@ private Dictionary<string, object> ParseJson(
             if (string.IsNullOrWhiteSpace(key))
                 continue;
 
-            // ✅ STRICT match only
             if (root.TryGetProperty(key, out var val))
             {
-                string value = val.ValueKind == JsonValueKind.String
-                    ? val.GetString()
-                    : val.ToString();
+                string? valueStr;
 
-                // Normalize "Not Found"
-                if (value != null && value.Trim().Equals("Not Found", StringComparison.OrdinalIgnoreCase))
+                if (val.ValueKind == JsonValueKind.Object)
+                {
+                    // Structured format: {"value": "...", "anchor": "..."}
+                    valueStr = val.TryGetProperty("value", out var vp)
+                        ? (vp.ValueKind == JsonValueKind.String ? vp.GetString() : vp.ToString())
+                        : null;
+
+                    if (val.TryGetProperty("anchor", out var ap))
+                    {
+                        var anchorStr = ap.ValueKind == JsonValueKind.String ? ap.GetString() : ap.ToString();
+                        if (!string.IsNullOrWhiteSpace(anchorStr))
+                            anchors[key] = anchorStr;
+                    }
+                }
+                else
+                {
+                    valueStr = val.ValueKind == JsonValueKind.String ? val.GetString() : val.ToString();
+                }
+
+                if (valueStr != null && valueStr.Trim().Equals("Not Found", StringComparison.OrdinalIgnoreCase))
                     result[key] = null;
                 else
-                    result[key] = value;
+                    result[key] = valueStr;
             }
             else
             {
@@ -156,17 +176,15 @@ private Dictionary<string, object> ParseJson(
     }
     catch
     {
-        // ❌ DO NOT fallback to string parsing
         foreach (var attr in attributes)
         {
             var key = attr.GetAttributeValue<string>("ilx_attributekey");
-
             if (!string.IsNullOrWhiteSpace(key))
                 result[key] = null;
         }
     }
 
-    return result;
+    return (result, anchors);
 }
 
 

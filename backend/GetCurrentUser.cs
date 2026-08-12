@@ -70,8 +70,8 @@ public class GetCurrentUser
                 return pending;
             }
 
-            // Block personal email domains for trial accounts
-            if (tenant.IsTrial)
+            // Block personal email domains for trial accounts (internal accounts exempt)
+            if (tenant.IsTrial && !tenant.IsInternal)
             {
                 var domain = userInfo.Email?.Split('@').LastOrDefault() ?? "";
                 if (BlockedDomains.Contains(domain))
@@ -94,7 +94,7 @@ public class GetCurrentUser
             }
 
             // Alias kept so trial-specific logic below compiles without changes
-            var trialUser = tenant.IsTrial ? tenantUser : null;
+            var trialUser = (tenant.IsTrial && !tenant.IsInternal) ? tenantUser : null;
 
             var isExpired = trialUser?.TrialExpiry.HasValue == true
                 && trialUser.TrialExpiry.Value < DateTime.UtcNow;
@@ -111,7 +111,7 @@ public class GetCurrentUser
 
             var result = new
             {
-                isTrial          = tenant.IsTrial,
+                isTrial          = tenant.IsTrial && !tenant.IsInternal,
                 isAdmin          = isAdmin,
                 tenantName       = tenant.TenantName,
                 subscriptionTier = tenant.SubscriptionTier,
@@ -122,7 +122,7 @@ public class GetCurrentUser
                 companyName      = trialUser?.CompanyName ?? userInfo.CompanyName ?? "",
                 jobTitle         = trialUser?.JobTitle    ?? "",
                 country          = trialUser?.Country     ?? "",
-                profileComplete  = !tenant.IsTrial || trialUser != null,
+                profileComplete  = !tenant.IsTrial || tenant.IsInternal || trialUser != null,
                 runsUsed         = runsThisMonth,
                 runLimit         = trialUser?.RunLimit    ?? 3,
                 trialExpiry      = trialUser?.TrialExpiry?.ToString("o") ?? "",

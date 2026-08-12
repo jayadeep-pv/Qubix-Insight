@@ -39,7 +39,7 @@ public class ExportComparisonPdf
 
         var tenant = _tenantResolver.ResolveTenant(aadTenantId);
 
-        if (tenant.IsTrial)
+        if (tenant.IsTrial && !tenant.IsInternal)
         {
             var forbidden = req.CreateResponse(HttpStatusCode.Forbidden);
             await forbidden.WriteStringAsync("PDF export is not available on trial accounts. Upgrade to export reports.");

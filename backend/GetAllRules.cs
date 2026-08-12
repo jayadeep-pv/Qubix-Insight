@@ -58,7 +58,7 @@ public class GetAllRules
                     "statecode")
             };
 
-            if (tenant.IsTrial)
+            if (tenant.NeedsSampleData)
                 TenantQueryHelper.AddTenantFilterWithSamples(query, tenant.TenantRecordId.ToString());
             else
                 TenantQueryHelper.AddTenantFilter(query, tenant.TenantRecordId.ToString());
