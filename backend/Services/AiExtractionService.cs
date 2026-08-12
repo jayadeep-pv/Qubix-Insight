@@ -83,7 +83,7 @@ public class AiExtractionService
         sb.AppendLine();
         sb.AppendLine("For each field return an object with exactly TWO properties:");
         sb.AppendLine("  \"value\": the extracted or inferred value (a summary or verbatim excerpt, as appropriate for display)");
-        sb.AppendLine("  \"anchor\": a short verbatim phrase of 5-12 words copied EXACTLY from the document that is the strongest evidence for this value. If the value is inferred, pick the phrase in the document that most directly implies it. Use empty string only if the field is genuinely not present anywhere in the document.");
+        sb.AppendLine("  \"anchor\": a short verbatim phrase of 5-12 words copied EXACTLY from the document that is the strongest evidence for this value. If the value is inferred, pick the phrase in the document that most directly implies it. For list or array values (e.g. named people, multiple items), use the section heading or the first person/item name as the anchor — NOT a phrase from a different section that merely mentions the topic. Use empty string only if the field is genuinely not present anywhere in the document.");
         sb.AppendLine();
 
         // =============================
