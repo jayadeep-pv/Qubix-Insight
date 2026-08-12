@@ -341,6 +341,12 @@ export default function ComparisonResults() {
           );
         }
 
+        // No coordinates available — clear any previous highlight and stop
+        if (!valueWithCoords) {
+          setHighlight(null);
+          return;
+        }
+
         // Switch to the document that owns the coordinates
         if (valueWithCoords?.documentId && valueWithCoords.documentId !== selectedDocId) {
               const targetDoc = documents.find(
@@ -426,7 +432,7 @@ export default function ComparisonResults() {
     })();
 
     if (!valueWithCoords) {
-      console.warn("No coordinates found");
+      setHighlight(null);
       return;
     }
 
