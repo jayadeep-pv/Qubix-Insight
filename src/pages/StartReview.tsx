@@ -354,6 +354,43 @@ function StartReview() {
     setTemplates(data);
   };
 
+  /* Discovery mode: profiles aren't tied to a saved template yet, so load
+     template-specific profiles when enriching an existing template, otherwise
+     fall back to the full tenant profile list (mirrors loadProfilesForTemplate). */
+  const loadExtractProfiles = async (templateId: string) => {
+    try {
+      let profiles: AiProfile[] = [];
+
+      if (templateId) {
+        const data = await configApi.getProfilesByTemplate(templateId);
+        profiles = data.map((d: any) => ({
+          id: d.profileId,
+          name: d.profileName,
+          description: d.description ?? d.profileDescription ?? "",
+          isDefault: d.isDefault,
+          isMandatory: d.isMandatory,
+        }));
+      }
+
+      if (profiles.length === 0) {
+        const allProfiles = await configApi.getAllAiInsightProfiles();
+        profiles = (allProfiles as any[]).map(p => ({
+          id: p.id,
+          name: p.profileName,
+          description: p.description ?? "",
+          isDefault: p.isDefault,
+          isMandatory: p.isMandatory,
+        }));
+      }
+
+      setAiProfiles(profiles);
+      setSelectedProfiles(profiles.filter(p => p.isDefault || p.isMandatory).map(p => p.id));
+    } catch {
+      setAiProfiles([]);
+      setSelectedProfiles([]);
+    }
+  };
+
   useEffect(() => {
     if (isAuthenticated && accounts.length > 0 && inProgress === InteractionStatus.None) {
       loadDocumentTypes();
@@ -386,6 +423,12 @@ function StartReview() {
     }
   }, [selectedTemplate]);
 
+  useEffect(() => {
+    if (mode === "extract") {
+      loadExtractProfiles(extractTemplateId);
+    }
+  }, [mode, extractTemplateId]);
+
   /* ── Reset when switching modes ── */
   useEffect(() => {
     setUploadedFiles([]);
@@ -396,6 +439,7 @@ function StartReview() {
     setStatus("");
     setError("");
     setSelectedProfiles([]);
+    setAiProfiles([]);
     if (mode === "extract") {
       setSelectedDocumentType("");
       setSelectedTemplate("");
@@ -481,7 +525,7 @@ function StartReview() {
     }
     if ((mode === "compare" || mode === "compare-scoring") && uploadedFiles.length < 2)
       return "This mode requires at least 2 documents.";
-    if (mode !== "extract" && aiProfiles.length > 0 && selectedProfiles.length === 0)
+    if (aiProfiles.length > 0 && selectedProfiles.length === 0)
       return "Select at least one AI Insight Profile.";
     return null;
   };
@@ -766,16 +810,9 @@ function StartReview() {
       setScanStageIdx(1);
       startProgressAnim(50, 30000);
 
-      // Fetch mandatory/default profiles and create insights before executing
-      let profileIds: string[] = [];
-      try {
-        const allProfiles = await configApi.getAllAiInsightProfiles();
-        profileIds = (allProfiles as any[])
-          .filter(p => p.isDefault || p.isMandatory)
-          .map(p => p.id)
-          .filter(Boolean);
-
-        if (profileIds.length > 0) {
+      // Create AI insight records using the profiles the user selected up-front
+      if (selectedProfiles.length > 0) {
+        try {
           // Stage 2: Running AI profiles (50→80%)
           snapProgress(50);
           setScanStageIdx(2);
@@ -787,11 +824,11 @@ function StartReview() {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({ comparisonRunId: runRecordId, selectedProfileIds: profileIds }),
+            body: JSON.stringify({ comparisonRunId: runRecordId, selectedProfileIds: selectedProfiles }),
           });
+        } catch {
+          // non-critical — continue to execute even if insight creation fails
         }
-      } catch {
-        // non-critical — continue to execute even if insight creation fails
       }
 
       // Stage 3: Generating report (80→95%)
@@ -1095,6 +1132,39 @@ function StartReview() {
               </div>
             </div>
           )}
+
+          <div style={{ marginTop: 14, marginBottom: 4 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 8 }}>
+              <h3 style={{ margin:0 }}>AI Insight Profiles</h3>
+              {aiProfiles.length > 0 && (
+                <span style={{ fontSize:11, color:"#6b7280" }}>{selectedProfiles.length} of {aiProfiles.length} selected</span>
+              )}
+            </div>
+            {aiProfiles.length === 0 ? (
+              <p className="aip-no-profiles" style={{ margin:0 }}>No AI Insight Profiles are configured yet.</p>
+            ) : (
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
+                {aiProfiles.map((profile) => {
+                  const isSelected = selectedProfiles.includes(profile.id);
+                  return (
+                    <button key={profile.id} type="button"
+                      className={`aip-profile-card${isSelected ? " aip-profile-card--on" : ""}`}
+                      style={{ padding:"8px 11px" }}
+                      onClick={() => isSelected
+                        ? setSelectedProfiles(selectedProfiles.filter((id) => id !== profile.id))
+                        : setSelectedProfiles([...selectedProfiles, profile.id])}>
+                      <div className="aip-profile-card-header">
+                        <span className="aip-profile-card-name">{profile.name}</span>
+                        <div className={`aip-profile-card-radio${isSelected ? " aip-profile-card-radio--on" : ""}`} />
+                      </div>
+                      {profile.description && <div className="aip-profile-card-desc">{profile.description}</div>}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           <div style={{ marginTop: 14 }}>
             <button className="primary-btn" onClick={() => runExtract()}
               disabled={scanning || uploadedFiles.length === 0 || (isTrial && runsUsed >= runLimit)}>
@@ -1583,7 +1653,10 @@ function StartReview() {
                 <div className="qe-insight-prompt-body">
                   <div className="qe-insight-prompt-title">Save this as an Insight?</div>
                   <div className="qe-insight-prompt-sub">
-                    Run the AI extraction pipeline against <strong>{uploadedFiles[0]?.name}</strong> using your new template. The results will be saved as a full Insight with field highlighting.
+                    Run the AI extraction pipeline against <strong>{uploadedFiles[0]?.name}</strong> using your new template
+                    {selectedProfiles.length > 0 && (
+                      <> with <strong>{aiProfiles.filter(p => selectedProfiles.includes(p.id)).map(p => p.name).join(", ")}</strong></>
+                    )}. The results will be saved as a full Insight with field highlighting.
                   </div>
                   {insightError && <ErrorPanel message={insightError} />}
                 </div>
