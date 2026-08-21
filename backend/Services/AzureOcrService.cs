@@ -1,4 +1,5 @@
 ﻿using Azure;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using Azure.AI.DocumentIntelligence;
@@ -65,12 +66,39 @@ public class AzureOcrService
 
         var result = operation.Value;
 
-        // --- Structured markdown text (used by AI services) ---
-        string fullText = BuildStructuredMarkdown(result);
+        _logger.LogInformation(
+            "[OCR] Raw result — Pages={Pages}, Paragraphs={Paragraphs}, Tables={Tables}, TotalLines={Lines}",
+            result.Pages?.Count ?? -1,
+            result.Paragraphs?.Count ?? -1,
+            result.Tables?.Count ?? -1,
+            result.Pages?.Sum(p => p.Lines?.Count ?? 0) ?? -1);
 
-        // Fallback: if structured pass yielded nothing meaningful, use flat lines
-        if (string.IsNullOrWhiteSpace(fullText.Replace("-", "").Replace("\n", "").Replace("\r", "").Trim()))
-            fullText = BuildFlatText(result);
+        // --- Structured markdown text (used by AI services) ---
+        string fullText = BuildStructuredMarkdown(result, out var hasStructuredContent);
+
+        if (!hasStructuredContent)
+        {
+            // Fallback 1: paginated/scanned formats populate Lines even when paragraphs
+            // lack BoundingRegions — use flat line text in that case.
+            var totalLines = result.Pages?.Sum(p => p.Lines?.Count ?? 0) ?? 0;
+            if (totalLines > 0)
+            {
+                fullText = BuildFlatText(result);
+            }
+            else
+            {
+                // Fallback 2: non-paginated formats (e.g. .docx) don't populate Lines either —
+                // there's no OCR/pixel concept of a "line" for them, so no polygon/highlighting
+                // data will ever be available for these files. The real text still comes back
+                // in Paragraphs[].Content though, just without position data — use it directly.
+                fullText = BuildParagraphText(result);
+            }
+        }
+
+        _logger.LogInformation(
+            "[OCR] hasStructuredContent={HasContent}, fullText.Length={Len}, preview={Preview}",
+            hasStructuredContent, fullText.Length,
+            fullText.Length > 0 ? fullText.Substring(0, Math.Min(200, fullText.Length)) : "(empty)");
 
         // --- Line anchors (unchanged — used for PDF coordinate highlighting) ---
         var pages = new List<OcrPageAnchor>();
@@ -124,7 +152,7 @@ public class AzureOcrService
     // STRUCTURED MARKDOWN BUILDER
     // Uses Paragraphs (with roles) + Tables from Azure Document Intelligence
     // ==========================================
-    private string BuildStructuredMarkdown(AnalyzeResult result)
+    private string BuildStructuredMarkdown(AnalyzeResult result, out bool hasContent)
     {
         var sb = new StringBuilder();
 
@@ -192,7 +220,7 @@ public class AzureOcrService
         }
 
         // Render page by page, merging paragraphs + tables in Y order
-        if (result.Pages == null) return sb.ToString();
+        if (result.Pages == null) { hasContent = false; return sb.ToString(); }
 
         foreach (var page in result.Pages)
         {
@@ -232,6 +260,7 @@ public class AzureOcrService
             sb.AppendLine();
         }
 
+        hasContent = parasByPage.Count > 0 || tablesByPage.Count > 0;
         return sb.ToString();
     }
 
@@ -295,6 +324,27 @@ public class AzureOcrService
             foreach (var line in page.Lines)
                 sb.AppendLine(line.Content);
             sb.AppendLine();
+        }
+        return sb.ToString();
+    }
+
+    // Last-resort fallback for formats with no page/line concept at all (e.g. .docx) —
+    // reads raw paragraph text directly, with no position data attached.
+    private static string BuildParagraphText(AnalyzeResult result)
+    {
+        var sb = new StringBuilder();
+        if (result.Paragraphs == null) return sb.ToString();
+
+        foreach (var para in result.Paragraphs)
+        {
+            if (para.Role == ParagraphRole.PageHeader ||
+                para.Role == ParagraphRole.PageFooter  ||
+                para.Role == ParagraphRole.PageNumber)
+                continue;
+
+            var content = para.Content?.Trim();
+            if (!string.IsNullOrEmpty(content))
+                sb.AppendLine(content);
         }
         return sb.ToString();
     }

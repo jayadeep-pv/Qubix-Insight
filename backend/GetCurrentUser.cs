@@ -34,6 +34,12 @@ public class GetCurrentUser
         _tenantUserService = tenantUserService;
     }
 
+    private static async Task WriteJsonError(HttpResponseData res, string errorCode, string message, string? detail = null)
+    {
+        res.Headers.Add("Content-Type", "application/json");
+        await res.WriteStringAsync(JsonSerializer.Serialize(new { errorCode, message, detail }));
+    }
+
     [Function("GetCurrentUser")]
     public async Task<HttpResponseData> Run(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "GetCurrentUser")]
@@ -44,7 +50,7 @@ public class GetCurrentUser
         if (userInfo is null || string.IsNullOrWhiteSpace(userInfo.TenantId))
         {
             var bad = req.CreateResponse(HttpStatusCode.Unauthorized);
-            await bad.WriteStringAsync("Unable to determine tenant from Bearer token.");
+            await WriteJsonError(bad, "TOKEN_INVALID", "We couldn't verify your account from the sign-in token. Please try signing in again.");
             return bad;
         }
 
@@ -78,7 +84,7 @@ public class GetCurrentUser
                 {
                     _logger.LogWarning("Trial sign-up blocked for personal domain: {Domain}", domain);
                     var blocked = req.CreateResponse(HttpStatusCode.Unauthorized);
-                    await blocked.WriteStringAsync("Please sign up with a work email address. Personal email addresses are not accepted.");
+                    await WriteJsonError(blocked, "TRIAL_EMAIL_BLOCKED", "Please sign up with a work email address. Personal email addresses are not accepted.");
                     return blocked;
                 }
             }
@@ -137,8 +143,13 @@ public class GetCurrentUser
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetCurrentUser failed for tenant {TenantId}", userInfo.TenantId);
+            var isTenantNotFound = ex.Message.Contains("Tenant not found or inactive", StringComparison.OrdinalIgnoreCase);
+            var errorCode = isTenantNotFound ? "TENANT_NOT_FOUND" : "SERVER_ERROR";
+            var message = isTenantNotFound
+                ? "Your organization isn't set up for Qubix Insight yet, or your access has been deactivated. Please contact your administrator."
+                : "Something went wrong while loading your account. Please try again, or contact support if the problem continues.";
             var error = req.CreateResponse(HttpStatusCode.InternalServerError);
-            await error.WriteStringAsync(ex.Message);
+            await WriteJsonError(error, errorCode, message, ex.Message);
             return error;
         }
     }
