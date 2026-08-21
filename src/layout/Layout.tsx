@@ -73,7 +73,7 @@ function initials(name: string, email: string): string {
 export default function Layout({ onLogout }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isTrial, userName, userEmail, tenantName } = useUser();
+  const { isTrial, trialExpired, userName, userEmail, tenantName } = useUser();
   const [iconOnly, setIconOnly] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -255,6 +255,22 @@ export default function Layout({ onLogout }: LayoutProps) {
 
         {/* Main content */}
         <main className="content">
+          {isTrial && trialExpired && (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 10,
+              background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8,
+              padding: "8px 14px", marginBottom: 14,
+            }}>
+              <span style={{ fontSize: 14 }}>🚫</span>
+              <span style={{ fontSize: 12.5, color: "#b91c1c", flex: 1 }}>
+                <strong>Your trial has expired.</strong> Contact{" "}
+                <a href="mailto:support@qubixinsight.com" style={{ color: "#b91c1c", fontWeight: 600 }}>
+                  support@qubixinsight.com
+                </a>{" "}
+                to upgrade and keep using Qubix Insight.
+              </span>
+            </div>
+          )}
           <Outlet />
           <footer className="layout-footer">
             <span className="layout-footer-logo">

@@ -26,6 +26,15 @@ pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.vers
 
 const getApiBase = () => getAppConfig().apiBase.replace(/\/api\/?$/, "");
 
+// The document viewer only knows how to render PDFs (react-pdf) and images (<img>) —
+// anything else (e.g. .docx) has no visual preview, just the extracted fields.
+function getFileKind(nameOrUrl: string): "pdf" | "image" | "other" {
+  const clean = nameOrUrl.split("?")[0].toLowerCase();
+  if (/\.(png|jpe?g|gif|bmp|webp|tiff?|svg)$/.test(clean)) return "image";
+  if (/\.(docx?|xlsx?|pptx?|txt|rtf)$/.test(clean)) return "other";
+  return "pdf";
+}
+
 
 interface Candidate {
   id: string;
@@ -257,6 +266,10 @@ export default function ComparisonResults() {
   const pdfRef = useRef<HTMLDivElement>(null);
 
   const [pageSizes, setPageSizes] = useState<Record<number, { width: number; height: number }>>({});
+  // Image viewer's natural pixel dimensions — Azure DI returns image polygon
+  // coordinates in pixels (vs. inches for PDFs), so highlighting needs this.
+  const [imageNaturalSize, setImageNaturalSize] = useState<{ width: number; height: number } | null>(null);
+  const [imageLoadError, setImageLoadError] = useState(false);
 
 
   const [documents, setDocuments] = useState<{ id: string; name: string; url: string }[]>([]);
@@ -801,6 +814,12 @@ const sendChatQuestion = async () => {
       return () => observer.disconnect();
 }, [activeTab]);
 
+  // Reset stale image state (size/error) when the selected document changes
+  useEffect(() => {
+    setImageNaturalSize(null);
+    setImageLoadError(false);
+  }, [pdfUrl]);
+
   useEffect(() => {
     if (!selectedAttrId || !highlight || activeTab !== "fields") { setConnectorData(null); return; }
     const timer = setTimeout(computeConnector, 400);
@@ -922,7 +941,69 @@ const sendChatQuestion = async () => {
     console.log("Selected Insight Parsed:", selectedInsight);
 
 
-const pdfViewer = pdfUrl ? (
+const selectedDocName = documents.find((d: any) => d.id === selectedDocId)?.name || "";
+const fileKind = getFileKind(selectedDocName || pdfUrl || "");
+
+const imageViewer = pdfUrl ? (
+  <div style={{ height: "100%", overflow: "auto", background: "#fafafa", padding: 12, display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
+    {imageLoadError ? (
+      <div className="pdf-loading-placeholder pdf-loading-placeholder--error">Failed to load image</div>
+    ) : (
+      <div style={{ position: "relative", width: pdfWidth - 12 }}>
+        <img
+          key={pdfUrl}
+          src={pdfUrl}
+          alt={selectedDocName || "Document preview"}
+          style={{ width: "100%", height: "auto", display: "block", borderRadius: 6, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}
+          onLoad={(e) => {
+            const img = e.currentTarget;
+            setImageNaturalSize({ width: img.naturalWidth, height: img.naturalHeight });
+          }}
+          onError={() => setImageLoadError(true)}
+        />
+        {highlight && highlight.page === 1 && imageNaturalSize && (() => {
+          const coords = highlight.coords;
+          if (!coords || coords.length < 8) return null;
+
+          const xs = [coords[0], coords[2], coords[4], coords[6]];
+          const ys = [coords[1], coords[3], coords[5], coords[7]];
+          const minX = Math.min(...xs);
+          const maxX = Math.max(...xs);
+          const minY = Math.min(...ys);
+          const maxY = Math.max(...ys);
+
+          // Image polygons are in pixels matching the image's natural size —
+          // no inch-to-point conversion needed, just a straight render scale factor.
+          const renderedWidth = pdfWidth - 12;
+          const scale = renderedWidth / imageNaturalSize.width;
+          const pad = 4; // px clearance around the box
+
+          return (
+            <div
+              className="pdf-highlight-overlay"
+              style={{
+                position: "absolute",
+                left:   minX * scale - pad,
+                top:    minY * scale - pad,
+                width:  (maxX - minX) * scale + pad * 2,
+                height: (maxY - minY) * scale + pad * 2,
+              }}
+            />
+          );
+        })()}
+      </div>
+    )}
+  </div>
+) : null;
+
+const noPreviewViewer = (
+  <div className="pdf-empty-state">
+    <FileText size={32} style={{ color: "#d1d5db" }} />
+    <span>Preview isn&rsquo;t available for this file type — see the extracted fields on the left.</span>
+  </div>
+);
+
+const pdfDocumentViewer = pdfUrl ? (
   <div
     style={{
       height: "100%",
@@ -1049,6 +1130,8 @@ const pdfViewer = pdfUrl ? (
     </div>
   </div>
 ) : null;
+
+const pdfViewer = fileKind === "image" ? imageViewer : fileKind === "other" ? noPreviewViewer : pdfDocumentViewer;
 
     
 

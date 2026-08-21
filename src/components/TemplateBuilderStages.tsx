@@ -376,6 +376,10 @@ interface ConfirmStageProps {
   onBack:            () => void;
   onSave:            () => void;
   onUpdateAttribute?: (index: number, field: string, value: any) => void;
+  /** When set, this is an "append new attributes to an existing template" save
+   *  instead of creating a new Document Type + Template — the summary panels
+   *  show the target template instead of new/existing document type details. */
+  appendToTemplateName?: string;
 }
 
 export function ConfirmStage({
@@ -383,6 +387,7 @@ export function ConfirmStage({
   newDocTypeName, newDocTypeDesc, templateName, templateVersion,
   enableAiInsight, attributes, categories,
   loading, status, error, onBack, onSave, onUpdateAttribute,
+  appendToTemplateName,
 }: ConfirmStageProps) {
   return (
     <>
@@ -395,7 +400,9 @@ export function ConfirmStage({
           <div className="tbs-summary-section">
             <div className="tbs-summary-title"><span>📄</span> Document Type</div>
             <div className="tbs-summary-body">
-              {classifyMode === "new" ? (
+              {appendToTemplateName ? (
+                <div className="tbs-summary-row"><span className="tbs-summary-label">Action</span><span className="tbs-badge tbs-badge--existing">Unchanged</span></div>
+              ) : classifyMode === "new" ? (
                 <>
                   <div className="tbs-summary-row"><span className="tbs-summary-label">Action</span><span className="tbs-badge tbs-badge--new">Create New</span></div>
                   <div className="tbs-summary-row"><span className="tbs-summary-label">Name</span><span>{newDocTypeName}</span></div>
@@ -414,10 +421,19 @@ export function ConfirmStage({
           <div className="tbs-summary-section">
             <div className="tbs-summary-title"><span>🗂</span> Template</div>
             <div className="tbs-summary-body">
-              <div className="tbs-summary-row"><span className="tbs-summary-label">Name</span><span>{templateName}</span></div>
-              <div className="tbs-summary-row"><span className="tbs-summary-label">Version</span><span>{templateVersion || "1.0"}</span></div>
-              <div className="tbs-summary-row"><span className="tbs-summary-label">Default</span><span>Yes</span></div>
-              <div className="tbs-summary-row"><span className="tbs-summary-label">AI Insight</span><span>{enableAiInsight ? "Enabled" : "Disabled"}</span></div>
+              {appendToTemplateName ? (
+                <>
+                  <div className="tbs-summary-row"><span className="tbs-summary-label">Action</span><span className="tbs-badge tbs-badge--existing">Add New Fields</span></div>
+                  <div className="tbs-summary-row"><span className="tbs-summary-label">Target</span><span>{appendToTemplateName}</span></div>
+                </>
+              ) : (
+                <>
+                  <div className="tbs-summary-row"><span className="tbs-summary-label">Name</span><span>{templateName}</span></div>
+                  <div className="tbs-summary-row"><span className="tbs-summary-label">Version</span><span>{templateVersion || "1.0"}</span></div>
+                  <div className="tbs-summary-row"><span className="tbs-summary-label">Default</span><span>Yes</span></div>
+                  <div className="tbs-summary-row"><span className="tbs-summary-label">AI Insight</span><span>{enableAiInsight ? "Enabled" : "Disabled"}</span></div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -425,7 +441,7 @@ export function ConfirmStage({
         {/* Attributes table */}
         <div className="tbs-summary-section tbs-summary-section--full">
           <div className="tbs-summary-title">
-            <span>🔖</span> Attributes&nbsp;
+            <span>🔖</span> {appendToTemplateName ? "New Attributes" : "Attributes"}&nbsp;
             <span className="tbs-count-badge">{attributes.length}</span>
           </div>
           <div className="tbs-confirm-scroll">
@@ -477,7 +493,7 @@ export function ConfirmStage({
           <button className="primary-btn tbs-back-btn" onClick={onBack} disabled={loading}>◀ Back</button>
           <div className="tbs-flow-arrow">━━━▶</div>
           <button className="primary-btn tbs-save-btn" onClick={onSave} disabled={loading}>
-            {loading ? "Saving…" : "💾 Save Template"}
+            {loading ? "Saving…" : appendToTemplateName ? "💾 Add Fields" : "💾 Save Template"}
           </button>
         </div>
         {status && <div className="tbs-status">{status}</div>}
@@ -546,6 +562,10 @@ interface SaveOptions {
   templateVersion:   string;
   attributes:        any[];
   categories:        Category[];
+  /** When set, skip Document Type + Template creation entirely and add
+   *  `attributes` to this existing template instead. `selectedDocTypeId`
+   *  must still be the owning document type (needed by callers afterwards). */
+  appendToTemplateId?: string;
 }
 
 export function useTemplateSave() {
@@ -562,33 +582,49 @@ export function useTemplateSave() {
 
     try {
       let docTypeId = opts.selectedDocTypeId;
+      let templateId: string;
+      let displayOrderOffset = 0;
 
-      if (opts.classifyMode === "new") {
-        setStatus("Creating Document Type…");
-        const newId = await configApi.createDocumentType({
-          name: opts.newDocTypeName.trim(),
-          description: opts.newDocTypeDesc.trim() || undefined,
-          isActive: true,
-        });
-        docTypeId = typeof newId === "string" ? newId : newId?.id ?? newId;
+      if (opts.appendToTemplateId) {
+        // Adding new fields to a template that's already in use — skip
+        // Document Type + Template creation, reuse the existing records.
+        templateId = opts.appendToTemplateId;
         setSavedDocTypeId(docTypeId);
+        setSavedTemplateId(templateId);
+
+        setStatus("Checking existing fields…");
+        try {
+          const existing = await configApi.getTemplateAttributesByTemplate(templateId);
+          displayOrderOffset = Array.isArray(existing) ? existing.length : 0;
+        } catch { /* best-effort — new fields just start at display order 1 */ }
       } else {
-        setSavedDocTypeId(docTypeId);
+        if (opts.classifyMode === "new") {
+          setStatus("Creating Document Type…");
+          const newId = await configApi.createDocumentType({
+            name: opts.newDocTypeName.trim(),
+            description: opts.newDocTypeDesc.trim() || undefined,
+            isActive: true,
+          });
+          docTypeId = typeof newId === "string" ? newId : newId?.id ?? newId;
+          setSavedDocTypeId(docTypeId);
+        } else {
+          setSavedDocTypeId(docTypeId);
+        }
+
+        setStatus("Creating Template…");
+        const templateResult = await configApi.createTemplate({
+          name:             opts.templateName.trim(),
+          documentTypeId:   docTypeId,
+          isDefault:        true,
+          templateAiPrompt: `Extract key attributes from this ${opts.templateName.trim()} document.`,
+          aiOutputStyleId:  "",
+          isActive:         true,
+          version:          opts.templateVersion.trim() || "1.0",
+        } as any);
+
+        templateId = templateResult?.id ?? templateResult?.Id ?? templateResult;
+        setSavedTemplateId(templateId);
       }
-
-      setStatus("Creating Template…");
-      const templateResult = await configApi.createTemplate({
-        name:             opts.templateName.trim(),
-        documentTypeId:   docTypeId,
-        isDefault:        true,
-        templateAiPrompt: `Extract key attributes from this ${opts.templateName.trim()} document.`,
-        aiOutputStyleId:  "",
-        isActive:         true,
-        version:          opts.templateVersion.trim() || "1.0",
-      } as any);
-
-      const templateId = templateResult?.id ?? templateResult?.Id ?? templateResult;
-      setSavedTemplateId(templateId);
 
       for (let i = 0; i < opts.attributes.length; i++) {
         const attr = opts.attributes[i];
@@ -613,14 +649,14 @@ export function useTemplateSave() {
           aiExtractionHint: (attr.Description ?? attr.description ?? "").trim(),
           categoryId:       matchedCat?.id ?? null,
           expectedDataType: DATA_TYPE_OPTION_MAP[attr.dataType] ?? DATA_TYPE_OPTION_MAP["Text"] ?? 857270001,
-          displayOrder:     i + 1,
+          displayOrder:     displayOrderOffset + i + 1,
           isMandatory:      attr.isMandatory ?? false,
           enableAiInsight:  attr.enableAiInsight ?? false,
           templateId,
         });
       }
 
-      setStatus("All saved successfully!");
+      setStatus(opts.appendToTemplateId ? "New fields added successfully!" : "All saved successfully!");
       setLoading(false);
       return true;
     } catch (ex: any) {

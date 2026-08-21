@@ -24,6 +24,13 @@ interface UserData {
   trialExpiry:     string;
   trialExpired:    boolean;
   loading:         boolean;
+  authError:       AuthError | null;
+}
+
+export interface AuthError {
+  code:    string;
+  message: string;
+  detail?: string;
 }
 
 // Context type adds refreshUser so consumers can re-fetch after a scan
@@ -49,6 +56,7 @@ const defaultData: UserData = {
   trialExpiry:     "",
   trialExpired:    false,
   loading:         true,
+  authError:       null,
 };
 
 const UserContext = createContext<UserContextType>({ ...defaultData, refreshUser: () => {} });
@@ -152,6 +160,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         trialExpiry:      response.data.trialExpiry        ?? "",
         trialExpired:     response.data.trialExpired       ?? false,
         loading: false,
+        authError: null,
       });
     } catch (err: any) {
       if (err instanceof InteractionRequiredAuthError) {
@@ -161,32 +170,26 @@ export function UserProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // If the backend says this tenant/account is unknown (500 or 401),
-      // the stale MSAL account is unusable — sign it out and go to login.
+      // Backend GetCurrentUser failures are surfaced as a proper error screen
+      // (see AuthErrorScreen) instead of silently signing the user back out —
+      // a blind logoutRedirect here just loops the user with no explanation.
       const status = err?.response?.status;
-      const msg: string = err?.response?.data ?? "";
-      const isTenantError =
-        status === 500 && msg.toLowerCase().includes("tenant not found");
-      const isUnauthorised = status === 401;
+      const data = err?.response?.data;
 
-      if (isTenantError || isUnauthorised) {
-        const auth2 = resolveActiveAuth();
-        if (auth2) {
-          try {
-            await auth2.instance.logoutRedirect({
-              account: auth2.account,
-              postLogoutRedirectUri: window.location.origin,
-            });
-          } catch {
-            window.location.href = window.location.origin;
-          }
-        } else {
-          window.location.href = window.location.origin;
-        }
-        return;
+      let code = "SERVER_ERROR";
+      let message = "Something went wrong while loading your account. Please try again, or contact support if the problem continues.";
+      let detail: string | undefined;
+
+      if (data && typeof data === "object" && data.errorCode) {
+        code = data.errorCode;
+        message = data.message || message;
+        detail = data.detail;
+      } else if (status === 401) {
+        code = "TOKEN_INVALID";
+        message = "Your session could not be verified. Please sign in again.";
       }
 
-      setUserData({ ...defaultData, loading: false });
+      setUserData({ ...defaultData, loading: false, authError: { code, message, detail } });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -27,6 +27,7 @@ import AllInsights from "./pages/AllInsights";
 import HomePage from "./pages/HomePage";
 import TenantSettings from "./pages/TenantSettings";
 import SupportPage from "./pages/SupportPage";
+import AuthErrorScreen from "./components/AuthErrorScreen";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -61,6 +62,7 @@ function PostLoginGuard({ children }: { children: ReactNode }) {
 function App() {
   const { instance, accounts, inProgress } = useMsal();
   const isAuthenticated = useIsAuthenticated();
+  const { authError, refreshUser } = useUser();
 
   // External ID auth: initialised synchronously from accounts already in localStorage
   // (index.tsx called handleRedirectPromise() before first render, so this is reliable).
@@ -176,6 +178,14 @@ function App() {
         loading={inProgress !== InteractionStatus.None}
       />
     );
+  }
+
+  /* =======================================================
+     ACCOUNT ERROR (e.g. tenant not provisioned, backend error) —
+     show a real reason instead of silently signing the user back out.
+  ======================================================= */
+  if (authError) {
+    return <AuthErrorScreen error={authError} onRetry={refreshUser} onLogout={handleLogout} />;
   }
 
   /* =======================================================

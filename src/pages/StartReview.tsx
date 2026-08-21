@@ -24,6 +24,7 @@ import {
 interface TemplateType {
   id: string;
   name: string;
+  documentTypeId?: string;
 }
 
 interface AiProfile {
@@ -253,6 +254,14 @@ function StartReview() {
   const [enableAiInsight, setEnableAiInsight]               = useState(false);
   const [extractCategories, setExtractCategories]           = useState<{id:string;name:string}[]>([]);
 
+  // "Enrich an existing template?" save choice — create a brand-new template (default)
+  // or append the newly-discovered fields onto the template that was enriched from.
+  const [appendToTemplate, setAppendToTemplate]              = useState(false);
+  // Names of attributes that were already configured on the enrichment template at
+  // scan time — used to filter out only the genuinely NEW attributes when appending,
+  // so already-configured fields are never re-created or duplicated.
+  const configuredNamesRef = useRef<Set<string>>(new Set());
+
   /* ── Save-as-Insight state (Quick Extract done stage) ── */
   const [insightSaving, setInsightSaving] = useState(false);
   const [insightError,  setInsightError]  = useState("");
@@ -264,7 +273,7 @@ function StartReview() {
       : ["Uploading document", "Extracting attributes", "Running AI profiles", "Generating report"];
 
   /* ── Template builder inline state (used after scan completes) ── */
-  type ExtractStage = "results" | TemplateStage;
+  type ExtractStage = "results" | "savemode" | TemplateStage;
   const [extractStage, setExtractStage]         = useState<ExtractStage>("results");
   const [classifyMode, setClassifyMode]         = useState<TBSClassifyMode>("new");
   const [newDocTypeName, setNewDocTypeName]     = useState("");
@@ -396,7 +405,11 @@ function StartReview() {
       loadDocumentTypes();
       // Load all templates for the "Enrich existing template" dropdown
       configApi.getAllTemplates().then((data: any[]) =>
-        setTemplates(data.map((t: any) => ({ id: t.id, name: t.name ?? t.templateName ?? t.ilx_name ?? "Unnamed" })))
+        setTemplates(data.map((t: any) => ({
+          id: t.id,
+          name: t.name ?? t.templateName ?? t.ilx_name ?? "Unnamed",
+          documentTypeId: t.documentTypeId ?? t.ilx_documenttype ?? "",
+        })))
       ).catch(() => {/* non-fatal */});
       // Load attribute categories for the confirm stage chip display
       configApi.getAttributeCategories().then((data: any[]) =>
@@ -517,7 +530,7 @@ function StartReview() {
   const validate = (): string | null => {
     if (isTrial && (mode === "compare" || mode === "compare-scoring"))
       return "Compare and Scoring are not available on a Trial account. Please contact your administrator to upgrade.";
-    if (!insightName.trim()) return "Enter an insight name.";
+    if (mode !== "extract" && !insightName.trim()) return "Enter an insight name.";
     if (!uploadedFiles.length) return "Upload at least one document.";
     if (mode !== "extract") {
       if (!selectedDocumentType) return "Select a document type.";
@@ -603,7 +616,18 @@ function StartReview() {
       setScanStageIdx(2);  // past last stage → "Complete!"
       await new Promise(r => setTimeout(r, 600));
 
+      configuredNamesRef.current = new Set(
+        configured.map((a: any) => (a.AttributeName ?? a.attributeName ?? "").trim().toLowerCase()).filter(Boolean)
+      );
+
       setConfirmedContext(ctx);
+      // Suggest an Insight Name from what the AI detected — user can still edit it,
+      // but no longer has to type one blind before scanning.
+      if (!insightName.trim()) {
+        const dateLabel = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+        const fallback = uploadedFiles[0]?.name.replace(/\.[^./]+$/, "") ?? "Insight";
+        setInsightName(`${ctx.trim() || fallback} — ${dateLabel}`);
+      }
       setExtractedAttributes(configured.length > 0 ? configured : noSplit);
       setDiscoveredAttributes(discovered);
       setExtractComplete(true);
@@ -876,6 +900,24 @@ function StartReview() {
   const needsTemplate = mode !== "extract";
   const isCompare = mode === "compare" || mode === "compare-scoring";
 
+  // The enrichment template's name/doc-type — only meaningful when extractTemplateId is set.
+  const enrichTemplate = templates.find(t => t.id === extractTemplateId);
+
+  // Attributes to save when appending to the enrichment template: everything the user is
+  // keeping MINUS whatever was already configured on that template at scan time — so
+  // already-configured fields are never re-created or duplicated.
+  const getNewAttributesForAppend = () => {
+    const all = [...extractedAttributes, ...discoveredAttributes.map(a => ({
+      ...a,
+      dataType: a.dataType ?? (a.SuggestedDataType === "String" ? "Text" : (a.SuggestedDataType ?? "Text")),
+      category: a.category ?? a.Category ?? "",
+    }))];
+    return all.filter(a => {
+      const name = (a.AttributeName ?? a.attributeName ?? "").trim().toLowerCase();
+      return name && !configuredNamesRef.current.has(name);
+    });
+  };
+
   /* ================================================================
      RENDER
   ================================================================ */
@@ -1077,22 +1119,7 @@ function StartReview() {
       {mode === "extract" && !(extractComplete) && (
       <div className="top-grid">
         <div className="dc-card" style={{ marginTop: 0, marginBottom: 0 }}>
-          <div className="form-group" style={{ marginBottom: 14 }}>
-            <label htmlFor="insightName">Insight Name</label>
-            <input id="insightName" value={insightName}
-              onChange={(e) => setInsightName(e.target.value)}
-              placeholder="e.g. Contract Risk Review Q2 2026"/>
-          </div>
-          <div className="form-group" style={{ marginBottom: 14 }}>
-            <label>Enrich an existing template?<span style={{fontSize:11,fontWeight:400,color:"#9ca3af",marginLeft:4}}>(optional)</span></label>
-            <p style={{fontSize:12,color:"#9ca3af",margin:"3px 0 6px"}}>Extracts configured fields plus discovers any new ones.</p>
-            <select value={extractTemplateId} onChange={(e) => setExtractTemplateId(e.target.value)}
-              aria-label="Enrich existing template" title="Enrich existing template">
-              <option value="">— None, discover freely —</option>
-              {templates.map((t) => (<option key={t.id} value={t.id}>{t.name}</option>))}
-            </select>
-          </div>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
             <h3 style={{ margin:0 }}>Upload Document</h3>
             <span className="sr-file-count-badge sr-file-count-badge--single">1 document only</span>
           </div>
@@ -1113,7 +1140,7 @@ function StartReview() {
           ) : (
             <div
               className={`dc-dropzone${scanning ? " disabled-zone" : ""}${isDragging ? " dc-dropzone--dragging" : ""}`}
-              style={{ minHeight: 64 }}
+              style={{ minHeight: 56 }}
               onClick={() => !scanning && fileInputRef.current?.click()}
               onDragEnter={onDragEnter}
               onDragLeave={onDragLeave}
@@ -1133,8 +1160,24 @@ function StartReview() {
             </div>
           )}
 
-          <div style={{ marginTop: 14, marginBottom: 4 }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 8 }}>
+          <div className="form-group" style={{ marginTop: 10, marginBottom: 10 }}>
+            <label style={{ display:"inline-flex", alignItems:"center", gap:4 }}>
+              Enrich an existing template?
+              <span style={{fontSize:11,fontWeight:400,color:"#9ca3af"}}>(optional)</span>
+              <span
+                title="Extracts configured fields plus discovers any new ones."
+                style={{cursor:"help", color:"#9ca3af", fontSize:12, lineHeight:1}}
+              >ⓘ</span>
+            </label>
+            <select value={extractTemplateId} onChange={(e) => setExtractTemplateId(e.target.value)}
+              aria-label="Enrich existing template" title="Enrich existing template" style={{marginTop:4}}>
+              <option value="">— None, discover freely —</option>
+              {templates.map((t) => (<option key={t.id} value={t.id}>{t.name}</option>))}
+            </select>
+          </div>
+
+          <div style={{ marginTop: 10, marginBottom: 4 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 6 }}>
               <h3 style={{ margin:0 }}>AI Insight Profiles</h3>
               {aiProfiles.length > 0 && (
                 <span style={{ fontSize:11, color:"#6b7280" }}>{selectedProfiles.length} of {aiProfiles.length} selected</span>
@@ -1165,7 +1208,7 @@ function StartReview() {
             )}
           </div>
 
-          <div style={{ marginTop: 14 }}>
+          <div style={{ marginTop: 10 }}>
             <button className="primary-btn" onClick={() => runExtract()}
               disabled={scanning || uploadedFiles.length === 0 || (isTrial && runsUsed >= runLimit)}>
               {scanning ? "Scanning…" : "Scan Document"}
@@ -1182,9 +1225,10 @@ function StartReview() {
           <p className="guide-about">How it works</p>
           <p className="guide-about-desc">Upload any document — no template or setup required. The AI detects fields automatically.</p>
           <div className="guide-steps" style={{ marginBottom: 16 }}>
-            <div className="guide-step"><div className="guide-step-num">1</div><div>Upload any document — no setup needed</div></div>
-            <div className="guide-step"><div className="guide-step-num">2</div><div>AI detects all key attributes and values</div></div>
-            <div className="guide-step"><div className="guide-step-num">3</div><div>Review results — save as a template when ready</div></div>
+            <div className="guide-step"><div className="guide-step-num">1</div><div>Upload a document — optionally enrich from an existing template</div></div>
+            <div className="guide-step"><div className="guide-step-num">2</div><div>Choose which AI Insight Profiles to run</div></div>
+            <div className="guide-step"><div className="guide-step-num">3</div><div>AI detects all key attributes and values</div></div>
+            <div className="guide-step"><div className="guide-step-num">4</div><div>Review results — save as a template when ready</div></div>
           </div>
           <div className="guide-divider">
             <p className="guide-section-title">Best for</p>
@@ -1409,7 +1453,7 @@ function StartReview() {
               ? ["Upload","Review","Classify","Confirm","Done"]
               : ["Upload","Review Fields"];
             const activeIdx = inSave
-              ? ({"classify":2,"confirm":3,"done":4} as Record<string,number>)[extractStage] ?? 2
+              ? ({"savemode":2,"classify":2,"confirm":3,"done":4} as Record<string,number>)[extractStage] ?? 2
               : 1;
             return (
               <div className="qe-stepper">
@@ -1439,6 +1483,15 @@ function StartReview() {
           {/* ── STAGE: RESULTS — editable attribute review ── */}
           {extractStage === "results" && (
             <>
+              {/* Insight Name — pre-filled from the detected context, editable */}
+              <div className="dc-card" style={{marginTop:12, padding:"12px 16px"}}>
+                <label htmlFor="insightName" style={{ fontSize:12, fontWeight:600, color:"#374151", display:"block", marginBottom:4 }}>Insight Name</label>
+                <input id="insightName" value={insightName}
+                  onChange={(e) => setInsightName(e.target.value)}
+                  placeholder="e.g. Contract Risk Review Q2 2026"
+                  style={{ margin:0, width:"100%", boxSizing:"border-box", height:36, fontSize:14 }}/>
+              </div>
+
               {/* Context strip */}
               <div className={`sr-context-strip ${contextConfirmed?"sr-context-strip--confirmed":""}`} style={{marginTop:12}}>
                 <div className="sr-context-left">
@@ -1534,7 +1587,9 @@ function StartReview() {
                         const toTitle = (s:string) => s.split(" ").map((w:string)=>w.charAt(0).toUpperCase()+w.slice(1)).join(" ");
                         if(!templateName) setTemplateName(confirmedContext?`${toTitle(confirmedContext)} — Default Template`:`${toTitle(insightName)} — Default Template`);
                         if(!newDocTypeName&&confirmedContext) setNewDocTypeName(toTitle(confirmedContext));
-                        setExtractStage("classify");
+                        setAppendToTemplate(false);
+                        // Only ask new-vs-append when we actually enriched from an existing template
+                        setExtractStage(enrichTemplate ? "savemode" : "classify");
                       }}
                       disabled={[...extractedAttributes,...discoveredAttributes].length===0}>
                       Save as Template ▶
@@ -1544,6 +1599,59 @@ function StartReview() {
               </div>
             </>
           )}
+
+          {/* ── STAGE: SAVE MODE (only reachable when enriched from an existing template) ── */}
+          {extractStage === "savemode" && enrichTemplate && (() => {
+            const newAttrs = getNewAttributesForAppend();
+            return (
+              <>
+                <div className="dc-card">
+                  <h3>How do you want to save this?</h3>
+                  <p className="tbs-hint">
+                    You enriched from <strong>{enrichTemplate.name}</strong>. Create a brand-new template, or add the newly-discovered fields straight onto it.
+                  </p>
+
+                  <div className="tbs-mode-toggle">
+                    <button className={`tbs-mode-btn ${!appendToTemplate ? "tbs-mode-btn--active" : ""}`}
+                      onClick={() => setAppendToTemplate(false)}>
+                      <span>✦</span> Create a New Template
+                    </button>
+                    <button className={`tbs-mode-btn ${appendToTemplate ? "tbs-mode-btn--active" : ""}`}
+                      onClick={() => setAppendToTemplate(true)}>
+                      <span>⊕</span> Add to &ldquo;{enrichTemplate.name}&rdquo;
+                    </button>
+                  </div>
+
+                  <div style={{marginTop: 14}}>
+                    {!appendToTemplate ? (
+                      <p style={{fontSize:13,color:"#6b7280",margin:0}}>
+                        A new Document Type and Template will be created from all {extractedAttributes.length + discoveredAttributes.length} field{extractedAttributes.length + discoveredAttributes.length !== 1 ? "s" : ""} below.
+                      </p>
+                    ) : (
+                      <p style={{fontSize:13,color:"#6b7280",margin:0}}>
+                        <strong>{newAttrs.length}</strong> new field{newAttrs.length !== 1 ? "s" : ""} will be added to <strong>{enrichTemplate.name}</strong>. Fields already configured on that template stay untouched.
+                        {newAttrs.length === 0 && (
+                          <><br/><span style={{color:"#b91c1c"}}>No new fields were discovered, so there's nothing to add — choose &ldquo;Create a New Template&rdquo; instead, or go back and re-scan.</span></>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="dc-card tbs-action-card">
+                  <div className="tbs-action-row">
+                    <button className="primary-btn tbs-back-btn" onClick={() => setExtractStage("results")}>◀ Back</button>
+                    <div className="tbs-flow-arrow">━━━▶</div>
+                    <button className="primary-btn"
+                      onClick={() => setExtractStage(appendToTemplate ? "confirm" : "classify")}
+                      disabled={appendToTemplate && newAttrs.length === 0}>
+                      Next: {appendToTemplate ? "Confirm" : "Classify"} ▶
+                    </button>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
 
                     {/* ── STAGE: CLASSIFY ── */}
           {extractStage === "classify" && (
@@ -1584,7 +1692,8 @@ function StartReview() {
               templateName={templateName}
               templateVersion={templateVersion}
               enableAiInsight={enableAiInsight}
-              attributes={[...extractedAttributes, ...discoveredAttributes.map(a => ({
+              appendToTemplateName={appendToTemplate ? enrichTemplate?.name : undefined}
+              attributes={appendToTemplate ? getNewAttributesForAppend() : [...extractedAttributes, ...discoveredAttributes.map(a => ({
                 ...a,
                 dataType: a.dataType ?? (a.SuggestedDataType === "String" ? "Text" : (a.SuggestedDataType ?? "Text")),
                 category: a.category ?? a.Category ?? "",
@@ -1593,7 +1702,10 @@ function StartReview() {
               loading={extractSave.loading}
               status={extractSave.status}
               error={extractSave.error}
-              onUpdateAttribute={(i, f, v) => {
+              // Editing (e.g. the per-field AI Insight toggle) is index-based against the full
+              // extractedAttributes/discoveredAttributes arrays — the append view shows a filtered
+              // subset, so indices wouldn't line up. Keep that view read-only instead.
+              onUpdateAttribute={appendToTemplate ? undefined : (i, f, v) => {
                 const all = [...extractedAttributes, ...discoveredAttributes.map(a => ({
                   ...a,
                   dataType: a.dataType ?? (a.SuggestedDataType === "String" ? "Text" : (a.SuggestedDataType ?? "Text")),
@@ -1603,17 +1715,25 @@ function StartReview() {
                 setExtractedAttributes(all.slice(0, extractedAttributes.length));
                 setDiscoveredAttributes(all.slice(extractedAttributes.length));
               }}
-              onBack={() => { extractSave.setError(""); setExtractStage("classify"); }}
+              onBack={() => { extractSave.setError(""); setExtractStage(appendToTemplate ? "savemode" : "classify"); }}
               onSave={async () => {
-                const allAttrs = [...extractedAttributes, ...discoveredAttributes.map(a => ({
-                  ...a,
-                  dataType: a.dataType ?? (a.SuggestedDataType === "String" ? "Text" : (a.SuggestedDataType ?? "Text")),
-                  category: a.category ?? a.Category ?? "",
-                }))];
-                const ok = await extractSave.save({
-                  classifyMode, selectedDocTypeId, newDocTypeName, newDocTypeDesc,
-                  templateName, templateVersion, attributes: allAttrs, categories: extractCategories,
-                });
+                const ok = appendToTemplate
+                  ? await extractSave.save({
+                      classifyMode, selectedDocTypeId: enrichTemplate?.documentTypeId ?? "",
+                      newDocTypeName, newDocTypeDesc, templateName, templateVersion,
+                      attributes: getNewAttributesForAppend(), categories: extractCategories,
+                      appendToTemplateId: enrichTemplate?.id,
+                    })
+                  : await extractSave.save({
+                      classifyMode, selectedDocTypeId, newDocTypeName, newDocTypeDesc,
+                      templateName, templateVersion,
+                      attributes: [...extractedAttributes, ...discoveredAttributes.map(a => ({
+                        ...a,
+                        dataType: a.dataType ?? (a.SuggestedDataType === "String" ? "Text" : (a.SuggestedDataType ?? "Text")),
+                        category: a.category ?? a.Category ?? "",
+                      }))],
+                      categories: extractCategories,
+                    });
                 if (ok) setExtractStage("done");
               }}
             />
@@ -1625,12 +1745,20 @@ function StartReview() {
               {/* Template saved confirmation */}
               <div className="dc-card tbs-done-card">
                 <div className="tbs-done-icon">✅</div>
-                <h3 className="tbs-done-title">Template saved successfully!</h3>
+                <h3 className="tbs-done-title">
+                  {appendToTemplate ? "New fields added!" : "Template saved successfully!"}
+                </h3>
                 <p className="tbs-done-sub">
-                  Your document type, template and <strong>{extractedAttributes.length + discoveredAttributes.length}</strong> attribute{extractedAttributes.length + discoveredAttributes.length !== 1 ? "s" : ""} have been created.
+                  {appendToTemplate ? (
+                    <>
+                      <strong>{getNewAttributesForAppend().length}</strong> new attribute{getNewAttributesForAppend().length !== 1 ? "s" : ""} {getNewAttributesForAppend().length !== 1 ? "have" : "has"} been added to <strong>{enrichTemplate?.name}</strong>.
+                    </>
+                  ) : (
+                    <>Your document type, template and <strong>{extractedAttributes.length + discoveredAttributes.length}</strong> attribute{extractedAttributes.length + discoveredAttributes.length !== 1 ? "s" : ""} have been created.</>
+                  )}
                 </p>
                 <div className="tbs-done-details">
-                  {classifyMode === "new" && (
+                  {!appendToTemplate && classifyMode === "new" && (
                     <div className="tbs-done-row">
                       <span className="tbs-done-label">Document Type</span>
                       <span className="tbs-done-value">{newDocTypeName}</span>
@@ -1638,11 +1766,11 @@ function StartReview() {
                   )}
                   <div className="tbs-done-row">
                     <span className="tbs-done-label">Template</span>
-                    <span className="tbs-done-value">{templateName}</span>
+                    <span className="tbs-done-value">{appendToTemplate ? enrichTemplate?.name : templateName}</span>
                   </div>
                   <div className="tbs-done-row">
-                    <span className="tbs-done-label">Attributes</span>
-                    <span className="tbs-done-value">{extractedAttributes.length + discoveredAttributes.length} fields</span>
+                    <span className="tbs-done-label">{appendToTemplate ? "New Attributes" : "Attributes"}</span>
+                    <span className="tbs-done-value">{appendToTemplate ? getNewAttributesForAppend().length : extractedAttributes.length + discoveredAttributes.length} fields</span>
                   </div>
                 </div>
               </div>
