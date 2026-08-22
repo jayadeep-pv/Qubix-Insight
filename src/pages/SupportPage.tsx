@@ -52,7 +52,7 @@ const USER_MODULES = [
     iconCls: "sp-mod--cyan",
     title: "Results Viewer",
     badge: "All modes",
-    desc: "Interactive results page with a split PDF viewer, field-level polygon highlighting, comparison table, scoring cards, and the Qubix Bot AI assistant.",
+    desc: "Interactive results page with a split document viewer (PDF and image, with field-level polygon highlighting), comparison table, scoring cards, and the Qubix Bot AI assistant.",
   },
   {
     icon: <Bot size={18} />,
@@ -133,7 +133,7 @@ const GUIDES = [
     badgeCls: "sp-guide-badge--orange",
     steps: [
       "Go to New Insight → Discovery",
-      "Upload any PDF or Word document",
+      "Upload any PDF, Word, or image document",
       "Click Scan Document",
       "Review and edit the AI-detected fields",
       "Optionally save as a reusable template",
@@ -205,7 +205,13 @@ const FAQS: FaqItem[] = [
   },
   {
     q: "What file types are supported?",
-    a: "Qubix Insight accepts PDF (.pdf) and Word (.docx) documents. Text-based PDFs give the best extraction accuracy. Scanned documents are supported via OCR but may have slightly lower accuracy for complex layouts.",
+    a: (
+      <div>
+        <p>Qubix Insight accepts <strong>PDF</strong> (.pdf), <strong>Word</strong> (.docx), and common <strong>image</strong> formats (.png, .jpg/.jpeg, .gif, .bmp, .webp, .tiff) for every analysis mode.</p>
+        <p>Text-based PDFs and images give the best extraction accuracy. Scanned or photographed documents are processed via OCR and may have slightly lower accuracy for complex layouts.</p>
+        <p><strong>Note on field highlighting:</strong> clicking a field to highlight its exact position in the document viewer only works for PDFs and images. Word documents don't carry the positional data needed for that — extraction itself is just as accurate, but results show the fields without an on-document highlight.</p>
+      </div>
+    ),
   },
   {
     q: "What is a Template and who creates them?",
@@ -216,8 +222,8 @@ const FAQS: FaqItem[] = [
     a: "AI Insight Profiles are configurable AI analysis modules that run alongside field extraction. Examples include Executive Summary (a plain-English overview of the document) and Risk Assessment (identifies legal, financial, and operational risks). Profiles are set up by administrators and can be selected per run.",
   },
   {
-    q: "How does the PDF viewer and polygon highlighting work?",
-    a: "When you click a field in the results panel, Qubix Insight highlights the exact region of the PDF where that value was found. The green overlay is drawn using bounding-box coordinates returned by the Azure Document Intelligence OCR engine, so it aligns precisely with the text in the document.",
+    q: "How does field highlighting work in the document viewer?",
+    a: "When you click a field in the results panel, Qubix Insight highlights the exact region of the source document where that value was found, using bounding-box coordinates returned by the Azure Document Intelligence OCR engine. This is available for PDF and image uploads. Word documents (.docx) don't carry that positional data, so their results show the extracted fields and a document preview without an on-document highlight.",
   },
   {
     q: "What is Qubix Bot?",
@@ -496,7 +502,7 @@ const SupportPage: React.FC = () => {
             <ul className="sp-tips-list">
               <li>Use <strong>Discovery</strong> to auto-generate a template from any new document type in minutes.</li>
               <li>Templates, attributes, and rules must be configured by a <strong>System Administrator</strong> before Summarise, Compare, or Scoring can be used.</li>
-              <li>Click any field value in the results panel to highlight its exact position in the PDF viewer.</li>
+              <li>Click any field value in the results panel to highlight its exact position in the document viewer (PDF and image files only — Word documents don't support highlighting).</li>
               <li>Ask <strong>Qubix Bot</strong> on the results page to answer questions about the document content.</li>
               <li>Include your <strong>Run ID</strong> (from the results page URL) when contacting support — it speeds up diagnosis significantly.</li>
               <li>PDF reports can be downloaded from any results page using the <strong>Download PDF</strong> button in the header.</li>
