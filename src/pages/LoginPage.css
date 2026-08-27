@@ -325,6 +325,40 @@
   line-height: 1.3;
 }
 
+.lf-signup-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 11px 13px;
+  margin: 4px 0 14px;
+}
+
+.lf-signup-callout-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lf-signup-callout span:last-child {
+  font-size: 12.5px;
+  color: #1e40af;
+  line-height: 1.55;
+}
+
+.lf-signup-callout strong { color: #1e3a8a; }
+
 .lf-back {
   display: inline-flex;
   align-items: center;

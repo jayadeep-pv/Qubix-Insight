@@ -190,6 +190,15 @@ export default function LoginPage({ onLogin, onTrialLogin, onTrialSignIn, loadin
               </div>
             </div>
 
+            <div className="lf-signup-callout">
+              <span className="lf-signup-callout-icon">i</span>
+              <span>
+                On the next screen, you may see a <strong>&ldquo;Sign in&rdquo;</strong> heading &mdash;
+                that&rsquo;s normal for a first-time visit. Since you&rsquo;re new, click{" "}
+                <strong>&ldquo;No account? Create one&rdquo;</strong> there to finish setting up your account.
+              </span>
+            </div>
+
             <button
               type="button"
               className="login-ms-btn login-ms-btn--primary"
@@ -198,7 +207,7 @@ export default function LoginPage({ onLogin, onTrialLogin, onTrialSignIn, loadin
             >
               {submitting
                 ? (<><span className="login-spinner" /><span>Redirecting…</span></>)
-                : <span>Continue to email verification →</span>
+                : <span>Continue →</span>
               }
             </button>
 

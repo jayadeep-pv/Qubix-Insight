@@ -107,6 +107,12 @@ function App() {
       // Clear any cached External ID accounts so a previous user's email
       // doesn't appear in the account picker for a new sign-up.
       await extId.clearCache();
+      // prompt:"create" is a confirmed, publicly-reported intermittent bug in
+      // Entra External ID (MS Q&A 5789037 / 5572009) — it can hijack into
+      // showing a cached/device-suggested account's sign-in instead of
+      // landing on sign-up, on and off over time. prompt:"login" is the
+      // fallback that's confirmed reliably working if this regresses again —
+      // see git history for that version.
       await extId.loginRedirect({
         ...trialLoginRequest,
         prompt: "create",
