@@ -89,7 +89,7 @@ public class TenantResolverService
             ColumnSet = new ColumnSet("ilx_storagecontainername"),
             TopCount  = 1
         };
-        query.Criteria.AddCondition("ilx_tenantname", ConditionOperator.Equal, TenantQueryHelper.SampleTenantId);
+        query.Criteria.AddCondition("ilx_tenantid", ConditionOperator.Equal, TenantQueryHelper.SampleTenantId);
 
         var result = _masterService.RetrieveMultiple(query).Entities.FirstOrDefault();
         var container = result?.GetAttributeValue<string>("ilx_storagecontainername") ?? "";
