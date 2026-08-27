@@ -2166,10 +2166,11 @@ label {
   transition: width 0.5s ease;
 }
 
-/* ── BOTTOM ROW — table (55%) + right column (45%) ── */
+/* ── BOTTOM ROW — matches .db-charts-strip's 2fr 1fr so both rows'
+     column dividers line up vertically ── */
 .db-bottom-row {
   display: grid;
-  grid-template-columns: 55fr 45fr;
+  grid-template-columns: 2fr 1fr;
   align-items: stretch;
   gap: 16px;
   flex: 1;
