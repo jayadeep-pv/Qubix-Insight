@@ -57,12 +57,9 @@ public class GetAttributeCategories
                 )
             };
 
-            // 🔹 Only Active
+            // 🔹 Only Active — categories are a shared, global taxonomy (not per-tenant data),
+            // so no tenant filter is applied here.
             query.Criteria.AddCondition("statecode", ConditionOperator.Equal, 0);
-            if (tenant.NeedsSampleData)
-                TenantQueryHelper.AddTenantFilterWithSamples(query, tenant.TenantRecordId.ToString());
-            else
-                TenantQueryHelper.AddTenantFilter(query, tenant.TenantRecordId.ToString());
 
             // 🔹 Sort Order
             query.AddOrder("ilx_displayorder", OrderType.Ascending);

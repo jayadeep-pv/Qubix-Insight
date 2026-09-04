@@ -232,15 +232,13 @@ Document excerpt:
                         var tenant  = _tenantResolver.ResolveTenant(tenantKey);
                         var service = _tenantDataverseService.CreateClient(tenant.DataverseUrl);
 
+                        // Categories are a shared, global taxonomy (not per-tenant data),
+                        // so no tenant filter is applied here — matches GetAttributeCategories.cs.
                         var catQuery = new QueryExpression("ilx_attributecategory")
                         {
                             ColumnSet = new ColumnSet("ilx_name")
                         };
                         catQuery.Criteria.AddCondition("statecode", ConditionOperator.Equal, 0);
-                        if (tenant.NeedsSampleData)
-                            TenantQueryHelper.AddTenantFilterWithSamples(catQuery, tenant.TenantRecordId.ToString());
-                        else
-                            TenantQueryHelper.AddTenantFilter(catQuery, tenant.TenantRecordId.ToString());
                         catQuery.AddOrder("ilx_displayorder", OrderType.Ascending);
 
                         categoryNames = service.RetrieveMultiple(catQuery).Entities
