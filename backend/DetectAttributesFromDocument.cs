@@ -218,6 +218,43 @@ Document excerpt:
                 }
 
                 // =============================================================
+                // FETCH ATTRIBUTE CATEGORIES
+                // Constrains the AI to the tenant's real category list instead of
+                // letting it invent free-text labels that can't match the review
+                // table's Category dropdown (which only offers these exact names).
+                // =============================================================
+                var categoryNames = new List<string>();
+
+                if (!string.IsNullOrWhiteSpace(tenantKey))
+                {
+                    try
+                    {
+                        var tenant  = _tenantResolver.ResolveTenant(tenantKey);
+                        var service = _tenantDataverseService.CreateClient(tenant.DataverseUrl);
+
+                        var catQuery = new QueryExpression("ilx_attributecategory")
+                        {
+                            ColumnSet = new ColumnSet("ilx_name")
+                        };
+                        catQuery.Criteria.AddCondition("statecode", ConditionOperator.Equal, 0);
+                        if (tenant.NeedsSampleData)
+                            TenantQueryHelper.AddTenantFilterWithSamples(catQuery, tenant.TenantRecordId.ToString());
+                        else
+                            TenantQueryHelper.AddTenantFilter(catQuery, tenant.TenantRecordId.ToString());
+                        catQuery.AddOrder("ilx_displayorder", OrderType.Ascending);
+
+                        categoryNames = service.RetrieveMultiple(catQuery).Entities
+                            .Select(e => e.GetAttributeValue<string>("ilx_name"))
+                            .Where(n => !string.IsNullOrWhiteSpace(n))
+                            .ToList();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Could not load attribute categories — proceeding without category constraint");
+                    }
+                }
+
+                // =============================================================
                 // PASS 2 — HYBRID EXTRACTION
                 // If template attributes exist: configured fields + discovery.
                 // If no template: pure AI-inferred discovery for document type.
@@ -240,7 +277,8 @@ Document excerpt:
                         templateAiPrompt,
                         configuredAttributes,
                         clauseMode,
-                        chunk);
+                        chunk,
+                        categoryNames);
 
                     var aiResponse = await _aiService.RunPromptAsync(prompt);
 
@@ -382,13 +420,18 @@ Document excerpt:
             string templateAiPrompt,
             List<TemplateAttributeRecord> configuredAttributes,
             bool clauseMode,
-            string chunk)
+            string chunk,
+            List<string> categoryNames)
         {
             var hasTemplate = configuredAttributes.Count > 0;
 
             var clauseInstruction = clauseMode
                 ? "For legal provisions, obligations, restrictions, and clauses — return the FULL clause text as sampleValue, not a summary."
                 : "Return concise extracted values.";
+
+            var categoryInstruction = categoryNames != null && categoryNames.Count > 0
+                ? $"- category: MUST be exactly one of these existing categories (pick the closest match, do not invent a new one): {string.Join(", ", categoryNames)}"
+                : "- category: a short 1-2 word classification for this field";
 
             var templatePromptSection = !string.IsNullOrWhiteSpace(templateAiPrompt)
                 ? $"\nTemplate guidance from administrator:\n{templateAiPrompt}\n"
@@ -433,6 +476,7 @@ Set ""isConfigured"": false for all fields.
 STRICT RULES:
 - Return ONLY a valid JSON array — no markdown, no explanations
 - Every object must include: attributeName, sampleValue, category, confidence, description, suggestedDataType, isConfigured, suggestAddToTemplate
+{categoryInstruction}
 - suggestedDataType: Text | Date | Currency | Number | Boolean
 - confidence: decimal 0–1
 - isConfigured: true | false

@@ -1525,7 +1525,7 @@ function StartReview() {
                     category: a.category ?? a.Category ?? "",
                   }))]}
                   discoveredAttributes={[]}
-                  categories={[]}
+                  categories={extractCategories as any}
                   onUpdate={(i,f,v) => {
                     const all = [...extractedAttributes,...discoveredAttributes.map(a=>({
                       ...a,
