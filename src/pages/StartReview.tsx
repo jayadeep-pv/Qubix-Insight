@@ -191,6 +191,34 @@ function ErrorPanel({ message }: { message: string }) {
   );
 }
 
+/* ── Quick Extract stepper — shared between the upload screen and the ── */
+/* ── post-scan review/save flow so progress stays visible throughout. ── */
+function QuickExtractStepper({ steps, activeIdx }: { steps: string[]; activeIdx: number }) {
+  return (
+    <div className="qe-stepper">
+      {steps.map((lbl, i) => {
+        const done   = i < activeIdx;
+        const active = i === activeIdx;
+        return (
+          <React.Fragment key={lbl}>
+            <div className={`qe-step ${done?"qe-step--done":""} ${active?"qe-step--active":""}`}>
+              <div className="qe-step-circle">
+                {done
+                  ? <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l2.5 2.5L10 3" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  : <span>{i+1}</span>}
+              </div>
+              <span className="qe-step-label">{lbl}</span>
+            </div>
+            {i < steps.length - 1 && (
+              <div className={`qe-step-line ${done?"qe-step-line--done":""}`}/>
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
 function StartReview() {
   const { instance, accounts, inProgress } = useMsal();
   const isAuthenticated = useIsAuthenticated();
@@ -1117,6 +1145,8 @@ function StartReview() {
 
       {/* ── Quick Extract: two-column layout ── */}
       {mode === "extract" && !(extractComplete) && (
+      <>
+      <QuickExtractStepper steps={["Upload","Review Fields"]} activeIdx={0} />
       <div className="top-grid">
         <div className="dc-card" style={{ marginTop: 0, marginBottom: 0 }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
@@ -1238,6 +1268,7 @@ function StartReview() {
           </div>
         </div>
       </div>
+      </>
       )}
 
       {/* ── UNIFIED CARD: needsTemplate modes (Summarise / Compare / Scoring) ── */}
@@ -1445,8 +1476,7 @@ function StartReview() {
       {/* ── QUICK EXTRACT — multi-stage inline flow ── */}
       {mode === "extract" && extractComplete && (
         <>
-          {/* Stepper — shown once scan is complete */}
-          {/* ── Dynamic stepper — 2 steps initially, expands to 5 when saving ── */}
+          {/* Stepper — dynamic: 2 steps initially, expands to 5 when saving */}
           {(() => {
             const inSave = extractStage !== "results";
             const steps = inSave
@@ -1455,29 +1485,7 @@ function StartReview() {
             const activeIdx = inSave
               ? ({"savemode":2,"classify":2,"confirm":3,"done":4} as Record<string,number>)[extractStage] ?? 2
               : 1;
-            return (
-              <div className="qe-stepper">
-                {steps.map((lbl, i) => {
-                  const done   = i < activeIdx;
-                  const active = i === activeIdx;
-                  return (
-                    <React.Fragment key={lbl}>
-                      <div className={`qe-step ${done?"qe-step--done":""} ${active?"qe-step--active":""}`}>
-                        <div className="qe-step-circle">
-                          {done
-                            ? <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l2.5 2.5L10 3" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                            : <span>{i+1}</span>}
-                        </div>
-                        <span className="qe-step-label">{lbl}</span>
-                      </div>
-                      {i < steps.length - 1 && (
-                        <div className={`qe-step-line ${done?"qe-step-line--done":""}`}/>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </div>
-            );
+            return <QuickExtractStepper steps={steps} activeIdx={activeIdx} />;
           })()}
 
           {/* ── STAGE: RESULTS — editable attribute review ── */}
