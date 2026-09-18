@@ -125,6 +125,107 @@
   white-space: nowrap;
 }
 
+/* ── Reminders bell ───────────────────────────────────── */
+.topbar-bell { position: relative; }
+
+.topbar-bell-btn {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: #eff6ff;
+  color: #1d4ed8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.topbar-bell-btn:hover { background: #dbeafe; }
+
+.topbar-bell-dot {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+}
+
+.reminder-dropdown {
+  position: absolute;
+  top: 42px;
+  right: 0;
+  width: 300px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+  z-index: 30;
+  overflow: hidden;
+}
+
+.reminder-dropdown-hd {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.reminder-dropdown-hd span { font-size: 13px; font-weight: 700; color: #0f172a; }
+.reminder-dropdown-hd button {
+  background: none; border: none; cursor: pointer;
+  font-size: 11px; color: #6b7280; font-weight: 500;
+}
+.reminder-dropdown-hd button:hover { color: #111827; }
+
+.reminder-dropdown-empty {
+  padding: 20px 14px;
+  text-align: center;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.reminder-dropdown-row {
+  display: flex;
+  width: 100%;
+  gap: 9px;
+  padding: 9px 14px;
+  border: none;
+  border-bottom: 1px solid #f8fafc;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+.reminder-dropdown-row:last-child { border-bottom: none; }
+.reminder-dropdown-row:hover { background: #f8fafc; }
+
+.reminder-dropdown-pip {
+  width: 7px; height: 7px; border-radius: 50%;
+  margin-top: 5px; flex-shrink: 0;
+  background: #9ca3af;
+}
+.reminder-dropdown-pip.od { background: #dc2626; }
+.reminder-dropdown-pip.wk { background: #d97706; }
+.reminder-dropdown-pip.up { background: #16a34a; }
+
+.reminder-dropdown-txt { min-width: 0; display: flex; flex-direction: column; }
+.reminder-dropdown-ti {
+  font-size: 12px; font-weight: 600; color: #1e293b;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.reminder-dropdown-me { font-size: 10.5px; color: #94a3b8; margin-top: 1px; }
+
 /* ── Shared page footer ───────────────────────────────── */
 .layout-footer {
   display: flex;
@@ -300,6 +401,19 @@
   color: white;
   font-weight: 600;
 }
+
+/* live count badge on a nav item, e.g. My Reminders */
+.sidebar-nav-badge {
+  background: #ef4444;
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 1px 6px;
+  line-height: 1.5;
+  margin-left: auto;
+}
+/* icon-only mode already hides every nav <span> via the rule below */
 
 /* left accent bar on active item */
 .sidebar a.active::before {

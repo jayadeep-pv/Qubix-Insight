@@ -376,6 +376,7 @@ public class GetComparisonRunResults
 
                         attributeDto.Values.Add(new AttributeValueDto
                         {
+                            AnalysisResultId = r.Id,
                             CandidateId = candidateId,
                             DocumentId = docId,
                             Value = r.GetAttributeValue<string>("ilx_normalisedvalue"),

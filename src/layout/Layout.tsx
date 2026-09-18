@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Home,
   List,
@@ -17,8 +17,10 @@ import {
   ChevronRight,
   Menu,
   X,
+  Bell,
 } from "lucide-react";
 import { useUser } from "../context/UserContext";
+import { useMyReminders } from "../hooks/useMyReminders";
 
 import "./Layout.css";
 
@@ -31,6 +33,7 @@ const PAGE_META: Record<string, { title: string; subtitle: string }> = {
   "/home":                       { title: "Home",                 subtitle: "Your document intelligence workspace" },
   "/dashboard":                  { title: "My Insights",          subtitle: "Recent analysis runs" },
   "/my-insights":                { title: "My Insights",          subtitle: "Recent analysis runs" },
+  "/my-reminders":               { title: "My Reminders",         subtitle: "Dates you've pinned across your documents" },
   "/all-insights":               { title: "All Insights",         subtitle: "Organisation-wide analysis" },
   "/document-types":             { title: "Document Types",       subtitle: "Manage document classifications" },
   "/comparison-templates":       { title: "Templates",            subtitle: "Manage analysis templates" },
@@ -60,6 +63,15 @@ function getPageMeta(pathname: string): { title: string; subtitle: string } {
   return { title: "Qubix Insight", subtitle: "" };
 }
 
+function reminderWhenLabel(iso?: string): string {
+  if (!iso) return "";
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const days = Math.round((new Date(iso).getTime() - today.getTime()) / 86400000);
+  if (days < 0) return `${Math.abs(days)}d overdue`;
+  if (days === 0) return "due today";
+  return `in ${days}d`;
+}
+
 function initials(name: string, email: string): string {
   if (name) {
     const parts = name.trim().split(" ");
@@ -76,9 +88,31 @@ export default function Layout({ onLogout }: LayoutProps) {
   const { isTrial, trialExpired, userName, userEmail, tenantName } = useUser();
   const [iconOnly, setIconOnly] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [bellOpen, setBellOpen] = useState(false);
+  const bellRef = useRef<HTMLDivElement>(null);
+  const { overdue, thisWeek, upcoming, reload: reloadReminders } = useMyReminders();
+  const reminderCount = overdue.length + thisWeek.length;
+  const bellPreview = [...overdue, ...thisWeek, ...upcoming].slice(0, 5);
 
   // Close mobile sidebar on route change
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
+
+  // Layout mounts once for the whole session, so its reminders never refetch on
+  // their own — re-pull on every navigation so the badge doesn't go stale after
+  // pinning something on another page (My Reminders/Home refetch naturally since
+  // they remount on each visit; Layout doesn't).
+  useEffect(() => { reloadReminders(); }, [location.pathname, reloadReminders]);
+
+  // Close the reminders dropdown on route change or on an outside click
+  useEffect(() => { setBellOpen(false); }, [location.pathname]);
+  useEffect(() => {
+    if (!bellOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [bellOpen]);
 
   // Prevent body scroll when mobile sidebar is open
   useEffect(() => {
@@ -136,6 +170,11 @@ export default function Layout({ onLogout }: LayoutProps) {
           <NavLink to="/dashboard" title={iconOnly ? "My Insights" : undefined}>
             <List size={16} />
             <span>My Insights</span>
+          </NavLink>
+          <NavLink to="/my-reminders" title={iconOnly ? "My Reminders" : undefined}>
+            <Bell size={16} />
+            <span>My Reminders</span>
+            {reminderCount > 0 && <span className="sidebar-nav-badge">{reminderCount}</span>}
           </NavLink>
 
           <div className="sidebar-group">
@@ -237,6 +276,50 @@ export default function Layout({ onLogout }: LayoutProps) {
 
           {/* Right: company pill + user name */}
           <div className="topbar-right">
+            <div className="topbar-bell" ref={bellRef}>
+              <button
+                type="button"
+                className="topbar-bell-btn"
+                onClick={() => setBellOpen(v => {
+                  const next = !v;
+                  if (next) reloadReminders();
+                  return next;
+                })}
+                title="Reminders"
+              >
+                <Bell size={16} />
+                {reminderCount > 0 && <span className="topbar-bell-dot">{reminderCount > 9 ? "9+" : reminderCount}</span>}
+              </button>
+
+              {bellOpen && (
+                <div className="reminder-dropdown">
+                  <div className="reminder-dropdown-hd">
+                    <span>Reminders</span>
+                    <button type="button" onClick={() => navigate("/my-reminders")}>View all</button>
+                  </div>
+                  {bellPreview.length === 0 ? (
+                    <div className="reminder-dropdown-empty">Nothing pinned right now.</div>
+                  ) : (
+                    bellPreview.map(r => (
+                      <button
+                        key={r.id}
+                        type="button"
+                        className="reminder-dropdown-row"
+                        onClick={() => { setBellOpen(false); if (r.runId) navigate(`/runs/${r.runId}`); else navigate("/my-reminders"); }}
+                      >
+                        <span className={`reminder-dropdown-pip${overdue.includes(r) ? " od" : thisWeek.includes(r) ? " wk" : " up"}`} />
+                        <span className="reminder-dropdown-txt">
+                          <span className="reminder-dropdown-ti">{r.title}</span>
+                          <span className="reminder-dropdown-me">
+                            {[reminderWhenLabel(r.reminderDate), r.runName, r.documentName].filter(Boolean).join(" · ")}
+                          </span>
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
             {tenantName && (
               <div
                 className="topbar-tenant"

@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
-import { LayoutDashboard, FileText, Sparkles, ChevronDown, Download, BarChart2, Search, X } from "lucide-react";
+import { LayoutDashboard, FileText, Sparkles, ChevronDown, Download, BarChart2, Search, X, Bell, BellRing } from "lucide-react";
 import { PageBreadcrumb } from "../components/PageBreadcrumb";
 import ChatTab from "../components/ChatTab";
 import { configApi, triggerLoginRedirect } from "../services/configApi";
@@ -48,6 +48,7 @@ interface AttributeValue {
   attributeName: string;
   riskLevel?: string;   // ✅ ADD THIS
   values: {
+    analysisResultId?: string;
     candidateId: string;
     value: string;
     attributeAiInsight?: string;
@@ -56,6 +57,17 @@ interface AttributeValue {
      // ✅ ADD THIS
     confidenceScore?: number;
   }[];
+}
+
+// A reminder only makes sense on a value that's actually a date — bare numbers
+// ("42") parse as valid Dates in JS and would otherwise show a bell everywhere.
+function parseAsDate(value?: string): Date | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === "-" || trimmed === "—") return null;
+  if (/^-?\d+(\.\d+)?$/.test(trimmed)) return null;
+  const parsed = new Date(trimmed);
+  return isNaN(parsed.getTime()) ? null : parsed;
 }
 
 interface Evaluation {
@@ -486,6 +498,40 @@ export default function ComparisonResults() {
   const [selectedInsightProfileName, setSelectedInsightProfileName] =
     useState<string>("");
 
+  // Reminders pinned by the current user for this run — analysisResultId -> reminderId.
+  const [pinnedReminders, setPinnedReminders] = useState<Record<string, string>>({});
+  const [pinBusyId, setPinBusyId] = useState<string | null>(null);
+
+  const togglePin = async (analysisResultId: string | undefined, attributeName: string, rawValue: string) => {
+    if (!analysisResultId) return;
+    const existingReminderId = pinnedReminders[analysisResultId];
+
+    setPinBusyId(analysisResultId);
+    try {
+      if (existingReminderId) {
+        await configApi.deleteUserReminder(existingReminderId);
+        setPinnedReminders(prev => {
+          const next = { ...prev };
+          delete next[analysisResultId];
+          return next;
+        });
+      } else {
+        const parsedDate = parseAsDate(rawValue);
+        if (!parsedDate) return;
+        const result = await configApi.pinReminder({
+          analysisResultId,
+          title: attributeName,
+          reminderDate: parsedDate.toISOString(),
+        });
+        setPinnedReminders(prev => ({ ...prev, [analysisResultId]: result.id }));
+      }
+    } catch (err) {
+      console.error("Failed to update reminder", err);
+    } finally {
+      setPinBusyId(null);
+    }
+  };
+
   const toggleAttribute = (attributeId: string) => {
     setExpandedAttributes((prev) =>
       prev.includes(attributeId)
@@ -670,6 +716,7 @@ const sendChatQuestion = async () => {
             attributeName: a.AttributeName,
             riskLevel: a.RiskLevel,
            values: (a.Values ?? []).map((v: any) => ({
+          analysisResultId: v.AnalysisResultId,
           candidateId: v.CandidateId,
           documentId: v.DocumentId,
           value: v.Value,
@@ -741,6 +788,17 @@ const sendChatQuestion = async () => {
           } 
         catch (insErr) {
           console.warn("Failed to load AI insight rows:", insErr);
+        }
+
+        try {
+          const myReminders = await configApi.getMyReminders(runId);
+          const pinnedMap: Record<string, string> = {};
+          (myReminders ?? []).forEach((r: any) => {
+            if (r.analysisResultId) pinnedMap[r.analysisResultId] = r.id;
+          });
+          setPinnedReminders(pinnedMap);
+        } catch (remErr) {
+          console.warn("Failed to load pinned reminders:", remErr);
         }
       } catch (err: any) {
         console.error(err);
@@ -1473,6 +1531,9 @@ const pdfViewer = fileKind === "image" ? imageViewer : fileKind === "other" ? no
                     (e: any) => e.candidateId === v.candidateId &&
                       (e.attributeId === attr.attributeId || e.attributeName === attr.attributeName)
                   )?.isWinner;
+                  const dateValue = parseAsDate(v.value);
+                  const isPinned = !!(v.analysisResultId && pinnedReminders[v.analysisResultId]);
+                  const isBusy = pinBusyId === v.analysisResultId;
                   return (
                     <span
                       key={v.documentId ?? v.candidateId ?? vIdx}
@@ -1480,6 +1541,26 @@ const pdfViewer = fileKind === "image" ? imageViewer : fileKind === "other" ? no
                       onClick={(e) => { e.stopPropagation(); handleAttributeRowClick(attr, v.candidateId, v.documentId, vIdx); }}
                     >
                       <FormatValue name={attr.attributeName} value={v.value} />
+                      {dateValue && v.analysisResultId && (
+                        <button
+                          type="button"
+                          disabled={isBusy}
+                          title={isPinned ? "Remove reminder" : "Remind me about this date"}
+                          onClick={(e) => { e.stopPropagation(); togglePin(v.analysisResultId, attr.attributeName, v.value); }}
+                          style={{
+                            display: "inline-flex", alignItems: "center", justifyContent: "center",
+                            width: 18, height: 18, marginLeft: 6, padding: 0, verticalAlign: "middle",
+                            border: "none", borderRadius: 5,
+                            cursor: isBusy ? "default" : "pointer",
+                            background: isPinned ? "#FAECE7" : "#EFF6FF",
+                            color: isPinned ? "#ea580c" : "#3B82F6",
+                            opacity: isBusy ? 0.5 : 1,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {isPinned ? <BellRing size={11} /> : <Bell size={11} />}
+                        </button>
+                      )}
                     </span>
                   );
                 })}
@@ -2162,6 +2243,9 @@ return (
                                 (e.attributeId === attr.attributeId || e.attributeName === attr.attributeName)
                             );
                             const isWinner = evaluation?.isWinner;
+                            const dateValue = parseAsDate(v.value);
+                            const isPinned = !!(v.analysisResultId && pinnedReminders[v.analysisResultId]);
+                            const isBusy = pinBusyId === v.analysisResultId;
                             return (
                               <span
                                 key={v.documentId ?? v.candidateId ?? vIdx}
@@ -2169,6 +2253,26 @@ return (
                                 onClick={(e) => { e.stopPropagation(); handleAttributeRowClick(attr, v.candidateId, v.documentId, vIdx); }}
                               >
                                 <FormatValue name={attr.attributeName} value={v.value} />
+                                {dateValue && v.analysisResultId && (
+                                  <button
+                                    type="button"
+                                    disabled={isBusy}
+                                    title={isPinned ? "Remove reminder" : "Remind me about this date"}
+                                    onClick={(e) => { e.stopPropagation(); togglePin(v.analysisResultId, attr.attributeName, v.value); }}
+                                    style={{
+                                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                                      width: 18, height: 18, marginLeft: 6, padding: 0, verticalAlign: "middle",
+                                      border: "none", borderRadius: 5,
+                                      cursor: isBusy ? "default" : "pointer",
+                                      background: isPinned ? "#FAECE7" : "#EFF6FF",
+                                      color: isPinned ? "#ea580c" : "#3B82F6",
+                                      opacity: isBusy ? 0.5 : 1,
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    {isPinned ? <BellRing size={11} /> : <Bell size={11} />}
+                                  </button>
+                                )}
                               </span>
                             );
                           })}
@@ -2188,6 +2292,9 @@ return (
                                 (e.attributeId === attr.attributeId || e.attributeName === attr.attributeName)
                             );
                             const isWinner = evaluation?.isWinner;
+                            const dateValue = parseAsDate(v.value);
+                            const isPinned = !!(v.analysisResultId && pinnedReminders[v.analysisResultId]);
+                            const isBusy = pinBusyId === v.analysisResultId;
                             return (
                               <div
                                 key={v.documentId ?? v.candidateId}
@@ -2200,8 +2307,28 @@ return (
                                   </span>
                                   {isWinner && <span className="badge badge-positive">Winner</span>}
                                 </div>
-                                <div style={{ fontSize: 13.5, fontWeight: 400, color: "#111827", lineHeight: 1.55 }}>
+                                <div style={{ fontSize: 13.5, fontWeight: 400, color: "#111827", lineHeight: 1.55, display: "flex", alignItems: "center" }}>
                                   <FormatValue name={attr.attributeName} value={v.value} />
+                                  {dateValue && v.analysisResultId && (
+                                    <button
+                                      type="button"
+                                      disabled={isBusy}
+                                      title={isPinned ? "Remove reminder" : "Remind me about this date"}
+                                      onClick={(e) => { e.stopPropagation(); togglePin(v.analysisResultId, attr.attributeName, v.value); }}
+                                      style={{
+                                        display: "inline-flex", alignItems: "center", justifyContent: "center",
+                                        width: 20, height: 20, marginLeft: 8, padding: 0,
+                                        border: "none", borderRadius: 5,
+                                        cursor: isBusy ? "default" : "pointer",
+                                        background: isPinned ? "#FAECE7" : "#EFF6FF",
+                                        color: isPinned ? "#ea580c" : "#3B82F6",
+                                        opacity: isBusy ? 0.5 : 1,
+                                        flexShrink: 0,
+                                      }}
+                                    >
+                                      {isPinned ? <BellRing size={12} /> : <Bell size={12} />}
+                                    </button>
+                                  )}
                                 </div>
                                 {(v.confidenceScore !== undefined || v.pageNumber) && (
                                   <div style={{ display: "flex", gap: 8, marginTop: 3 }}>

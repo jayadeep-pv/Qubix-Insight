@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { configApi } from "../services/configApi";
 import { useUser } from "../context/UserContext";
-import { Zap, AlignLeft, GitCompare, Star, ChevronRight, BarChart2, FileText, AlertTriangle, Activity, Search } from "lucide-react";
+import { Zap, AlignLeft, GitCompare, Star, ChevronRight, BarChart2, FileText, AlertTriangle, Activity, Search, Bell } from "lucide-react";
+import { useMyReminders } from "../hooks/useMyReminders";
 
 /* ── helpers ── */
 function getGreeting(): string {
@@ -133,6 +134,8 @@ const HomePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<Stats>({ totalInsights: 0, totalDocs: 0, highRisk: 0 });
   const [search, setSearch] = useState("");
+  const { overdue, thisWeek } = useMyReminders();
+  const reminderCount = overdue.length + thisWeek.length;
 
   useEffect(() => {
     configApi
@@ -221,6 +224,22 @@ const HomePage: React.FC = () => {
               <span className="hp-kpi-label">System Status</span>
               <span className="hp-kpi-value hp-kpi-value--green">Active</span>
               <span className="hp-kpi-sub">AI services running</span>
+            </div>
+          </div>
+
+          <div
+            className={`hp-kpi ${reminderCount > 0 ? "hp-kpi--orange" : "hp-kpi--gray"}`}
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate("/my-reminders")}
+            onKeyDown={(e) => e.key === "Enter" && navigate("/my-reminders")}
+            style={{ cursor: "pointer" }}
+          >
+            <div className={`hp-kpi-icon-wrap ${reminderCount > 0 ? "hp-kpi-icon-wrap--orange" : "hp-kpi-icon-wrap--gray"}`}><Bell size={18} /></div>
+            <div className="hp-kpi-body">
+              <span className="hp-kpi-label">Upcoming Reminders</span>
+              <span className="hp-kpi-value">{reminderCount}</span>
+              <span className="hp-kpi-sub">{overdue.length > 0 ? `${overdue.length} overdue` : "next 7 days"}</span>
             </div>
           </div>
         </div>
@@ -399,7 +418,7 @@ const HomePage: React.FC = () => {
         /* ══ KPI ROW ══ */
         .hp-kpi-row {
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
+          grid-template-columns: repeat(5, 1fr);
           gap: 14px;
         }
 
@@ -414,22 +433,24 @@ const HomePage: React.FC = () => {
           gap: 14px;
           box-shadow: 0 1px 4px rgba(0,0,0,0.04);
         }
-        .hp-kpi--blue  { border-top-color: #3b82f6; }
-        .hp-kpi--teal  { border-top-color: #10b981; }
-        .hp-kpi--red   { border-top-color: #ef4444; }
-        .hp-kpi--gray  { border-top-color: #d1d5db; }
-        .hp-kpi--green { border-top-color: #10b981; }
+        .hp-kpi--blue   { border-top-color: #3b82f6; }
+        .hp-kpi--teal   { border-top-color: #10b981; }
+        .hp-kpi--red    { border-top-color: #ef4444; }
+        .hp-kpi--gray   { border-top-color: #d1d5db; }
+        .hp-kpi--green  { border-top-color: #10b981; }
+        .hp-kpi--orange { border-top-color: #ea580c; }
 
         .hp-kpi-icon-wrap {
           width: 38px; height: 38px; border-radius: 9px;
           display: flex; align-items: center; justify-content: center;
           flex-shrink: 0;
         }
-        .hp-kpi-icon-wrap--blue  { background: #eff6ff; color: #3b82f6; }
-        .hp-kpi-icon-wrap--teal  { background: #f0fdf4; color: #10b981; }
-        .hp-kpi-icon-wrap--red   { background: #fef2f2; color: #ef4444; }
-        .hp-kpi-icon-wrap--gray  { background: #f8fafc; color: #94a3b8; }
-        .hp-kpi-icon-wrap--green { background: #f0fdf4; color: #10b981; }
+        .hp-kpi-icon-wrap--blue   { background: #eff6ff; color: #3b82f6; }
+        .hp-kpi-icon-wrap--teal   { background: #f0fdf4; color: #10b981; }
+        .hp-kpi-icon-wrap--red    { background: #fef2f2; color: #ef4444; }
+        .hp-kpi-icon-wrap--gray   { background: #f8fafc; color: #94a3b8; }
+        .hp-kpi-icon-wrap--green  { background: #f0fdf4; color: #10b981; }
+        .hp-kpi-icon-wrap--orange { background: #FAECE7; color: #993C1D; }
 
         .hp-kpi-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
         .hp-kpi-label {

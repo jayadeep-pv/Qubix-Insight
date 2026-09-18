@@ -23,6 +23,7 @@ import AiInsightProfiles from "./pages/AiInsightProfiles"
 import AiInsightProfileForm from "./pages/AiInsightProfileForm"
 import RunResults from "./pages/RunResults";
 import MyInsights from "./pages/MyInsights";
+import MyReminders from "./pages/MyReminders";
 import AllInsights from "./pages/AllInsights";
 import HomePage from "./pages/HomePage";
 import TenantSettings from "./pages/TenantSettings";
@@ -246,6 +247,7 @@ function App() {
 
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/my-insights" element={<MyInsights />} />
+        <Route path="/my-reminders" element={<MyReminders />} />
         <Route path="/all-insights" element={<AllInsights />} />
 
         <Route path="/runs/:runId" element={<RunResults />} />

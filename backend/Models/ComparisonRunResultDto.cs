@@ -43,6 +43,7 @@ public class AttributeDto
 
 public class AttributeValueDto
 {
+    public Guid AnalysisResultId { get; set; }
     public Guid? CandidateId { get; set; }
     public Guid? DocumentId { get; set; }
     public string? Value { get; set; }

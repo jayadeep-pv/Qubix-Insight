@@ -393,6 +393,32 @@ export const configApi = {
     return res.data;
   },
 
+  // -----------------------------
+  // REMINDERS
+  // -----------------------------
+
+  async pinReminder(data: { analysisResultId: string; title: string; reminderDate: string; offsetDays?: number }) {
+    const res = await apiClient.post(`/api/PinReminder`, data);
+    return res.data;
+  },
+
+  async getMyReminders(runId?: string) {
+    const res = await apiClient.get(`/api/GetMyReminders`, {
+      params: runId ? { runId } : undefined
+    });
+    return res.data;
+  },
+
+  async updateUserReminder(data: { id: string; reminderDate?: string; snoozedUntil?: string; clearSnooze?: boolean; isActive?: boolean }) {
+    const res = await apiClient.put(`/api/UpdateUserReminder`, data);
+    return res.data;
+  },
+
+  async deleteUserReminder(id: string) {
+    const res = await apiClient.delete(`/api/DeleteUserReminder`, { params: { id } });
+    return res.data;
+  },
+
   // ─────────────────────────────────────────────
   // PROMOTE DISCOVERED ATTRIBUTE TO TEMPLATE
   // One-click action from the "Also Discovered" UI
