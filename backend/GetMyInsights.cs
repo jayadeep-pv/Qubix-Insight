@@ -113,19 +113,29 @@ public class GetMyInsights
         docTypeLink.EntityAlias = "doctype";
 
         /* ======================================
-           Filter by User (email OR oid)
-           CIAM access tokens often omit the email claim so oid is the fallback.
+           Scope: the user's own runs in their tenant, plus — for trial/internal
+           tenants — the shared sys-sample runs regardless of who "executed" them
+           (sample data was seeded, not run by this user, so it can't be picked up
+           by the email/oid match below; it's included by tenant id alone instead).
         ====================================== */
+
+        var ownRunsFilter = new FilterExpression(LogicalOperator.And);
+        ownRunsFilter.AddCondition("ilx_tenantid", ConditionOperator.Equal, tenant.TenantRecordId.ToString());
 
         var userFilter = new FilterExpression(LogicalOperator.Or);
         if (!string.IsNullOrWhiteSpace(userEmail))
             userFilter.AddCondition("ilx_executedbyemail", ConditionOperator.Equal, userEmail);
         if (!string.IsNullOrWhiteSpace(userInfo.Oid))
             userFilter.AddCondition("ilx_executedbyaadobjectid", ConditionOperator.Equal, userInfo.Oid);
-        query.Criteria.Filters.Add(userFilter);
+        ownRunsFilter.Filters.Add(userFilter);
 
+        var scopeFilter = new FilterExpression(LogicalOperator.Or);
+        scopeFilter.Filters.Add(ownRunsFilter);
+        if (tenant.NeedsSampleData)
+            scopeFilter.AddCondition("ilx_tenantid", ConditionOperator.Equal, TenantQueryHelper.SampleTenantId);
+
+        query.Criteria.Filters.Add(scopeFilter);
         query.Criteria.AddCondition("statecode", ConditionOperator.LessThan, 2); // include Active (0) and Inactive (1)
-        TenantQueryHelper.AddTenantFilter(query, tenant.TenantRecordId.ToString());
         query.AddOrder("createdon", OrderType.Descending);
 
         // Enumerate eagerly — avoids lazy N+1 calls during JSON serialization

@@ -379,6 +379,18 @@ const MyInsights: React.FC = () => {
             <div className="mi-board-list-hd">
               <span>{totalItems} run{totalItems === 1 ? "" : "s"} match</span>
             </div>
+            <div className="mi-board-search">
+              <div className="mi-search">
+                <Search size={13} className="mi-search-icon" />
+                <input
+                  type="text"
+                  placeholder="Search runs..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="search-input"
+                />
+              </div>
+            </div>
             <div className="mi-board-list-body">
               {sorted.map(r => (
                 <button
@@ -786,7 +798,14 @@ const MyInsights: React.FC = () => {
 
         .mi-filter-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px; }
         .mi-search { position: relative; flex: 1; min-width: 220px; }
-        .mi-search-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: #9ca3af; }
+        .mi-search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #9ca3af; pointer-events: none; }
+        .mi-search .search-input {
+          width: 100%; box-sizing: border-box;
+          padding: 8px 10px 8px 30px;
+          font-size: 13px; height: 34px;
+          border: 1px solid #e5e7eb; border-radius: 8px;
+        }
+        .mi-search .search-input:focus { outline: none; border-color: #C9441B; box-shadow: 0 0 0 3px rgba(201,68,27,0.12); }
         .mi-clear-filters { background: none; border: none; color: #6b7280; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
         .mi-clear-filters:hover { color: #111827; }
 
@@ -843,6 +862,8 @@ const MyInsights: React.FC = () => {
           position: sticky; top: 0; max-height: 80vh; display: flex; flex-direction: column;
         }
         .mi-board-list-hd { flex-shrink: 0; padding: 12px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12.5px; font-weight: 700; color: #111827; }
+        .mi-board-search { flex-shrink: 0; padding: 10px 12px; border-bottom: 1px solid #f1f5f9; }
+        .mi-board-search .mi-search { flex: none; min-width: 0; width: 100%; }
         .mi-board-list-body { flex: 1; min-height: 0; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
         .mi-board-card {
           text-align: left; background: #fff; border: 1px solid #ebebeb; border-left: 3px solid #e5e7eb;
