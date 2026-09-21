@@ -19,13 +19,13 @@ interface Props {
   selectedInsightRow: AiInsightRecord | null;
 }
 
-const IMPACT_STYLE: Record<string, { border: string; badge: string; text: string }> = {
+export const IMPACT_STYLE: Record<string, { border: string; badge: string; text: string }> = {
   high:   { border: "#ef4444", badge: "#ef4444", text: "#fff" },
   medium: { border: "#f59e0b", badge: "#f59e0b", text: "#1a1a1a" },
   low:    { border: "#22c55e", badge: "#22c55e", text: "#fff" },
 };
 
-function parseSummaryToBullets(text: string): string[] {
+export function parseSummaryToBullets(text: string): string[] {
   if (!text) return [];
   const normalized = text.trim();
 
@@ -161,6 +161,15 @@ const AiInsightsSection: React.FC<Props> = ({ selectedInsight }) => {
                   <span style={{ flex: 1, fontSize: 13.5, fontWeight: 500, color: "#1f2937" }}>
                     {k?.Title ?? k?.title ?? "Insight"}
                   </span>
+                  {(k?.ClauseReference ?? k?.clauseReference) && (
+                    <span style={{
+                      fontSize: 11, fontWeight: 600, color: "#9a3412",
+                      background: "#fff3ec", padding: "2px 8px", borderRadius: 999,
+                      flexShrink: 0, whiteSpace: "nowrap",
+                    }}>
+                      {k?.ClauseReference ?? k?.clauseReference}
+                    </span>
+                  )}
                   <ChevronDown
                     size={16}
                     color="#9ca3af"
@@ -175,6 +184,19 @@ const AiInsightsSection: React.FC<Props> = ({ selectedInsight }) => {
                     lineHeight: 1.65,
                     borderTop: "1px solid #f5f5f5",
                   }}>
+                    {(k?.QuotedExcerpt ?? k?.quotedExcerpt) && (
+                      <div style={{
+                        fontStyle: "italic",
+                        color: "#374151",
+                        background: "#f9fafb",
+                        borderLeft: "3px solid #d1d5db",
+                        borderRadius: "0 6px 6px 0",
+                        padding: "8px 12px",
+                        marginBottom: 8,
+                      }}>
+                        “{k?.QuotedExcerpt ?? k?.quotedExcerpt}”
+                      </div>
+                    )}
                     {k?.Description ?? k?.description}
                   </div>
                 )}

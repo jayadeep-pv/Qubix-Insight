@@ -77,7 +77,7 @@ export default function AuthErrorScreen({ error, onRetry, onLogout }: AuthErrorS
 
         <p style={{ margin: 0, fontSize: 12, color: "#9ca3af" }}>
           Need help? Contact{" "}
-          <a href="mailto:support@qubixinsight.com" style={{ color: "#F97316", textDecoration: "none", fontWeight: 500 }}>
+          <a href="mailto:support@qubixinsight.com" style={{ color: "#C9441B", textDecoration: "none", fontWeight: 500 }}>
             support@qubixinsight.com
           </a>
         </p>

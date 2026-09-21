@@ -18,6 +18,10 @@ import {
   Menu,
   X,
   Bell,
+  Search,
+  ChevronsUpDown,
+  MoreHorizontal,
+  LayoutDashboard,
 } from "lucide-react";
 import { useUser } from "../context/UserContext";
 import { useMyReminders } from "../hooks/useMyReminders";
@@ -31,8 +35,8 @@ interface LayoutProps {
 const PAGE_META: Record<string, { title: string; subtitle: string }> = {
   "/":                           { title: "Home",                 subtitle: "Your document intelligence workspace" },
   "/home":                       { title: "Home",                 subtitle: "Your document intelligence workspace" },
-  "/dashboard":                  { title: "My Insights",          subtitle: "Recent analysis runs" },
-  "/my-insights":                { title: "My Insights",          subtitle: "Recent analysis runs" },
+  "/dashboard":                  { title: "Dashboard",            subtitle: "Usage trends and analytics" },
+  "/my-insights":                { title: "My Insights",          subtitle: "Every analysis run you've created" },
   "/my-reminders":               { title: "My Reminders",         subtitle: "Dates you've pinned across your documents" },
   "/all-insights":               { title: "All Insights",         subtitle: "Organisation-wide analysis" },
   "/document-types":             { title: "Document Types",       subtitle: "Manage document classifications" },
@@ -72,6 +76,12 @@ function reminderWhenLabel(iso?: string): string {
   return `in ${days}d`;
 }
 
+function daysLeft(trialExpiry?: string): number | null {
+  if (!trialExpiry) return null;
+  const ms = new Date(trialExpiry).getTime() - Date.now();
+  return Math.max(0, Math.ceil(ms / 86_400_000));
+}
+
 function initials(name: string, email: string): string {
   if (name) {
     const parts = name.trim().split(" ");
@@ -85,11 +95,15 @@ function initials(name: string, email: string): string {
 export default function Layout({ onLogout }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isTrial, trialExpired, userName, userEmail, tenantName } = useUser();
+  const { isTrial, trialExpired, isAdmin, userName, userEmail, tenantName, trialExpiry } = useUser();
+  const trialDaysLeft = isTrial ? daysLeft(trialExpiry) : null;
   const [iconOnly, setIconOnly] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const { overdue, thisWeek, upcoming, reload: reloadReminders } = useMyReminders();
   const reminderCount = overdue.length + thisWeek.length;
   const bellPreview = [...overdue, ...thisWeek, ...upcoming].slice(0, 5);
@@ -114,6 +128,17 @@ export default function Layout({ onLogout }: LayoutProps) {
     return () => document.removeEventListener("mousedown", onClick);
   }, [bellOpen]);
 
+  // Same pattern for the sidebar user menu (Help / Contact / Logout)
+  useEffect(() => { setUserMenuOpen(false); }, [location.pathname]);
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setUserMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [userMenuOpen]);
+
   // Prevent body scroll when mobile sidebar is open
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
@@ -134,12 +159,21 @@ export default function Layout({ onLogout }: LayoutProps) {
       <aside className={`sidebar${iconOnly ? " icon-only" : ""}${mobileOpen ? " mobile-open" : ""}`}>
         <div className="sidebar-grid" />
 
-        {/* Logo */}
+        {/* Brand logo — workspace name + trial status now shown as the
+            secondary line underneath, not in place of the product name */}
         <div className="logo" title={iconOnly ? "Qubix Insight" : undefined}>
           <div className="logo-icon"><Layers size={16} /></div>
           <div className="logo-text">
             <span className="logo-name">Qubix Insight</span>
+            {(tenantName || isTrial) && (
+              <span className="logo-sub">
+                {[tenantName, isTrial ? `Trial${trialDaysLeft != null ? ` · ${trialDaysLeft}d left` : ""}` : null]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+            )}
           </div>
+          {!iconOnly && <ChevronsUpDown size={14} className="logo-switcher" />}
         </div>
 
         {/* Collapse toggle — desktop only */}
@@ -167,9 +201,13 @@ export default function Layout({ onLogout }: LayoutProps) {
             <Home size={16} />
             <span>Home</span>
           </NavLink>
-          <NavLink to="/dashboard" title={iconOnly ? "My Insights" : undefined}>
+          <NavLink to="/my-insights" title={iconOnly ? "My Insights" : undefined}>
             <List size={16} />
             <span>My Insights</span>
+          </NavLink>
+          <NavLink to="/dashboard" title={iconOnly ? "Dashboard" : undefined}>
+            <LayoutDashboard size={16} />
+            <span>Dashboard</span>
           </NavLink>
           <NavLink to="/my-reminders" title={iconOnly ? "My Reminders" : undefined}>
             <Bell size={16} />
@@ -178,12 +216,7 @@ export default function Layout({ onLogout }: LayoutProps) {
           </NavLink>
 
           <div className="sidebar-group">
-            <div className="sidebar-group-title">Administration</div>
-
-            <NavLink to="all-insights" title={iconOnly ? "All Insights" : undefined}>
-              <Shield size={16} />
-              <span>All Insights</span>
-            </NavLink>
+            <div className="sidebar-group-title">Configure</div>
 
             <NavLink to="/document-types" title={iconOnly ? "Document Types" : undefined}>
               <FolderTree size={16} />
@@ -209,47 +242,63 @@ export default function Layout({ onLogout }: LayoutProps) {
               <BrainCircuit size={16} />
               <span>AI Insight Profiles</span>
             </NavLink>
+
+            <NavLink to="all-insights" title={iconOnly ? "All Insights" : undefined}>
+              <Shield size={16} />
+              <span>All Insights</span>
+            </NavLink>
           </div>
+        </nav>
 
+        {/* Settings + user card pushed down together as one unit, so Settings
+            sits snug above the card instead of floating in the middle. */}
+        <div className="sidebar-footer-group">
           {!isTrial && (
-            <div className="sidebar-group">
-              <div className="sidebar-group-title">System</div>
-
+            <div className="sidebar-group sidebar-settings-group">
               <NavLink to="/settings" title={iconOnly ? "Settings" : undefined}>
                 <Settings size={16} />
                 <span>Settings</span>
               </NavLink>
             </div>
           )}
-        </nav>
 
         {/* Bottom section */}
-        <div className="sidebar-bottom">
+        <div className="sidebar-bottom" ref={userMenuRef}>
           {(userName || userEmail) && (
-            <div className="sidebar-user" title={iconOnly ? (userName || userEmail) : undefined}>
+            <div
+              className="sidebar-user"
+              title={iconOnly ? (userName || userEmail) : undefined}
+              onClick={() => setUserMenuOpen(v => !v)}
+              role="button"
+              tabIndex={0}
+            >
               <div className="sidebar-avatar">{initials(userName, userEmail)}</div>
               <div className="sidebar-user-info">
                 <span className="sidebar-user-name">{userName || userEmail}</span>
-                {tenantName && <span className="sidebar-user-role">{tenantName}</span>}
+                <span className="sidebar-user-role">{isTrial ? "Trial user" : isAdmin ? "Workspace admin" : "Member"}</span>
               </div>
+              {!iconOnly && <MoreHorizontal size={15} className="sidebar-user-more" />}
             </div>
           )}
 
-          <NavLink to="/support" state={{ scrollToTop: true }} className="sidebar-support" title={iconOnly ? "Help" : undefined}>
-            <HelpCircle size={16} />
-            <span>Help</span>
-          </NavLink>
+          {userMenuOpen && (
+            <div className="sidebar-user-menu">
+              <NavLink to="/support" state={{ scrollToTop: true }} className="sidebar-support">
+                <HelpCircle size={16} />
+                <span>Help</span>
+              </NavLink>
+              <NavLink to="/support" state={{ scrollToContact: true }} className="sidebar-support">
+                <Mail size={16} />
+                <span>Contact</span>
+              </NavLink>
+              <button type="button" className="logout-btn" onClick={onLogout}>
+                <Power size={16} />
+                <span>Logout</span>
+              </button>
+            </div>
+          )}
 
-          <NavLink to="/support" state={{ scrollToContact: true }} className="sidebar-support" title={iconOnly ? "Contact" : undefined}>
-            <Mail size={16} />
-            <span>Contact</span>
-          </NavLink>
-
-          <button type="button" className="logout-btn" onClick={onLogout} title={iconOnly ? "Logout" : undefined}>
-            <Power size={16} />
-            <span>Logout</span>
-          </button>
-
+        </div>
         </div>
       </aside>
 
@@ -274,12 +323,39 @@ export default function Layout({ onLogout }: LayoutProps) {
             {page.subtitle && <span className="topbar-subtitle">{page.subtitle}</span>}
           </div>
 
+          {/* Global search — jumps to My Insights with the query pre-filled;
+              searches insight/run names today, not document or template content. */}
+          <form
+            className="topbar-search"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (searchQuery.trim()) navigate("/my-insights", { state: { query: searchQuery.trim() } });
+            }}
+          >
+            <Search size={14} className="topbar-search-icon" />
+            <input
+              className="topbar-search-input"
+              placeholder="Search runs, documents, templates"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <kbd className="topbar-search-kbd">⌘K</kbd>
+          </form>
+
           {/* Right: company pill + user name */}
           <div className="topbar-right">
+            {isTrial ? (
+              <div className="topbar-trial-pill" onClick={() => navigate("/support")} title="Trial account — click to upgrade">
+                <span>Trial{trialDaysLeft != null ? ` · ${trialDaysLeft} days left` : ""}</span>
+                <span className="topbar-trial-billing">Add billing</span>
+              </div>
+            ) : (
+              tenantName && <div className="topbar-tenant">{tenantName}</div>
+            )}
             <div className="topbar-bell" ref={bellRef}>
               <button
                 type="button"
-                className="topbar-bell-btn"
+                className="topbar-icon-btn topbar-bell-btn"
                 onClick={() => setBellOpen(v => {
                   const next = !v;
                   if (next) reloadReminders();
@@ -320,16 +396,9 @@ export default function Layout({ onLogout }: LayoutProps) {
                 </div>
               )}
             </div>
-            {tenantName && (
-              <div
-                className="topbar-tenant"
-                onClick={isTrial ? () => navigate("/support") : undefined}
-                style={isTrial ? { cursor: "pointer" } : undefined}
-                title={isTrial ? "Trial account — click to upgrade" : undefined}
-              >
-                {tenantName}
-              </div>
-            )}
+            <button type="button" className="topbar-icon-btn" onClick={() => navigate("/support")} title="Help">
+              <HelpCircle size={16} />
+            </button>
             {(userName || userEmail) && (
               <span className="topbar-user">{userName || userEmail}</span>
             )}

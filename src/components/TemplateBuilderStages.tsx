@@ -785,8 +785,8 @@ export const TEMPLATE_BUILDER_STYLES = `
   .tbs-flow-arrow { font-size:20px; color:#d1d5db; line-height:1; }
   .tbs-back-btn { background:#e5e7eb !important; color:#374151 !important; box-shadow:none !important; margin-top:0 !important; }
   .tbs-back-btn:hover { background:#d1d5db !important; }
-  .tbs-save-btn { background:linear-gradient(145deg,#F97316,#EA580C) !important; box-shadow:0 4px 14px rgba(249,115,22,0.3) !important; margin-top:0 !important; }
-  .tbs-save-btn:hover { box-shadow:0 6px 18px rgba(249,115,22,0.45) !important; }
+  .tbs-save-btn { background:linear-gradient(145deg,#C9441B,#A8350F) !important; box-shadow:0 4px 14px rgba(201, 68, 27,0.3) !important; margin-top:0 !important; }
+  .tbs-save-btn:hover { box-shadow:0 6px 18px rgba(201, 68, 27,0.45) !important; }
   .tbs-status { margin-top:10px; font-size:13px; color:#6b7280; text-align:center; }
 
   /* ── DONE ── */

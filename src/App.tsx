@@ -7,7 +7,7 @@ import { useUser } from "./context/UserContext";
 import Layout from "./layout/Layout";
 import StartReview from "./pages/StartReview";
 import ComparisonResults from "./pages/ComparisonResults";
-import LoginPage, { type TrialProfileData } from "./pages/LoginPage";
+import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
 import Comparisons from "./pages/Comparisons";
 import DocumentTypes from "./pages/DocumentTypes";
@@ -29,6 +29,14 @@ import HomePage from "./pages/HomePage";
 import TenantSettings from "./pages/TenantSettings";
 import SupportPage from "./pages/SupportPage";
 import AuthErrorScreen from "./components/AuthErrorScreen";
+import CompleteTrialProfile from "./components/CompleteTrialProfile";
+import LegalPage from "./pages/LegalPage";
+
+const LEGAL_PATHS: Record<string, "privacy" | "terms" | "security"> = {
+  "/privacy": "privacy",
+  "/terms": "terms",
+  "/security": "security",
+};
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -63,7 +71,8 @@ function PostLoginGuard({ children }: { children: ReactNode }) {
 function App() {
   const { instance, accounts, inProgress } = useMsal();
   const isAuthenticated = useIsAuthenticated();
-  const { authError, refreshUser } = useUser();
+  const { authError, refreshUser, isTrial, profileComplete, loading: userLoading } = useUser();
+  const location = useLocation();
 
   // External ID auth: initialised synchronously from accounts already in localStorage
   // (index.tsx called handleRedirectPromise() before first render, so this is reliable).
@@ -97,12 +106,20 @@ function App() {
      LOGIN / LOGOUT
   ======================================================= */
   const handleLogin = async () => {
-    await instance.loginRedirect(loginRequest);
+    // select_account forces an explicit account chooser instead of MSAL
+    // silently reusing/guessing a cached session — avoids the confusing
+    // "is this signing me in or out?" prompt when the browser already has
+    // a Microsoft account signed in for an unrelated app.
+    await instance.loginRedirect({ ...loginRequest, prompt: "select_account" });
   };
 
-  const handleTrialLogin = async (profile: TrialProfileData) => {
-    sessionStorage.setItem("trial_signup_profile", JSON.stringify(profile));
+  const handleTrialLogin = async () => {
     sessionStorage.removeItem("extid_token");
+    // A flag only — not user-entered data — so index.tsx knows this redirect is a
+    // genuine new sign-up (call UpdateTrialProfile to provision) rather than a
+    // returning user's sign-in (must NOT re-call it, since an empty body would
+    // overwrite their already-saved company/job title back to blank).
+    sessionStorage.setItem("trial_signup_pending", "1");
     const extId = getExternalIdInstance();
     if (extId) {
       // Clear any cached External ID accounts so a previous user's email
@@ -114,17 +131,30 @@ function App() {
       // landing on sign-up, on and off over time. prompt:"login" is the
       // fallback that's confirmed reliably working if this regresses again —
       // see git history for that version.
+      // No loginHint / pre-collected profile anymore — auth happens first,
+      // then a lightweight in-app step (CompleteTrialProfile) collects
+      // company/job title once the user is already authenticated.
       await extId.loginRedirect({
         ...trialLoginRequest,
         prompt: "create",
-        loginHint: profile.email,
       });
     }
   };
 
   const handleTrialSignIn = async () => {
     const extId = getExternalIdInstance();
-    if (extId) await extId.loginRedirect(trialLoginRequest);
+    if (extId) {
+      // select_account was tried here to fix the "confusing sign-in/sign-out"
+      // ambiguity, but this CIAM tenant has a confirmed intermittent Entra
+      // External ID bug where its account picker suggests a cached/wrong
+      // account and dead-ends into a password prompt that can't work (see
+      // project-trial-signup-entra-issue.md — the same bug class already
+      // documented for prompt:"create" on signup). prompt:"login" is the
+      // value already proven reliable on this exact tenant: it still forces
+      // fresh re-authentication (not a silent cached-session reuse) without
+      // going through the buggy picker.
+      await extId.loginRedirect({ ...trialLoginRequest, prompt: "login" });
+    }
   };
 
   const handleLogout = async () => {
@@ -167,6 +197,13 @@ function App() {
   ======================================================= */
   const effectivelyAuthenticated = isAuthenticated || extIdAuthenticated;
 
+  // Privacy / Terms / Security — reachable with no auth at all, so this is
+  // checked ahead of the loading spinner and login page below.
+  const legalKind = LEGAL_PATHS[location.pathname];
+  if (legalKind) {
+    return <LegalPage kind={legalKind} />;
+  }
+
   // Show loading spinner while main MSAL is processing a redirect.
   // External ID redirect is already resolved before first render (see index.tsx).
   if (inProgress !== InteractionStatus.None) {
@@ -193,6 +230,15 @@ function App() {
   ======================================================= */
   if (authError) {
     return <AuthErrorScreen error={authError} onRetry={refreshUser} onLogout={handleLogout} />;
+  }
+
+  /* =======================================================
+     TRIAL PROFILE GATE — auth-first-then-profile: a new trial user is
+     provisioned from their token alone at redirect time, then must fill in
+     Company/Job Title once, in-app, before reaching the product.
+  ======================================================= */
+  if (!userLoading && isTrial && !profileComplete) {
+    return <CompleteTrialProfile />;
   }
 
   /* =======================================================

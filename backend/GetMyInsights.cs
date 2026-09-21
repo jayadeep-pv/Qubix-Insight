@@ -165,6 +165,60 @@ public class GetMyInsights
         }
 
         /* ======================================
+           Risk rollup per run (single batch aggregate, same technique as
+           docCounts above) — the highest risk level found among that run's
+           extracted results. ilx_risklevel choice values follow the same
+           0/1/2 = Low/Medium/High convention used for rule severity elsewhere.
+        ====================================== */
+
+        var runRisk = new Dictionary<Guid, string>();
+
+        try
+        {
+            const string riskFetch = @"
+<fetch aggregate='true'>
+  <entity name='ilx_analysisresult'>
+    <attribute name='ilx_analysisresultid' alias='cnt' aggregate='count'/>
+    <attribute name='ilx_analysisrun' alias='runid' groupby='true'/>
+    <attribute name='ilx_risklevel' alias='risklevel' groupby='true'/>
+  </entity>
+</fetch>";
+
+            var riskResults = service.RetrieveMultiple(new FetchExpression(riskFetch));
+
+            foreach (var row in riskResults.Entities)
+            {
+                if (!row.Contains("runid") || !row.Contains("risklevel")) continue;
+
+                var runRef = ((AliasedValue)row["runid"]).Value as EntityReference;
+                if (runRef == null) continue;
+
+                var riskValue = ((AliasedValue)row["risklevel"]).Value as OptionSetValue;
+                var label = riskValue?.Value switch
+                {
+                    857270002 => "High",
+                    857270001 => "Medium",
+                    857270000 => "Low",
+                    _ => null
+                };
+                if (label == null) continue;
+
+                // Keep the highest severity seen for this run
+                if (!runRisk.TryGetValue(runRef.Id, out var existing) ||
+                    Rank(label) > Rank(existing))
+                {
+                    runRisk[runRef.Id] = label;
+                }
+            }
+        }
+        catch
+        {
+            // If the aggregate fails, risk defaults to unknown — runs still display
+        }
+
+        static int Rank(string level) => level switch { "High" => 3, "Medium" => 2, "Low" => 1, _ => 0 };
+
+        /* ======================================
            Map Results (no extra Dataverse calls)
         ====================================== */
 
@@ -184,6 +238,8 @@ public class GetMyInsights
                     : null,
 
             documentCount = docCounts.TryGetValue(r.Id, out var cnt) ? cnt : 0,
+
+            riskLevel = runRisk.TryGetValue(r.Id, out var risk) ? risk : null,
 
             isActive = (r.GetAttributeValue<OptionSetValue>("statecode")?.Value ?? 0) == 0,
 

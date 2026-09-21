@@ -34,10 +34,14 @@ async function bootstrap() {
           expiresOn: result.expiresOn?.toISOString() ?? null,
         }));
 
-        // If the user just completed trial sign-up, save their profile to the backend.
-        // The profile was stored in sessionStorage before the loginRedirect call.
-        const pending = sessionStorage.getItem("trial_signup_profile");
-        if (pending) {
+        // If this redirect came from a genuine new sign-up (flag set by
+        // handleTrialLogin before the redirect — see App.tsx), provision the
+        // tenant/user now from the token's own claims (oid/email/name).
+        // Company/job title are collected afterwards, in-app, by
+        // CompleteTrialProfile — never re-call this for a returning user's
+        // sign-in, since an empty body would overwrite their saved profile.
+        const isNewSignup = sessionStorage.getItem("trial_signup_pending");
+        if (isNewSignup) {
           try {
             // result.accessToken is already available from the redirect — no acquireTokenSilent needed
             const profileRes = await fetch(`${config.apiBase}/UpdateTrialProfile`, {
@@ -46,18 +50,18 @@ async function bootstrap() {
                 "Content-Type": "application/json",
                 "Authorization": `Bearer ${result.accessToken}`,
               },
-              body: pending,
+              body: "{}",
             });
             if (!profileRes.ok) {
               const errText = await profileRes.text();
               console.error("[ExtID] UpdateTrialProfile failed:", profileRes.status, errText);
             } else {
-              console.info("[ExtID] Trial profile saved.");
+              console.info("[ExtID] Trial tenant provisioned.");
             }
           } catch (profileErr) {
-            console.error("[ExtID] Failed to save trial profile:", profileErr);
+            console.error("[ExtID] Failed to provision trial tenant:", profileErr);
           } finally {
-            sessionStorage.removeItem("trial_signup_profile");
+            sessionStorage.removeItem("trial_signup_pending");
           }
         }
       }

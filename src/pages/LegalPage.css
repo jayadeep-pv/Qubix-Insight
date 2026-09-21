@@ -1,0 +1,115 @@
+.legal-root {
+  position: relative;
+  min-height: 100vh;
+  background: var(--brand-navy, #0A1B2F);
+  font-family: 'DM Sans', sans-serif;
+}
+
+.legal-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+.legal-nav {
+  position: relative;
+  z-index: 1;
+  padding: 22px 40px;
+}
+
+.legal-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.legal-logo-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #C9441B, #A8350F);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.legal-logo-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+
+.legal-content {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 20px 24px 80px;
+}
+
+.legal-notice {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #C9441B;
+  background: rgba(201,68,27,0.12);
+  border: 1px solid rgba(201,68,27,0.3);
+  border-radius: 999px;
+  padding: 6px 14px;
+  margin: 0 0 20px;
+}
+
+.legal-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+}
+
+.legal-updated {
+  font-size: 13px;
+  color: rgba(255,255,255,0.45);
+  margin: 0 0 36px;
+}
+
+.legal-section {
+  margin-bottom: 28px;
+}
+
+.legal-heading {
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 10px;
+}
+
+.legal-body {
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: rgba(255,255,255,0.65);
+  margin: 0 0 10px;
+}
+
+.legal-back {
+  display: inline-block;
+  margin-top: 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #fff;
+  text-decoration: none;
+  border: 1.5px solid rgba(255,255,255,0.25);
+  border-radius: 8px;
+  padding: 9px 16px;
+  transition: all 0.15s ease;
+}
+.legal-back:hover { border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.06); }

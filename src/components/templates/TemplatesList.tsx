@@ -130,7 +130,6 @@ export default function TemplatesList({ documentTypeId, documentTypeName, hideHe
           <div className="page-section-header">
             <div>
               <h2 className="page-section-title">Templates</h2>
-              <p className="page-subtitle">Manage comparison templates used for document analysis</p>
             </div>
             <button type="button" className="btn-primary"
               onClick={() => navigate(`/comparison/new?documentTypeId=${documentTypeId || ""}`)}

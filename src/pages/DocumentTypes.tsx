@@ -107,7 +107,6 @@ export default function DocumentTypes() {
       <div className="page-section-header">
         <div>
           <h2 className="page-section-title">Document Types</h2>
-          <p className="page-subtitle">Manage document types used for comparison and AI insights</p>
         </div>
         <button
           type="button"

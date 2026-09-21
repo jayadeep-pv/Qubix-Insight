@@ -133,7 +133,71 @@ public class GetInsightsDashboard
             TenantQueryHelper.AddTenantFilterWithSamples(allRunsQuery, tenant.TenantRecordId.ToString());
         else
             TenantQueryHelper.AddTenantFilter(allRunsQuery, tenant.TenantRecordId.ToString());
+
+        // Joined so the doc-type chart is a real all-time aggregate, not just
+        // whatever happens to be in the top-10 "recent runs" list below.
+        var allRunsDocTypeLink = allRunsQuery.AddLink(
+            "ilx_documenttype",
+            "ilx_documenttype",
+            "ilx_documenttypeid",
+            JoinOperator.LeftOuter);
+        allRunsDocTypeLink.Columns = new ColumnSet("ilx_name");
+        allRunsDocTypeLink.EntityAlias = "alldoctype";
+
         var allRuns = service.RetrieveMultiple(allRunsQuery).Entities;
+
+        var docTypeSplit = allRuns
+            .Select(r => r.Contains("alldoctype.ilx_name") ? ((AliasedValue)r["alldoctype.ilx_name"]).Value?.ToString() : null)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .GroupBy(name => name)
+            .ToDictionary(g => g.Key!, g => g.Count());
+
+        /* =============================
+           RISK ROLLUP PER RUN (same aggregate technique as GetMyInsights) —
+           looked up only for runs already in this tenant's `allRuns`/`runIds`,
+           so the aggregate itself doesn't need its own tenant filter.
+        ============================== */
+
+        var runRisk = new Dictionary<Guid, string>();
+        try
+        {
+            const string riskFetch = @"
+<fetch aggregate='true'>
+  <entity name='ilx_analysisresult'>
+    <attribute name='ilx_analysisresultid' alias='cnt' aggregate='count'/>
+    <attribute name='ilx_analysisrun' alias='runid' groupby='true'/>
+    <attribute name='ilx_risklevel' alias='risklevel' groupby='true'/>
+  </entity>
+</fetch>";
+
+            var riskResults = service.RetrieveMultiple(new FetchExpression(riskFetch));
+            int RiskRank(string level) => level switch { "High" => 3, "Medium" => 2, "Low" => 1, _ => 0 };
+
+            foreach (var row in riskResults.Entities)
+            {
+                if (!row.Contains("runid") || !row.Contains("risklevel")) continue;
+
+                var runRef = ((AliasedValue)row["runid"]).Value as EntityReference;
+                if (runRef == null) continue;
+
+                var riskValue = ((AliasedValue)row["risklevel"]).Value as OptionSetValue;
+                var label = riskValue?.Value switch
+                {
+                    857270002 => "High",
+                    857270001 => "Medium",
+                    857270000 => "Low",
+                    _ => null
+                };
+                if (label == null) continue;
+
+                if (!runRisk.TryGetValue(runRef.Id, out var existing) || RiskRank(label) > RiskRank(existing))
+                    runRisk[runRef.Id] = label;
+            }
+        }
+        catch
+        {
+            // If the aggregate fails, risk defaults to unknown — runs still display
+        }
 
         /* =============================
         USAGE (DYNAMIC PERIOD)
@@ -215,6 +279,27 @@ public class GetInsightsDashboard
             TenantQueryHelper.AddTenantFilter(highRiskQuery, tenant.TenantRecordId.ToString());
         highRiskQuery.Criteria.AddCondition("ilx_risklevel", ConditionOperator.Equal, 857270002); // High
         var totalHighRisk = service.RetrieveMultiple(highRiskQuery).Entities.Count;
+
+        /* =============================
+           RISK DISTRIBUTION (Medium/Low — High already counted above),
+           for the "Risk Distribution" chart on the dashboard.
+        ============================== */
+
+        var mediumRiskQuery = new QueryExpression("ilx_analysisresult") { ColumnSet = new ColumnSet(false) };
+        if (tenant.NeedsSampleData)
+            TenantQueryHelper.AddTenantFilterWithSamples(mediumRiskQuery, tenant.TenantRecordId.ToString());
+        else
+            TenantQueryHelper.AddTenantFilter(mediumRiskQuery, tenant.TenantRecordId.ToString());
+        mediumRiskQuery.Criteria.AddCondition("ilx_risklevel", ConditionOperator.Equal, 857270001); // Medium
+        var totalMediumRisk = service.RetrieveMultiple(mediumRiskQuery).Entities.Count;
+
+        var lowRiskQuery = new QueryExpression("ilx_analysisresult") { ColumnSet = new ColumnSet(false) };
+        if (tenant.NeedsSampleData)
+            TenantQueryHelper.AddTenantFilterWithSamples(lowRiskQuery, tenant.TenantRecordId.ToString());
+        else
+            TenantQueryHelper.AddTenantFilter(lowRiskQuery, tenant.TenantRecordId.ToString());
+        lowRiskQuery.Criteria.AddCondition("ilx_risklevel", ConditionOperator.Equal, 857270000); // Low
+        var totalLowRisk = service.RetrieveMultiple(lowRiskQuery).Entities.Count;
 
         /* =============================
            RECENT RUNS
@@ -385,7 +470,8 @@ public class GetInsightsDashboard
                 createdBy = run.GetAttributeValue<string>("ilx_executedbyuser"),
 
                 mode = mode,
-                status = status
+                status = status,
+                riskLevel = runRisk.TryGetValue(runId, out var risk) ? risk : null
             };
         });
 
@@ -407,6 +493,13 @@ public class GetInsightsDashboard
                 compare = compareCount,
                 summarise = summariseCount,
                 scoring = scoringCount
+            },
+            docTypeSplit = docTypeSplit,
+            riskDistribution = new
+            {
+                high = totalHighRisk,
+                medium = totalMediumRisk,
+                low = totalLowRisk
             },
             recentRuns = recentRuns
         };

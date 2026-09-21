@@ -551,7 +551,7 @@ const SupportPage: React.FC = () => {
 
         /* ── Hero ── */
         .sp-hero {
-          background: linear-gradient(135deg, #0b1b33 0%, #172e52 60%, #1e3a6e 100%);
+          background: var(--brand-navy, #0A1B2F);
           border-radius: 18px;
           padding: 36px 44px;
           margin-bottom: 40px;
@@ -563,13 +563,13 @@ const SupportPage: React.FC = () => {
           right: -80px; top: -80px;
           width: 340px; height: 340px;
           border-radius: 50%;
-          background: radial-gradient(circle, rgba(249,115,22,0.15) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(201, 68, 27,0.15) 0%, transparent 70%);
           pointer-events: none;
         }
         .sp-hero-inner { position: relative; z-index: 1; }
         .sp-hero-eyebrow {
           font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
-          text-transform: uppercase; color: #F97316; margin-bottom: 10px;
+          text-transform: uppercase; color: #C9441B; margin-bottom: 10px;
         }
         .sp-hero-title {
           font-size: 32px; font-weight: 800; color: #ffffff;
@@ -587,7 +587,7 @@ const SupportPage: React.FC = () => {
           display: flex; flex-direction: column; gap: 2px;
         }
         .sp-hero-stat-num {
-          font-size: 22px; font-weight: 800; color: #F97316; display: block; line-height: 1;
+          font-size: 22px; font-weight: 800; color: #C9441B; display: block; line-height: 1;
         }
         .sp-hero-stat span:last-child {
           font-size: 11px; color: #64748b; letter-spacing: 0.03em;
@@ -603,7 +603,7 @@ const SupportPage: React.FC = () => {
           display: flex; align-items: center; gap: 8px;
           font-size: 17px; font-weight: 700; color: #111827; margin: 0 0 4px;
         }
-        .sp-section-title svg { color: #F97316; flex-shrink: 0; }
+        .sp-section-title svg { color: #C9441B; flex-shrink: 0; }
         .sp-section-sub { font-size: 13px; color: #6b7280; margin: 0; }
 
         /* ── Module grid ── */
@@ -719,7 +719,7 @@ const SupportPage: React.FC = () => {
         }
         .sp-faq-q:hover { background: #f9fafb; }
         .sp-faq-chevron { flex-shrink: 0; color: #9ca3af; transition: transform 0.2s ease; }
-        .sp-faq-chevron--open { transform: rotate(180deg); color: #F97316; }
+        .sp-faq-chevron--open { transform: rotate(180deg); color: #C9441B; }
         .sp-faq-a {
           padding: 4px 20px 16px;
           font-size: 13.5px; color: #4b5563; line-height: 1.7;
@@ -764,10 +764,10 @@ const SupportPage: React.FC = () => {
           outline: none; width: 100%; box-sizing: border-box;
           height: 36px;
         }
-        .sp-input:focus { border-color: #F97316; background: #ffffff; box-shadow: 0 0 0 3px rgba(249,115,22,0.08); }
+        .sp-input:focus { border-color: #C9441B; background: #ffffff; box-shadow: 0 0 0 3px rgba(201, 68, 27,0.08); }
         .sp-textarea { height: 84px; resize: vertical; font-family: inherit; }
         .sp-submit-btn {
-          background: linear-gradient(145deg, #F97316, #EA580C);
+          background: linear-gradient(145deg, #C9441B, #A8350F);
           color: #ffffff; border: none; padding: 10px 18px; border-radius: 8px;
           font-size: 13px; font-weight: 600; cursor: pointer;
           transition: opacity 0.15s; width: 100%; margin-top: 2px;

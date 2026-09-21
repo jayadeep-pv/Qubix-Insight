@@ -6,7 +6,11 @@
 
 /* ── Page header ── */
 .ts-heading {
-  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 4px;
+  line-height: 1.25;
 }
 
 .ts-heading-sub {
@@ -16,9 +20,9 @@
 }
 
 .ts-subtitle {
-  margin: 6px 0 0;
+  margin: 0 0 16px;
   font-size: 13px;
-  color: #94a3b8;
+  color: #6b7280;
 }
 
 /* ── Subscription tier badge ── */

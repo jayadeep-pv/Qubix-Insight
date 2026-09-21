@@ -160,7 +160,6 @@ export default function TemplateAttributesList({ templateId, hideHeader, embedde
           <div className="page-section-header">
             <div>
               <h2 className="page-section-title">Template Attributes</h2>
-              <p className="page-subtitle">Manage template attributes used for structured extraction</p>
             </div>
             <button type="button" className="btn-primary"
               onClick={() => navigate(templateId

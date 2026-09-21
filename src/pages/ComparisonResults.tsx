@@ -1214,7 +1214,7 @@ const pdfViewer = fileKind === "image" ? imageViewer : fileKind === "other" ? no
      OVERVIEW STATS (Summarise mode)
   ===================================================== */
 
-  const PROFILE_COLORS = ["#7c3aed", "#ef4444", "#f97316", "#3b82f6", "#10b981", "#6b7280"];
+  const PROFILE_COLORS = ["#7c3aed", "#ef4444", "#c9441b", "#3b82f6", "#10b981", "#6b7280"];
 
   const allParsedInsights = insightRows
     .map(r => normaliseInsightJson(r.aiSummaryJsonOutput))
@@ -1276,67 +1276,50 @@ const pdfViewer = fileKind === "image" ? imageViewer : fileKind === "other" ? no
             <span className="mode-pill mode-pill-summarise">{mode}</span>
             <span style={{ fontSize: 16, fontWeight: 700, color: "#111827" }}>{comparisonName || "Untitled Run"}</span>
           </div>
-              <div className="header-meta">
-            {[documentTypeName || null, templateName || null].filter(Boolean).map((item, i, arr) => (
+          <div className="header-meta">
+            {[
+              documentTypeName || null,
+              templateName || null,
+              runMeta?.createdBy ? <span key="by"><span style={{ fontWeight: 600 }}>By:</span> {runMeta.createdBy}</span> : null,
+              runMeta?.createdOn ? new Date(runMeta.createdOn).toLocaleString("en-GB") : null,
+            ].filter(Boolean).map((item, i, arr) => (
               <React.Fragment key={i}>
                 <span style={{ whiteSpace: "nowrap" }}>{item}</span>
                 {i < arr.length - 1 && <span className="header-meta-sep">·</span>}
               </React.Fragment>
             ))}
           </div>
-          {(runMeta?.createdBy || runMeta?.createdOn) && (
-            <div className="header-meta" style={{ marginTop: 2 }}>
-              {runMeta?.createdBy && (
-                <span style={{ whiteSpace: "nowrap" }}><span style={{ fontWeight: 600 }}>Created by:</span> {runMeta.createdBy}</span>
-              )}
-              {runMeta?.createdBy && runMeta?.createdOn && <span className="header-meta-sep">·</span>}
-              {runMeta?.createdOn && (
-                <span style={{ whiteSpace: "nowrap" }}><span style={{ fontWeight: 600 }}>Created on:</span> {new Date(runMeta.createdOn).toLocaleString("en-GB")}</span>
-              )}
-            </div>
-          )}
         </div>
       </div>
 
-
-
-
-        
-                {/* AI disclaimer */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 6,
-          padding: "5px 14px", marginBottom: 2,
-          background: "#f8fafc", borderRadius: 8,
-          border: "1px solid #e2e8f0",
-        }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span style={{ fontSize: 11, color: "#94a3b8" }}>
-            AI-generated content · Results may not be 100% accurate · Please verify before use
-          </span>
+      {/* 🔥 PREMIUM TABS */}
+      <div className="premium-tabs">
+        <div className="premium-tabs-list">
+          {[
+              { key: "summary", label: "Overview", icon: <LayoutDashboard size={15} />, count: null },
+              { key: "fields", label: "Attribute Extraction", icon: <FileText size={15} />, count: attributes.length },
+              ...(attributes.some(hasValidAiInsight) ? [{ key: "ai", label: "AI Insight", icon: <Sparkles size={15} />, count: null }] : []),
+            ].map(tab => (
+            <div
+              key={tab.key}
+              onClick={() => { setActiveTab(tab.key as any); setAttrSearch(""); }}
+              className={`premium-tab${activeTab === tab.key ? " active" : ""}`}
+            >
+              {React.cloneElement(tab.icon, {
+                color: activeTab === tab.key ? "#C9441B" : "#9ca3af"
+              })}
+              {tab.label}
+              {tab.count !== null && (
+                <span className="tab-count">{tab.count}</span>
+              )}
+            </div>
+          ))}
         </div>
-
-        {/* 🔥 PREMIUM TABS */}
-                  <div className="premium-tabs">
-                  {[
-                      { key: "summary", label: "Overview", icon: <LayoutDashboard size={15} />, count: null },
-                      { key: "fields", label: "Attribute Extraction", icon: <FileText size={15} />, count: attributes.length },
-                      ...(attributes.some(hasValidAiInsight) ? [{ key: "ai", label: "AI Insight", icon: <Sparkles size={15} />, count: null }] : []),
-                    ].map(tab => (
-                    <div
-                      key={tab.key}
-                      onClick={() => { setActiveTab(tab.key as any); setAttrSearch(""); }}
-                      className={`premium-tab${activeTab === tab.key ? " active" : ""}`}
-                    >
-                      {React.cloneElement(tab.icon, {
-                        color: activeTab === tab.key ? "#F97316" : "#9ca3af"
-                      })}
-                      {tab.label}
-                      {tab.count !== null && (
-                        <span className="tab-count">{tab.count}</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
+        <span className="premium-tabs-note">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          AI-generated · verify before use
+        </span>
+      </div>
       <div className="rr-content-split">
       <div className="rr-tab-area">
 
@@ -1449,11 +1432,11 @@ const pdfViewer = fileKind === "image" ? imageViewer : fileKind === "other" ? no
     <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 20, overflow: "visible" }} aria-hidden="true">
       <defs>
         <marker id="conn-arrow-s" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
-          <polygon points="0 0, 7 2.5, 0 5" fill="#F97316" fillOpacity="0.75" />
+          <polygon points="0 0, 7 2.5, 0 5" fill="#C9441B" fillOpacity="0.75" />
         </marker>
       </defs>
-      <path d={`M ${connectorData.x1} ${connectorData.y1} C ${connectorData.x1 + 80} ${connectorData.y1}, ${connectorData.x2 - 80} ${connectorData.y2}, ${connectorData.x2} ${connectorData.y2}`} stroke="#F97316" strokeWidth="1.5" strokeDasharray="5 3" fill="none" strokeOpacity="0.65" markerEnd="url(#conn-arrow-s)" />
-      <circle cx={connectorData.x1} cy={connectorData.y1} r="3.5" fill="#F97316" fillOpacity="0.65" />
+      <path d={`M ${connectorData.x1} ${connectorData.y1} C ${connectorData.x1 + 80} ${connectorData.y1}, ${connectorData.x2 - 80} ${connectorData.y2}, ${connectorData.x2} ${connectorData.y2}`} stroke="#C9441B" strokeWidth="1.5" strokeDasharray="5 3" fill="none" strokeOpacity="0.65" markerEnd="url(#conn-arrow-s)" />
+      <circle cx={connectorData.x1} cy={connectorData.y1} r="3.5" fill="#C9441B" fillOpacity="0.65" />
     </svg>
   )}
   <div className="split-pane-row">
@@ -1553,7 +1536,7 @@ const pdfViewer = fileKind === "image" ? imageViewer : fileKind === "other" ? no
                             border: "none", borderRadius: 5,
                             cursor: isBusy ? "default" : "pointer",
                             background: isPinned ? "#FAECE7" : "#EFF6FF",
-                            color: isPinned ? "#ea580c" : "#3B82F6",
+                            color: isPinned ? "#a8350f" : "#3B82F6",
                             opacity: isBusy ? 0.5 : 1,
                             flexShrink: 0,
                           }}
@@ -1847,6 +1830,8 @@ return (
           documentTypeName || null,
           templateName || null,
           `${documents.length || candidates.length} doc${(documents.length || candidates.length) !== 1 ? "s" : ""}`,
+          runMeta?.createdBy ? <span key="by"><span style={{ fontWeight: 600 }}>By:</span> {runMeta.createdBy}</span> : null,
+          runMeta?.createdOn ? new Date(runMeta.createdOn).toLocaleString("en-GB") : null,
         ].filter(Boolean).map((item, i, arr) => (
           <React.Fragment key={i}>
             <span style={{ whiteSpace: "nowrap" }}>{item}</span>
@@ -1854,17 +1839,6 @@ return (
           </React.Fragment>
         ))}
       </div>
-      {(runMeta?.createdBy || runMeta?.createdOn) && (
-        <div className="header-meta" style={{ marginTop: 2 }}>
-          {runMeta?.createdBy && (
-            <span style={{ whiteSpace: "nowrap" }}><span style={{ fontWeight: 600 }}>Created by:</span> {runMeta.createdBy}</span>
-          )}
-          {runMeta?.createdBy && runMeta?.createdOn && <span className="header-meta-sep">·</span>}
-          {runMeta?.createdOn && (
-            <span style={{ whiteSpace: "nowrap" }}><span style={{ fontWeight: 600 }}>Created on:</span> {new Date(runMeta.createdOn).toLocaleString("en-GB")}</span>
-          )}
-        </div>
-      )}
     </div>
 
     <div className="header-right">
@@ -1881,43 +1855,33 @@ return (
 
 
 
-
-
-
-
-        <div style={{
-          display: "flex", alignItems: "center", gap: 6,
-          padding: "5px 14px", marginBottom: 2,
-          background: "#f8fafc", borderRadius: 8,
-          border: "1px solid #e2e8f0",
-        }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span style={{ fontSize: 11, color: "#94a3b8" }}>
-            AI-generated content · Results may not be 100% accurate · Please verify before use
-          </span>
-        </div>
-
 <div className="premium-tabs">
-  {[
-  { key: "summary", label: "Overview", icon: <LayoutDashboard size={15} />, count: null },
-  { key: "fields", label: "Comparison", icon: <FileText size={15} />, count: attributes.length },
-  ...(candidates.length > 0 ? [{ key: "scoring", label: "Scoring", icon: <BarChart2 size={15} />, count: null }] : []),
-  ...(attributes.some(hasValidAiInsight) ? [{ key: "ai", label: "AI Insights", icon: <Sparkles size={15} />, count: null }] : []),
-].map(tab => (
-    <div
-      key={tab.key}
-      onClick={() => { setActiveTab(tab.key as any); setAttrSearch(""); }}
-      className={`premium-tab${activeTab === tab.key ? " active" : ""}`}
-    >
-      {React.cloneElement(tab.icon, {
-        color: activeTab === tab.key ? "#F97316" : "#9ca3af"
-      })}
-      {tab.label}
-      {tab.count !== null && (
-        <span className="tab-count">{tab.count}</span>
-      )}
-    </div>
-  ))}
+  <div className="premium-tabs-list">
+    {[
+    { key: "summary", label: "Overview", icon: <LayoutDashboard size={15} />, count: null },
+    { key: "fields", label: "Comparison", icon: <FileText size={15} />, count: attributes.length },
+    ...(candidates.length > 0 ? [{ key: "scoring", label: "Scoring", icon: <BarChart2 size={15} />, count: null }] : []),
+    ...(attributes.some(hasValidAiInsight) ? [{ key: "ai", label: "AI Insights", icon: <Sparkles size={15} />, count: null }] : []),
+  ].map(tab => (
+      <div
+        key={tab.key}
+        onClick={() => { setActiveTab(tab.key as any); setAttrSearch(""); }}
+        className={`premium-tab${activeTab === tab.key ? " active" : ""}`}
+      >
+        {React.cloneElement(tab.icon, {
+          color: activeTab === tab.key ? "#C9441B" : "#9ca3af"
+        })}
+        {tab.label}
+        {tab.count !== null && (
+          <span className="tab-count">{tab.count}</span>
+        )}
+      </div>
+    ))}
+  </div>
+  <span className="premium-tabs-note">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    AI-generated · verify before use
+  </span>
 </div>
   <div className="rr-content-split">
   <div className="rr-tab-area">
@@ -2172,11 +2136,11 @@ return (
             <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 20, overflow: "visible" }} aria-hidden="true">
               <defs>
                 <marker id="conn-arrow-c" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
-                  <polygon points="0 0, 7 2.5, 0 5" fill="#F97316" fillOpacity="0.75" />
+                  <polygon points="0 0, 7 2.5, 0 5" fill="#C9441B" fillOpacity="0.75" />
                 </marker>
               </defs>
-              <path d={`M ${connectorData.x1} ${connectorData.y1} C ${connectorData.x1 + 80} ${connectorData.y1}, ${connectorData.x2 - 80} ${connectorData.y2}, ${connectorData.x2} ${connectorData.y2}`} stroke="#F97316" strokeWidth="1.5" strokeDasharray="5 3" fill="none" strokeOpacity="0.65" markerEnd="url(#conn-arrow-c)" />
-              <circle cx={connectorData.x1} cy={connectorData.y1} r="3.5" fill="#F97316" fillOpacity="0.65" />
+              <path d={`M ${connectorData.x1} ${connectorData.y1} C ${connectorData.x1 + 80} ${connectorData.y1}, ${connectorData.x2 - 80} ${connectorData.y2}, ${connectorData.x2} ${connectorData.y2}`} stroke="#C9441B" strokeWidth="1.5" strokeDasharray="5 3" fill="none" strokeOpacity="0.65" markerEnd="url(#conn-arrow-c)" />
+              <circle cx={connectorData.x1} cy={connectorData.y1} r="3.5" fill="#C9441B" fillOpacity="0.65" />
             </svg>
           )}
           <div className="split-pane-row">
@@ -2265,7 +2229,7 @@ return (
                                       border: "none", borderRadius: 5,
                                       cursor: isBusy ? "default" : "pointer",
                                       background: isPinned ? "#FAECE7" : "#EFF6FF",
-                                      color: isPinned ? "#ea580c" : "#3B82F6",
+                                      color: isPinned ? "#a8350f" : "#3B82F6",
                                       opacity: isBusy ? 0.5 : 1,
                                       flexShrink: 0,
                                     }}
@@ -2321,7 +2285,7 @@ return (
                                         border: "none", borderRadius: 5,
                                         cursor: isBusy ? "default" : "pointer",
                                         background: isPinned ? "#FAECE7" : "#EFF6FF",
-                                        color: isPinned ? "#ea580c" : "#3B82F6",
+                                        color: isPinned ? "#a8350f" : "#3B82F6",
                                         opacity: isBusy ? 0.5 : 1,
                                         flexShrink: 0,
                                       }}

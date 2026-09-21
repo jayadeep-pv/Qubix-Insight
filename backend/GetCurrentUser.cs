@@ -128,7 +128,8 @@ public class GetCurrentUser
                 companyName      = trialUser?.CompanyName ?? userInfo.CompanyName ?? "",
                 jobTitle         = trialUser?.JobTitle    ?? "",
                 country          = trialUser?.Country     ?? "",
-                profileComplete  = !tenant.IsTrial || tenant.IsInternal || trialUser != null,
+                profileComplete  = !tenant.IsTrial || tenant.IsInternal ||
+                    (trialUser != null && !string.IsNullOrWhiteSpace(trialUser.CompanyName) && !string.IsNullOrWhiteSpace(trialUser.JobTitle)),
                 runsUsed         = runsThisMonth,
                 runLimit         = trialUser?.RunLimit    ?? 3,
                 trialExpiry      = trialUser?.TrialExpiry?.ToString("o") ?? "",

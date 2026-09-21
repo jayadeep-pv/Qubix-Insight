@@ -133,24 +133,33 @@ export default function ReminderCalendar({ reminders, overdueCount, onSwitchToLi
         .rc-today-btn { padding: 0 10px; height: 28px; font-size: 11.5px; font-weight: 600; }
 
         .rc-grid {
-          display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
-          margin-bottom: 16px;
+          display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px;
+          background: #eef1f6; border: 1px solid #e2e8f0; border-radius: 14px;
+          padding: 14px; margin-bottom: 16px;
         }
         .rc-weekday {
           text-align: center; font-size: 10px; font-weight: 700; text-transform: uppercase;
-          letter-spacing: 0.05em; color: #9ca3af; padding-bottom: 4px;
+          letter-spacing: 0.05em; color: #94a3b8; padding-bottom: 6px;
         }
         .rc-cell {
-          min-height: 74px; background: #fff; border: 1px solid #ebebeb; border-radius: 8px;
-          padding: 5px; display: flex; flex-direction: column; gap: 3px; align-items: stretch;
+          min-height: 82px; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+          box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+          padding: 7px; display: flex; flex-direction: column; gap: 3px; align-items: stretch;
           text-align: left; cursor: pointer; font-family: 'DM Sans', sans-serif;
+          transition: all 0.12s ease;
         }
-        .rc-cell:hover { border-color: #d1d5db; }
-        .rc-cell--out { background: #fafafa; }
+        .rc-cell:hover { border-color: #cbd5e1; box-shadow: 0 3px 8px rgba(15,23,42,0.08); transform: translateY(-1px); }
+        .rc-cell--out { background: #fbfbfc; box-shadow: none; }
         .rc-cell--out .rc-cell-num { color: #cbd5e1; }
-        .rc-cell--today .rc-cell-num { color: #ea580c; font-weight: 700; }
-        .rc-cell--selected { border-color: #ea580c; box-shadow: 0 0 0 1px #ea580c; }
-        .rc-cell-num { font-size: 11.5px; font-weight: 600; color: #374151; }
+        .rc-cell--today .rc-cell-num {
+          background: #a8350f; color: #fff; font-weight: 700;
+          width: 20px; height: 20px; border-radius: 50%;
+          display: inline-flex; align-items: center; justify-content: center;
+        }
+        .rc-cell--selected {
+          background: #fff7ed; border-color: #a8350f; box-shadow: 0 0 0 1.5px #a8350f;
+        }
+        .rc-cell-num { font-size: 11.5px; font-weight: 600; color: #374151; align-self: flex-start; }
         .rc-cell-chip {
           font-size: 10.5px; font-weight: 700; border-radius: 4px; padding: 2px 6px 2px 5px;
           border-left: 3px solid currentColor;

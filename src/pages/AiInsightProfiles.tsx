@@ -125,7 +125,6 @@ export default function AiInsightProfiles() {
       <div className="page-section-header">
         <div>
           <h2 className="page-section-title">AI Insight Profiles</h2>
-          <p className="page-subtitle">Manage AI insight analysis modes used during document review</p>
         </div>
         <button
           type="button"

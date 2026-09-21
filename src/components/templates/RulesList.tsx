@@ -174,7 +174,6 @@ export default function RulesList({ templateAttributeId, hideHeader, embedded }:
           <div className="page-section-header">
             <div>
               <h2 className="page-section-title">Rules</h2>
-              <p className="page-subtitle">Define rule logic for comparison attributes</p>
             </div>
             <button type="button" className="btn-primary"
               onClick={() => navigate(`/admin/rules/new${templateAttributeId ? `?attributeId=${templateAttributeId}` : ""}`)}

@@ -10,6 +10,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { configApi, triggerLoginRedirect } from "../services/configApi";
 import { useUser } from "../context/UserContext";
 import { PageBreadcrumb } from "../components/PageBreadcrumb";
+import DiscoveryGuideCard from "../components/DiscoveryGuideCard";
 import {
   AttributeReviewTable, ClassifyStage, ConfirmStage,
   useTemplateSave, TEMPLATE_BUILDER_STYLES,
@@ -182,7 +183,7 @@ function ErrorPanel({ message }: { message: string }) {
         </div>
         <div style={{ fontSize: 12, color: "#6b7280" }}>
           For further assistance, please contact your administrator at{" "}
-          <a href="mailto:support@qubixinsight.com" style={{ color: "#F97316", textDecoration: "none", fontWeight: 500 }}>
+          <a href="mailto:support@qubixinsight.com" style={{ color: "#C9441B", textDecoration: "none", fontWeight: 500 }}>
             support@qubixinsight.com
           </a>
         </div>
@@ -229,6 +230,13 @@ function StartReview() {
   const locationMode = (location.state as any)?.mode as InsightMode | undefined;
   const locationFrom = (location.state as any)?.from as string | undefined;
   const fromHome     = locationFrom === "home";
+  // Files dropped straight onto the Home page dropzone arrive here pre-attached,
+  // so the user lands on this same upload screen without re-selecting them.
+  const locationInitialFiles = (location.state as any)?.initialFiles as File[] | undefined;
+  // The "reset when switching modes" effect below also fires on first mount
+  // (every effect does) — without this guard it would immediately wipe out
+  // files that arrived pre-attached from Home's dropzone.
+  const skipNextModeResetRef = useRef(!!locationInitialFiles);
 
   /* ── Current user ── */
   const getCurrentUser = () => {
@@ -254,7 +262,7 @@ function StartReview() {
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
 
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>(locationInitialFiles ?? []);
   const [isDragging, setIsDragging] = useState(false);
   const dragCounterRef = useRef(0);
 
@@ -472,6 +480,11 @@ function StartReview() {
 
   /* ── Reset when switching modes ── */
   useEffect(() => {
+    if (skipNextModeResetRef.current) {
+      skipNextModeResetRef.current = false;
+      return;
+    }
+
     setUploadedFiles([]);
 
 
@@ -966,12 +979,7 @@ function StartReview() {
 
         {/* Page header */}
         <div style={{ marginBottom: 32 }}>
-          <h1 style={{ margin: "0 0 6px", fontSize: 24, fontWeight: 700, color: "#111827" }}>
-            New Insight
-          </h1>
-          <p style={{ margin: 0, fontSize: 14, color: "#6b7280" }}>
-            Choose how you want to analyse your documents — click a card to get started.
-          </p>
+          <h2 className="page-section-title" style={{ marginBottom: 0 }}>New Insight</h2>
         </div>
 
         {/* Mode cards — clicking navigates directly to the form */}
@@ -1251,22 +1259,7 @@ function StartReview() {
             {error && <ErrorPanel message={error} />}
           </div>
         </div>
-        <div className="dc-card guidance-card">
-          <p className="guide-about">How it works</p>
-          <p className="guide-about-desc">Upload any document — no template or setup required. The AI detects fields automatically.</p>
-          <div className="guide-steps" style={{ marginBottom: 16 }}>
-            <div className="guide-step"><div className="guide-step-num">1</div><div>Upload a document — optionally enrich from an existing template</div></div>
-            <div className="guide-step"><div className="guide-step-num">2</div><div>Choose which AI Insight Profiles to run</div></div>
-            <div className="guide-step"><div className="guide-step-num">3</div><div>AI detects all key attributes and values</div></div>
-            <div className="guide-step"><div className="guide-step-num">4</div><div>Review results — save as a template when ready</div></div>
-          </div>
-          <div className="guide-divider">
-            <p className="guide-section-title">Best for</p>
-            <p style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.6, margin: 0 }}>
-              Exploring a new document type, one-off extractions, or building a template from scratch.
-            </p>
-          </div>
-        </div>
+        <DiscoveryGuideCard />
       </div>
       </>
       )}
@@ -2348,10 +2341,10 @@ function StartReview() {
           white-space: nowrap;
         }
         .sr-context-btn--confirm {
-          background: #F97316;
+          background: #C9441B;
           color: white;
         }
-        .sr-context-btn--confirm:hover { background: #EA580C; }
+        .sr-context-btn--confirm:hover { background: #A8350F; }
         .sr-context-btn--rerun {
           background: #f3f4f6;
           color: #374151;
@@ -2377,36 +2370,36 @@ function StartReview() {
         .sr-action-btn--summarise,
         .sr-action-btn--compare,
         .sr-action-btn--compare-scoring {
-          background: linear-gradient(145deg, #F97316, #EA580C);
-          box-shadow: 0 4px 12px rgba(250,70,22,0.3);
+          background: linear-gradient(145deg, #C9441B, #A8350F);
+          box-shadow: 0 4px 12px rgba(201, 68, 27,0.3);
         }
 
         /* ── SAVE AS TEMPLATE BUTTON ── */
         .sr-save-template-btn {
           margin-top: 0 !important;
-          background: linear-gradient(145deg, #F97316, #EA580C) !important;
-          box-shadow: 0 4px 12px rgba(250,70,22,0.3) !important;
+          background: linear-gradient(145deg, #C9441B, #A8350F) !important;
+          box-shadow: 0 4px 12px rgba(201, 68, 27,0.3) !important;
           font-size: 13px !important;
           padding: 8px 16px !important;
         }
         .sr-save-template-btn:hover {
-          box-shadow: 0 6px 18px rgba(250,70,22,0.45) !important;
+          box-shadow: 0 6px 18px rgba(201, 68, 27,0.45) !important;
         }
         .sr-save-template-btn-flow {
           margin-top: 20px;
           padding: 12px 22px;
-          background: linear-gradient(145deg, #F97316, #EA580C);
+          background: linear-gradient(145deg, #C9441B, #A8350F);
           color: white;
           border: none;
           border-radius: 10px;
           font-weight: 600;
           cursor: pointer;
           transition: all 0.2s ease;
-          box-shadow: 0 4px 12px rgba(250,70,22,0.3);
+          box-shadow: 0 4px 12px rgba(201, 68, 27,0.3);
         }
         .sr-save-template-btn-flow:hover {
           transform: translateY(-1px);
-          box-shadow: 0 6px 18px rgba(250,70,22,0.45);
+          box-shadow: 0 6px 18px rgba(201, 68, 27,0.45);
         }
 
         @media (max-width: 640px) {
@@ -2422,7 +2415,7 @@ function StartReview() {
           padding: 20px 24px;
           background: linear-gradient(135deg, #fff7f5, #fff3f0);
           border: 1px solid #fcd9bd;
-          border-left: 4px solid #F97316;
+          border-left: 4px solid #C9441B;
         }
         .qe-insight-prompt-icon {
           font-size: 28px;
@@ -2453,13 +2446,13 @@ function StartReview() {
         }
         .qe-insight-save-btn {
           margin: 0 !important;
-          background: linear-gradient(145deg, #F97316, #EA580C) !important;
-          box-shadow: 0 4px 12px rgba(250,70,22,0.3) !important;
+          background: linear-gradient(145deg, #C9441B, #A8350F) !important;
+          box-shadow: 0 4px 12px rgba(201, 68, 27,0.3) !important;
           min-width: 150px;
           white-space: nowrap;
         }
         .qe-insight-save-btn:hover {
-          box-shadow: 0 6px 18px rgba(250,70,22,0.45) !important;
+          box-shadow: 0 6px 18px rgba(201, 68, 27,0.45) !important;
         }
         .qe-insight-skip-btn {
           margin: 0 !important;

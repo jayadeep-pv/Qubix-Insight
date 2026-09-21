@@ -162,7 +162,6 @@ const AllInsights: React.FC = () => {
       <div className="page-section-header">
         <div>
           <h2 className="page-section-title">All Insights</h2>
-          <p className="page-subtitle">Insights generated across all comparison runs</p>
         </div>
         <div className="header-action-group">
           <button type="button" className="btn-primary" onClick={() => navigate("/analysis")}>

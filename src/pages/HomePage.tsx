@@ -1,11 +1,49 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { configApi } from "../services/configApi";
 import { useUser } from "../context/UserContext";
-import { Zap, AlignLeft, GitCompare, Star, ChevronRight, BarChart2, FileText, AlertTriangle, Activity, Search, Bell } from "lucide-react";
 import { useMyReminders } from "../hooks/useMyReminders";
+import DiscoveryGuideCard from "../components/DiscoveryGuideCard";
+import {
+  UploadCloud, Zap, AlignLeft, GitCompare, Star, ChevronRight,
+  AlertTriangle, Bell, CheckCircle2, ArrowUpRight,
+} from "lucide-react";
 
-/* ── helpers ── */
+interface RecentRun {
+  id: string;
+  name: string;
+  documentType: string;
+  mode: string;
+  createdOn: string;
+  documentCount: number;
+}
+
+const WORKFLOWS: {
+  key: "extract" | "summarise" | "compare" | "compare-scoring";
+  label: string;
+  desc: string;
+  req: string;
+  icon: React.ReactNode;
+  cls: string;
+}[] = [
+  { key: "extract", label: "Discovery", desc: "AI detects and builds a template from your document instantly", req: "No template needed", icon: <Zap size={20} />, cls: "orange" },
+  { key: "summarise", label: "Summarise", desc: "Extract key insights and attributes from a single document", req: "1 document", icon: <AlignLeft size={20} />, cls: "teal" },
+  { key: "compare", label: "Compare", desc: "Extract and compare fields across two or more documents side by side", req: "2+ documents", icon: <GitCompare size={20} />, cls: "blue" },
+  { key: "compare-scoring", label: "Scoring", desc: "Rank documents against weighted criteria with a scored winner", req: "2+ docs and rules", icon: <Star size={20} />, cls: "purple" },
+];
+
+function timeAgo(dateStr: string): string {
+  if (!dateStr) return "";
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const days = Math.floor(diff / 86_400_000);
+  if (days < 1) return "today";
+  if (days === 1) return "1 day ago";
+  if (days < 30) return `${days} days ago`;
+  return new Date(dateStr).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+const MODE_PILL_CLS: Record<string, string> = { Summarise: "sum", Compare: "cmp", Scoring: "scr" };
+
 function getGreeting(): string {
   const h = new Date().getHours();
   if (h < 12) return "Good morning";
@@ -13,704 +51,362 @@ function getGreeting(): string {
   return "Good evening";
 }
 
-function timeAgo(dateStr: string): string {
-  if (!dateStr) return "";
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
-
-function isToday(dateStr: string): boolean {
-  if (!dateStr) return false;
-  const d = new Date(dateStr);
-  const now = new Date();
-  return d.toDateString() === now.toDateString();
-}
-
-function isThisWeek(dateStr: string): boolean {
-  if (!dateStr) return false;
-  const d = new Date(dateStr);
-  const now = new Date();
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  return d > weekAgo && d.toDateString() !== now.toDateString();
-}
-
-interface Stats {
-  totalInsights: number;
-  totalDocs: number;
-  highRisk: number;
-}
-
-interface RecentRun {
-  id: string;
-  name: string;
-  documentType: string;
-  mode: string;
-  riskLevel: string;
-  createdOn: string;
-  documentCount: number;
-}
-
-interface CardProps {
-  icon: React.ReactNode;
-  iconCls: string;
-  cardCls: string;
-  pillCls: string;
-  pillLabel: string;
-  title: string;
-  description: string;
-  onClick: () => void;
-  locked?: boolean;
-}
-
-function ActionCard({ icon, iconCls, cardCls, pillCls, pillLabel, title, description, onClick, locked }: CardProps) {
-  return (
-    <button
-      className={`hp-card ${cardCls}${locked ? " hp-card--locked" : ""}`}
-      onClick={locked ? undefined : onClick}
-      style={locked ? { cursor: "default", opacity: 0.5 } : undefined}
-    >
-      <div className={`hp-card-icon ${iconCls}`}>{icon}</div>
-      <div className="hp-card-title">{title}</div>
-      <div className="hp-card-desc">{description}</div>
-      <div className="hp-card-footer">
-        <span className={`hp-card-pill ${pillCls}`}>{pillLabel}</span>
-        {locked ? (
-          <span className="hp-card-cta" style={{ color: "#9ca3af", background: "#f3f4f6", borderRadius: 999, padding: "2px 8px", fontSize: 11 }}>
-            Upgrade
-          </span>
-        ) : (
-          <span className={`hp-card-cta ${pillCls}`}>
-            Start <ChevronRight size={11} strokeWidth={2.5} />
-          </span>
-        )}
-      </div>
-    </button>
-  );
-}
-
-const riskLabel: Record<string, string> = { high: "High risk", medium: "Med risk", low: "Low risk" };
-
-function RunRow({ run, onClick }: { run: RecentRun; onClick: () => void }) {
-  return (
-    <div
-      className={`hp-insight-card hp-insight-card--${run.riskLevel}`}
-      onClick={onClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === "Enter" && onClick()}
-    >
-      <div className="hp-ic-body">
-        <div className="hp-ic-name">{run.name}</div>
-        <div className="hp-ic-meta">
-          {run.documentType}
-          {run.documentCount > 0 ? ` · ${run.documentCount} doc${run.documentCount !== 1 ? "s" : ""}` : ""}
-          {" · "}{timeAgo(run.createdOn)}
-        </div>
-      </div>
-      <div className="hp-ic-badges">
-        <span className={`hp-ic-mode hp-ic-mode--${run.mode?.toLowerCase() === "summarise" ? "sum" : run.mode?.toLowerCase() === "scoring" ? "scr" : "cmp"}`}>
-          {run.mode}
-        </span>
-        <span className={`hp-ic-risk hp-ic-risk--${run.riskLevel}`}>
-          {riskLabel[run.riskLevel] ?? run.riskLevel}
-        </span>
-      </div>
-      <ChevronRight size={13} className="hp-ic-chevron" />
-    </div>
-  );
-}
-
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
-  const { userName: fullName, isTrial } = useUser();
-  const userName = fullName?.split(" ")[0] || "User";
+  const { isTrial, userName: fullName } = useUser();
+  const firstName = fullName?.split(" ")[0] || "there";
+  const { overdue, thisWeek } = useMyReminders();
 
   const [recentRuns, setRecentRuns] = useState<RecentRun[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<Stats>({ totalInsights: 0, totalDocs: 0, highRisk: 0 });
-  const [search, setSearch] = useState("");
-  const { overdue, thisWeek } = useMyReminders();
-  const reminderCount = overdue.length + thisWeek.length;
+  const [modeSplit, setModeSplit] = useState<{ name: string; value: number }[]>([]);
+  const [totalHighRisk, setTotalHighRisk] = useState(0);
+  const [totalRuns, setTotalRuns] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounter = useRef(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    configApi
-      .getInsightsDashboard("7d")
+    configApi.getInsightsDashboard("7d")
       .then((data: any) => {
-        const allRuns: any[] = data.recentRuns || [];
-        setStats({
-          totalInsights: data.totalRuns ?? allRuns.length,
-          totalDocs: data.totalDocs ?? allRuns.reduce((s: number, r: any) => s + (r.documentCount ?? 0), 0),
-          highRisk: data.totalHighRisk ?? 0,
-        });
         setRecentRuns(
-          allRuns.slice(0, 7).map((r: any) => ({
-            id:            r.id,
-            name:          r.insightName || r.runName || "Untitled",
-            documentType:  r.documentType || "Document",
-            mode:          r.mode || "Compare",
-            riskLevel:     (r.riskLevel || "low").toLowerCase(),
-            createdOn:     r.createdOn || "",
+          (data.recentRuns || []).slice(0, 6).map((r: any) => ({
+            id: r.id,
+            name: r.insightName || r.runName || "Untitled",
+            documentType: r.documentType || "Document",
+            mode: r.mode || "Compare",
+            createdOn: r.createdOn || "",
             documentCount: r.documentCount ?? 0,
           }))
         );
+        setModeSplit([
+          { name: "Summarise", value: data.modeSplit?.summarise || 0 },
+          { name: "Compare", value: data.modeSplit?.compare || 0 },
+          { name: "Scoring", value: data.modeSplit?.scoring || 0 },
+        ]);
+        setTotalHighRisk(data.totalHighRisk ?? 0);
+        setTotalRuns(data.totalRuns ?? 0);
       })
       .catch(() => setRecentRuns([]))
       .finally(() => setLoading(false));
   }, []);
 
-  const filteredRuns = search
-    ? recentRuns.filter(r =>
-        r.name.toLowerCase().includes(search.toLowerCase()) ||
-        r.documentType.toLowerCase().includes(search.toLowerCase()) ||
-        r.mode.toLowerCase().includes(search.toLowerCase())
-      )
-    : recentRuns;
+  // Discovery only ever processes one document — only the first file (dropped
+  // or browsed) is forwarded, matching the limit already enforced on the
+  // Discovery upload screen itself.
+  const startWithFile = (files: FileList | File[] | null) => {
+    if (!files || files.length === 0) return;
+    const first = files[0];
+    navigate("/analysis", { state: { mode: "extract", from: "home", initialFiles: [first] } });
+  };
 
-  const todayRuns    = filteredRuns.filter(r => isToday(r.createdOn));
-  const thisWeekRuns = filteredRuns.filter(r => isThisWeek(r.createdOn));
-  const olderRuns    = filteredRuns.filter(r => !isToday(r.createdOn) && !isThisWeek(r.createdOn));
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounter.current = 0;
+    setIsDragging(false);
+    startWithFile(e.dataTransfer.files);
+  };
+  const onDragEnter = (e: React.DragEvent) => { e.preventDefault(); dragCounter.current += 1; setIsDragging(true); };
+  const onDragLeave = (e: React.DragEvent) => { e.preventDefault(); dragCounter.current -= 1; if (dragCounter.current <= 0) setIsDragging(false); };
+  const onDragOver = (e: React.DragEvent) => e.preventDefault();
+
+  const upcomingReminders = [...overdue, ...thisWeek];
+  const totalModeRuns = modeSplit.reduce((s, m) => s + m.value, 0);
+  const hasAttention = totalHighRisk > 0 || upcomingReminders.length > 0;
 
   return (
     <div className="hp-root">
 
-      {/* ══ GREETING CARD + KPI ROW ══ */}
-      <div className="hp-header">
-
-        <div className="hp-greeting">
-          <div>
-            <h1 className="hp-greeting-title">{getGreeting()}, {userName} 👋</h1>
-            <p className="hp-greeting-sub">Your document intelligence workspace</p>
-          </div>
+      <div className="hp-hero-row">
+        <div>
+          <h1 className="hp-hero-title">{getGreeting()}, {firstName}</h1>
+          <p className="hp-hero-sub">Drop a file and Qubix picks the document type, the template and the workflow for you.</p>
         </div>
+        <button type="button" className="btn btn-secondary" onClick={() => navigate("/my-insights")}>
+          View all runs <ArrowUpRight size={14} />
+        </button>
+      </div>
 
-        <div className="hp-kpi-row">
-          <div className="hp-kpi hp-kpi--blue">
-            <div className="hp-kpi-icon-wrap hp-kpi-icon-wrap--blue"><BarChart2 size={18} /></div>
-            <div className="hp-kpi-body">
-              <span className="hp-kpi-label">Total Insights</span>
-              <span className="hp-kpi-value">{loading ? "—" : stats.totalInsights}</span>
-              <span className="hp-kpi-sub">Analysis runs this week</span>
-            </div>
+      <div className="hp-upload-grid">
+        <div
+          className={`hp-dropzone${isDragging ? " dragging" : ""}`}
+          onClick={() => fileInputRef.current?.click()}
+          onDrop={onDrop}
+          onDragEnter={onDragEnter}
+          onDragLeave={onDragLeave}
+          onDragOver={onDragOver}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            hidden
+            accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
+            onChange={(e) => startWithFile(e.target.files)}
+          />
+          <div className="hp-dropzone-icon"><UploadCloud size={30} strokeWidth={1.25} /></div>
+          <div className="hp-dropzone-title">{isDragging ? "Drop to upload" : "Upload and discover"}</div>
+          <div className="hp-dropzone-sub">
+            {isDragging
+              ? "Release to start"
+              : "Extract key insights using Qubix document intelligence."}
           </div>
+          <button type="button" className="btn btn-primary" onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}>
+            Browse files
+          </button>
+          <div className="hp-dropzone-formats">PDF, DOCX, TXT or scans · one document at a time</div>
+        </div>
+        <DiscoveryGuideCard compact />
+      </div>
 
-          <div className="hp-kpi hp-kpi--teal">
-            <div className="hp-kpi-icon-wrap hp-kpi-icon-wrap--teal"><FileText size={18} /></div>
-            <div className="hp-kpi-body">
-              <span className="hp-kpi-label">Documents</span>
-              <span className="hp-kpi-value">{loading ? "—" : stats.totalDocs}</span>
-              <span className="hp-kpi-sub">All documents processed</span>
-            </div>
-          </div>
-
-          <div className={`hp-kpi ${!loading && stats.highRisk > 0 ? "hp-kpi--red" : "hp-kpi--gray"}`}>
-            <div className={`hp-kpi-icon-wrap ${!loading && stats.highRisk > 0 ? "hp-kpi-icon-wrap--red" : "hp-kpi-icon-wrap--gray"}`}>
-              <AlertTriangle size={18} />
-            </div>
-            <div className="hp-kpi-body">
-              <span className="hp-kpi-label">High Risk</span>
-              <span className="hp-kpi-value">{loading ? "—" : stats.highRisk}</span>
-              <span className="hp-kpi-sub">Flagged items</span>
-            </div>
-          </div>
-
-          <div className="hp-kpi hp-kpi--green">
-            <div className="hp-kpi-icon-wrap hp-kpi-icon-wrap--green"><Activity size={18} /></div>
-            <div className="hp-kpi-body">
-              <span className="hp-kpi-label">System Status</span>
-              <span className="hp-kpi-value hp-kpi-value--green">Active</span>
-              <span className="hp-kpi-sub">AI services running</span>
-            </div>
-          </div>
-
-          <div
-            className={`hp-kpi ${reminderCount > 0 ? "hp-kpi--orange" : "hp-kpi--gray"}`}
-            role="button"
-            tabIndex={0}
-            onClick={() => navigate("/my-reminders")}
-            onKeyDown={(e) => e.key === "Enter" && navigate("/my-reminders")}
-            style={{ cursor: "pointer" }}
-          >
-            <div className={`hp-kpi-icon-wrap ${reminderCount > 0 ? "hp-kpi-icon-wrap--orange" : "hp-kpi-icon-wrap--gray"}`}><Bell size={18} /></div>
-            <div className="hp-kpi-body">
-              <span className="hp-kpi-label">Upcoming Reminders</span>
-              <span className="hp-kpi-value">{reminderCount}</span>
-              <span className="hp-kpi-sub">{overdue.length > 0 ? `${overdue.length} overdue` : "next 7 days"}</span>
-            </div>
-          </div>
+      <div className="hp-workflow-picker">
+        <span className="hp-workflow-picker-label">Or pick a workflow yourself</span>
+        <div className="hp-workflow-chips">
+          {WORKFLOWS.map(w => {
+            const locked = (w.key === "compare" || w.key === "compare-scoring") && isTrial;
+            return (
+              <button
+                key={w.key}
+                type="button"
+                className={`hp-chip hp-chip--${w.cls}${locked ? " hp-chip--locked" : ""}`}
+                disabled={locked}
+                title={locked ? "Not available on trial" : undefined}
+                onClick={() => navigate("/analysis", { state: { mode: w.key, from: "home" } })}
+              >
+                <span className="hp-chip-icon">{w.icon}</span>
+                <span>
+                  <span className="hp-chip-label">{w.label}</span>
+                  <span className="hp-chip-desc">{w.desc}</span>
+                  <span className="hp-chip-req">{locked ? "Upgrade to use" : w.req}</span>
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* ══ SPLIT ══ */}
-      <div className="hp-split">
+      <div className="hp-bottom-split">
 
-        {/* LEFT — quick actions */}
-        <div className="hp-left">
-          <div className="hp-panel hp-panel--left">
-            <div className="hp-panel-hd">
-              <div className="hp-panel-hd-left">
-                <span className="hp-panel-title">Quick Actions</span>
-                <span className="hp-panel-sub">Pick a workflow to begin</span>
-              </div>
+        <div className="hp-panel">
+          <div className="hp-panel-hd">
+            <div className="hp-panel-hd-left">
+              <span className="hp-panel-title">Recent runs</span>
             </div>
-            <div className="hp-panel-body">
-              <div className="hp-grid">
-                <ActionCard
-                  icon={<Zap size={22} />} iconCls="hp-icon--orange" cardCls="hp-card--orange"
-                  pillCls="hp-pill--orange" pillLabel="Any document · no template"
-                  title="Discovery"
-                  description="AI detects and builds a template from your document instantly"
-                  onClick={() => navigate("/analysis", { state: { mode: "extract", from: "home" } })}
-                />
-                <ActionCard
-                  icon={<AlignLeft size={22} />} iconCls="hp-icon--teal" cardCls="hp-card--teal"
-                  pillCls="hp-pill--teal" pillLabel="1 document · template required"
-                  title="Summarise"
-                  description="Extract key insights and attributes from a single document"
-                  onClick={() => navigate("/analysis", { state: { mode: "summarise", from: "home" } })}
-                />
-                <ActionCard
-                  icon={<GitCompare size={22} />} iconCls="hp-icon--blue" cardCls="hp-card--blue"
-                  pillCls="hp-pill--blue" pillLabel="2+ documents · template required"
-                  title="Compare"
-                  description="Extract and compare fields across two or more documents side by side"
-                  onClick={() => navigate("/analysis", { state: { mode: "compare", from: "home" } })}
-                  locked={isTrial}
-                />
-                <ActionCard
-                  icon={<Star size={22} />} iconCls="hp-icon--purple" cardCls="hp-card--purple"
-                  pillCls="hp-pill--purple" pillLabel="2+ documents · template + rules"
-                  title="Scoring"
-                  description="Rank documents against weighted criteria with a scored winner"
-                  onClick={() => navigate("/analysis", { state: { mode: "compare-scoring", from: "home" } })}
-                  locked={isTrial}
-                />
-              </div>
-            </div>
+            <button type="button" className="hp-viewall" onClick={() => navigate("/my-insights")}>View all {totalRuns} →</button>
           </div>
+
+          {loading && (
+            <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 8 }}>
+              {[...Array(4)].map((_, i) => <div key={i} className="hp-skel" style={{ height: 40, borderRadius: 8 }} />)}
+            </div>
+          )}
+
+          {!loading && recentRuns.length === 0 && (
+            <div className="hp-empty">
+              <p className="hp-empty-title">No runs yet</p>
+              <p className="hp-empty-sub">Drop a document above to get started</p>
+            </div>
+          )}
+
+          {!loading && recentRuns.length > 0 && (
+            <table className="hp-runs-table">
+              <thead>
+                <tr><th>Run</th><th>Mode</th><th>Updated</th><th /></tr>
+              </thead>
+              <tbody>
+                {recentRuns.map(r => (
+                  <tr key={r.id} onClick={() => navigate(`/runs/${r.id}`)}>
+                    <td>
+                      <div className="hp-run-name">{r.name}</div>
+                      <div className="hp-run-meta">{r.documentType} · {r.documentCount || 1} doc{r.documentCount === 1 ? "" : "s"}</div>
+                    </td>
+                    <td><span className={`hp-mode-pill hp-mode-pill--${MODE_PILL_CLS[r.mode] || "cmp"}`}>{r.mode}</span></td>
+                    <td className="hp-run-updated">{timeAgo(r.createdOn)}</td>
+                    <td><ChevronRight size={14} className="hp-run-chevron" /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
 
-        {/* RIGHT — recent insights */}
-        <div className="hp-right">
-          <div className="hp-panel">
+        <div className="hp-side-col">
 
+          <div className="hp-panel">
             <div className="hp-panel-hd">
               <div className="hp-panel-hd-left">
-                <span className="hp-panel-title">Recent Insights</span>
-                <span className="hp-panel-sub">Your last 10 runs</span>
+                <span className="hp-panel-title">Needs your attention</span>
               </div>
-              <div className="hp-ri-search">
-                <Search size={12} className="hp-ri-search-icon" />
-                <input
-                  className="hp-ri-search-input"
-                  placeholder="Search runs…"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                />
-              </div>
-              <button type="button" className="hp-viewall" onClick={() => navigate("/my-insights")}>
-                View all →
-              </button>
             </div>
+            <div className="hp-attention-body">
+              {!hasAttention && (
+                <div className="hp-attention-ok">
+                  <CheckCircle2 size={16} />
+                  <span>You're all caught up</span>
+                </div>
+              )}
+              {totalHighRisk > 0 && (
+                <button type="button" className="hp-attention-item" onClick={() => navigate("/all-insights")}>
+                  <span className="hp-attention-icon hp-attention-icon--red"><AlertTriangle size={14} /></span>
+                  <span className="hp-attention-text">
+                    <span className="hp-attention-title">{totalHighRisk} high-risk finding{totalHighRisk === 1 ? "" : "s"}</span>
+                    <span className="hp-attention-sub">Across all your runs</span>
+                  </span>
+                </button>
+              )}
+              {upcomingReminders.slice(0, 2).map(r => (
+                <button key={r.id} type="button" className="hp-attention-item" onClick={() => navigate("/my-reminders")}>
+                  <span className="hp-attention-icon hp-attention-icon--blue"><Bell size={14} /></span>
+                  <span className="hp-attention-text">
+                    <span className="hp-attention-title">{r.title}</span>
+                    <span className="hp-attention-sub">{r.documentName ?? "Reminder"}</span>
+                  </span>
+                </button>
+              ))}
+              {upcomingReminders.length > 2 && (
+                <button type="button" className="hp-attention-more" onClick={() => navigate("/my-reminders")}>
+                  +{upcomingReminders.length - 2} more reminder{upcomingReminders.length - 2 === 1 ? "" : "s"}
+                </button>
+              )}
+            </div>
+          </div>
 
-            <div className="hp-feed">
-
-              {/* ── Loading skeletons ── */}
-              {loading && [...Array(8)].map((_, i) => (
-                <div key={i} className="hp-ic-skel">
-                  <div className="hp-skel-body">
-                    <div className="hp-skel hp-skel--line1" />
-                    <div className="hp-skel hp-skel--line2" />
+          <div className="hp-panel">
+            <div className="hp-panel-hd">
+              <div className="hp-panel-hd-left">
+                <span className="hp-panel-title">Runs by workflow</span>
+                <span className="hp-panel-sub">Last 7 days · {totalModeRuns} run{totalModeRuns === 1 ? "" : "s"}</span>
+              </div>
+            </div>
+            <div className="hp-workflow-bars">
+              {totalModeRuns === 0 && <p className="hp-empty-sub" style={{ padding: "4px 20px 16px" }}>No runs in the last 7 days</p>}
+              {modeSplit.filter(m => m.value > 0).map(m => (
+                <div key={m.name} className="hp-wf-row">
+                  <span className="hp-wf-label">{m.name}</span>
+                  <div className="hp-wf-track">
+                    <div className="hp-wf-fill" style={{ width: `${(m.value / totalModeRuns) * 100}%` }} />
                   </div>
-                  <div className="hp-ic-skel-right">
-                    <div className="hp-skel hp-skel--pill" />
-                    <div className="hp-skel hp-skel--pill2" />
-                  </div>
+                  <span className="hp-wf-value">{m.value} · {Math.round((m.value / totalModeRuns) * 100)}%</span>
                 </div>
               ))}
-
-              {/* ── Empty state ── */}
-              {!loading && filteredRuns.length === 0 && (
-                <div className="hp-empty">
-                  <div className="hp-empty-icon"><AlignLeft size={28} /></div>
-                  <p className="hp-empty-title">{search ? "No matching runs" : "No insights yet"}</p>
-                  <p className="hp-empty-sub">
-                    {search ? "Try a different search term" : "Run your first comparison above to get started"}
-                  </p>
-                </div>
-              )}
-
-              {/* ── TODAY ── */}
-              {!loading && todayRuns.length > 0 && (
-                <>
-                  <div className="hp-feed-group">Today</div>
-                  {todayRuns.map(run => (
-                    <RunRow key={run.id} run={run} onClick={() => navigate(`/runs/${run.id}`)} />
-                  ))}
-                </>
-              )}
-
-              {/* ── THIS WEEK ── */}
-              {!loading && thisWeekRuns.length > 0 && (
-                <>
-                  <div className="hp-feed-group">This week</div>
-                  {thisWeekRuns.map(run => (
-                    <RunRow key={run.id} run={run} onClick={() => navigate(`/runs/${run.id}`)} />
-                  ))}
-                </>
-              )}
-
-              {/* ── OLDER ── */}
-              {!loading && olderRuns.length > 0 && (
-                <>
-                  <div className="hp-feed-group">Earlier</div>
-                  {olderRuns.map(run => (
-                    <RunRow key={run.id} run={run} onClick={() => navigate(`/runs/${run.id}`)} />
-                  ))}
-                </>
-              )}
-
             </div>
           </div>
+
         </div>
       </div>
 
-
       <style>{`
-        /* ══ PAGE SHELL ══ */
-        .hp-root {
-          display: flex;
-          flex-direction: column;
-          padding-top: 10px;
-          box-sizing: border-box;
-        }
+        .hp-root { display: flex; flex-direction: column; gap: 14px; padding-top: 0; }
 
-        /* ══ GREETING CARD ══ */
-        .hp-header {
-          max-width: 1200px;
-          width: 100%;
-          margin: 0 auto 14px;
-          flex-shrink: 0;
-        }
+        .hp-hero-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+        .hp-hero-title { font-family: 'Syne', sans-serif; font-size: 27px; font-weight: 700; color: #0f172a; margin: 0 0 4px; letter-spacing: -0.02em; }
+        .hp-hero-sub { font-size: 13px; color: #64748b; margin: 0; }
 
-        .hp-greeting {
-          background: linear-gradient(to right, #eff6ff, #f8faff);
-          border: 1px solid #dbeafe;
-          border-left: 4px solid #3b82f6;
-          border-radius: 0 10px 10px 0;
-          padding: 13px 20px;
-          margin-bottom: 12px;
-          display: flex;
-          align-items: center;
-        }
+        .hp-upload-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; align-items: stretch; }
+        @media (max-width: 900px) { .hp-upload-grid { grid-template-columns: 1fr; } }
+        /* App.css sets a global .guidance-card { max-height: fit-content }
+           which blocks the grid's stretch from equalizing this card's height
+           with the dropzone — override it here so both sides match. */
+        .hp-upload-grid .guidance-card { max-height: none; height: 100%; box-sizing: border-box; }
 
-        .hp-greeting-title {
-          font-family: 'Syne', sans-serif;
-          font-size: 20px; font-weight: 700; color: #0f172a;
-          margin: 0 0 2px; letter-spacing: -0.02em; line-height: 1.2;
+        .hp-dropzone {
+          background: #fff; border: 3px dashed #cbd5e1; border-radius: 14px;
+          box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          gap: 3px; padding: 10px 20px; cursor: pointer; transition: all 0.15s ease; text-align: center;
         }
-        .hp-greeting-sub { font-size: 12px; color: #64748b; margin: 0; }
+        .hp-dropzone:hover { border-color: var(--brand-orange); background: #fffaf7; }
+        .hp-dropzone.dragging { border-color: var(--brand-orange); background: #fff3ec; }
+        .hp-dropzone-icon {
+          width: 34px; height: 34px;
+          color: #94a3b8;
+          display: flex; align-items: center; justify-content: center; margin-bottom: 1px;
+        }
+        .hp-dropzone-title { font-size: 16px; font-weight: 700; color: #111827; letter-spacing: -0.01em; }
+        .hp-dropzone-sub { font-size: 11.5px; color: #6b7280; margin-bottom: 4px; white-space: nowrap; }
+        .hp-dropzone-formats { font-size: 10.5px; color: #9ca3af; margin-top: 3px; }
 
-        /* ══ KPI ROW ══ */
-        .hp-kpi-row {
-          display: grid;
-          grid-template-columns: repeat(5, 1fr);
-          gap: 14px;
-        }
+        .hp-workflow-picker { display: flex; flex-direction: column; gap: 10px; }
+        .hp-workflow-picker-label { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #9ca3af; }
+        .hp-workflow-chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        @media (max-width: 860px) { .hp-workflow-chips { grid-template-columns: repeat(2, 1fr); } }
 
-        .hp-kpi {
-          background: #ffffff;
-          border: 1px solid #e5e7eb;
-          border-top: 3px solid transparent;
-          border-radius: 12px;
-          padding: 14px 18px;
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        .hp-chip {
+          display: flex; align-items: center; gap: 12px; text-align: left;
+          border: 1px solid transparent; border-radius: 10px; padding: 13px 14px;
+          cursor: pointer; transition: all 0.15s ease;
         }
-        .hp-kpi--blue   { border-top-color: #3b82f6; }
-        .hp-kpi--teal   { border-top-color: #10b981; }
-        .hp-kpi--red    { border-top-color: #ef4444; }
-        .hp-kpi--gray   { border-top-color: #d1d5db; }
-        .hp-kpi--green  { border-top-color: #10b981; }
-        .hp-kpi--orange { border-top-color: #ea580c; }
+        .hp-chip:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.07); }
+        .hp-chip--locked { opacity: 0.55; cursor: not-allowed; }
+        .hp-chip--locked:hover { transform: none; box-shadow: none; }
+        .hp-chip-icon {
+          width: 42px; height: 42px; border-radius: 10px; background: #fff;
+          display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .hp-chip--orange { background: #FDEEE6; border-color: #F7D3B8; } .hp-chip--orange .hp-chip-icon { color: #993C1D; }
+        .hp-chip--teal   { background: #E5F5EE; border-color: #BFE6D3; } .hp-chip--teal   .hp-chip-icon { color: #0F6E56; }
+        .hp-chip--blue   { background: #E9F1FB; border-color: #C4DCF5; } .hp-chip--blue   .hp-chip-icon { color: #185FA5; }
+        .hp-chip--purple { background: #F1ECFC; border-color: #DBCCF5; } .hp-chip--purple .hp-chip-icon { color: #5B21B6; }
+        .hp-chip-label { display: block; font-size: 13.5px; font-weight: 700; color: #111827; }
+        .hp-chip-desc { display: block; font-size: 11px; color: #57606f; line-height: 1.4; margin-top: 3px; }
+        .hp-chip-req { display: block; font-size: 10.5px; color: #6b7280; margin-top: 6px; font-weight: 600; }
 
-        .hp-kpi-icon-wrap {
-          width: 38px; height: 38px; border-radius: 9px;
-          display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0;
-        }
-        .hp-kpi-icon-wrap--blue   { background: #eff6ff; color: #3b82f6; }
-        .hp-kpi-icon-wrap--teal   { background: #f0fdf4; color: #10b981; }
-        .hp-kpi-icon-wrap--red    { background: #fef2f2; color: #ef4444; }
-        .hp-kpi-icon-wrap--gray   { background: #f8fafc; color: #94a3b8; }
-        .hp-kpi-icon-wrap--green  { background: #f0fdf4; color: #10b981; }
-        .hp-kpi-icon-wrap--orange { background: #FAECE7; color: #993C1D; }
+        .hp-bottom-split { display: grid; grid-template-columns: 1.7fr 1fr; gap: 18px; align-items: start; }
+        @media (max-width: 1000px) { .hp-bottom-split { grid-template-columns: 1fr; } }
+        .hp-side-col { display: flex; flex-direction: column; gap: 18px; }
 
-        .hp-kpi-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-        .hp-kpi-label {
-          font-size: 10px; font-weight: 600; text-transform: uppercase;
-          letter-spacing: 0.07em; color: #64748b;
-        }
-        .hp-kpi-value {
-          font-family: 'Syne', sans-serif;
-          font-size: 24px; font-weight: 700; color: #0f172a;
-          line-height: 1; letter-spacing: -0.02em;
-        }
-        .hp-kpi-sub { font-size: 11px; color: #94a3b8; margin-top: 1px; }
-        .hp-kpi-value--green { font-size: 18px; color: #10b981; letter-spacing: 0; }
-
-        /* ══ SPLIT LAYOUT ══ */
-        .hp-split {
-          display: flex;
-          align-items: stretch;
-          gap: 18px;
-          width: 100%;
-          max-width: 1200px;
-          margin: 0 auto;
-        }
-
-        .hp-left  { flex: 0 0 auto; display: flex; flex-direction: column; }
-        .hp-right { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-
-        /* ══ PANEL SHELL ══ */
-        .hp-panel {
-          flex: 1;
-          background: #ffffff;
-          border: 1px solid #e5e7eb;
-          border-radius: 14px;
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-          box-shadow: 0 1px 6px rgba(0,0,0,0.05);
-        }
-        .hp-panel--left { overflow: visible; }
-
-        .hp-panel-body {
-          flex: 1;
-          padding: 20px 22px;
-          display: flex;
-          align-items: flex-start;
-          justify-content: center;
-        }
-
-        .hp-panel-hd {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 13px 16px 12px;
-          border-bottom: 1px solid #f3f4f6;
-          flex-shrink: 0;
-          gap: 10px;
-        }
-        .hp-panel-hd-left { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; }
-        .hp-panel-title   { font-size: 14px; font-weight: 700; color: #111827; }
-        .hp-panel-sub     { font-size: 11px; color: #9ca3af; }
-
-        /* ══ SEARCH IN PANEL ══ */
-        .hp-ri-search { position: relative; flex: 1; max-width: 220px; }
-        .hp-ri-search-icon {
-          position: absolute; left: 9px; top: 50%;
-          transform: translateY(-50%); color: #9ca3af; pointer-events: none;
-        }
-        .hp-ri-search-input {
-          width: 100%;
-          padding: 6px 10px 6px 28px;
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          border-radius: 8px;
-          font-size: 12px; color: #0f172a;
-          font-family: 'DM Sans', sans-serif;
-          outline: none;
-          transition: border-color 0.15s;
-          box-sizing: border-box;
-        }
-        .hp-ri-search-input::placeholder { color: #9ca3af; }
-        .hp-ri-search-input:focus { border-color: #3b82f6; background: #fff; }
-
-        .hp-viewall {
-          background: none; border: none; font-size: 12px;
-          color: #6b7280; cursor: pointer; padding: 0; font-weight: 500;
-          white-space: nowrap; flex-shrink: 0;
-        }
+        .hp-panel { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,0.05); }
+        .hp-panel-hd { display: flex; justify-content: space-between; align-items: center; padding: 13px 18px 12px; border-bottom: 1px solid #f3f4f6; gap: 10px; }
+        .hp-panel-hd-left { display: flex; flex-direction: column; gap: 1px; }
+        .hp-panel-title { font-size: 15.5px; font-weight: 700; color: #111827; letter-spacing: -0.01em; }
+        .hp-panel-sub { font-size: 11px; color: #9ca3af; }
+        .hp-viewall { background: none; border: none; font-size: 12px; color: #6b7280; cursor: pointer; padding: 0; font-weight: 500; }
         .hp-viewall:hover { color: #111827; }
 
-        /* ══ 2×2 CARD GRID ══ */
-        .hp-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 252px);
-          column-gap: 20px;
-          row-gap: 30px;
-        }
+        .hp-runs-table { width: 100%; border-collapse: collapse; }
+        .hp-runs-table th { text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; padding: 8px 18px; border-bottom: 1px solid #f3f4f6; }
+        .hp-runs-table td { padding: 8px 18px; border-bottom: 1px solid #f8fafc; vertical-align: middle; }
+        .hp-runs-table tr:last-child td { border-bottom: none; }
+        .hp-runs-table tbody tr { cursor: pointer; transition: background 0.12s ease; }
+        .hp-runs-table tbody tr:hover { background: #fafafa; }
+        .hp-run-name { font-size: 14px; font-weight: 700; color: #111827; }
+        .hp-run-meta { font-size: 11.5px; color: #9ca3af; margin-top: 1px; }
+        .hp-run-updated { font-size: 12.5px; color: #475569; font-weight: 500; white-space: nowrap; }
+        .hp-run-chevron { color: #94a3b8; }
+        .hp-mode-pill { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+        .hp-mode-pill--sum { background: #E6F1FB; color: #185FA5; }
+        .hp-mode-pill--cmp { background: #FAECE7; color: #993C1D; }
+        .hp-mode-pill--scr { background: #EDE9FE; color: #5B21B6; }
 
-        .hp-card {
-          position: relative;
-          background: #ffffff;
-          border: 1px solid #e5e7eb;
-          border-top: 3px solid transparent;
-          border-radius: 14px;
-          padding: 18px;
-          text-align: left;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          display: flex; flex-direction: column; gap: 8px;
-          flex-shrink: 0;
-          box-sizing: border-box;
-          width: 252px; min-height: 142px;
-        }
-        .hp-card:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 10px 28px rgba(0,0,0,0.09);
-          border-color: #d1d5db;
-        }
-        .hp-card--orange { border-top-color: #D85A30; }
-        .hp-card--teal   { border-top-color: #1D9E75; }
-        .hp-card--blue   { border-top-color: #185FA5; }
-        .hp-card--purple { border-top-color: #7C3AED; }
-
-        .hp-card-icon {
-          width: 40px; height: 40px; border-radius: 10px;
-          display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0; margin-bottom: 6px;
-        }
-        .hp-icon--orange { background: #FAECE7; color: #993C1D; }
-        .hp-icon--teal   { background: #E1F5EE; color: #0F6E56; }
-        .hp-icon--blue   { background: #E6F1FB; color: #185FA5; }
-        .hp-icon--purple { background: #EDE9FE; color: #5B21B6; }
-
-        .hp-card-title { font-size: 16px; font-weight: 600; color: #111827; }
-        .hp-card-desc  { font-size: 12px; color: #6b7280; line-height: 1.6; flex: 1; }
-
-        /* pill + CTA footer row */
-        .hp-card-footer {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-top: 4px;
-        }
-
-        .hp-card-pill {
-          font-size: 10px; font-weight: 600;
-          padding: 4px 10px; border-radius: 999px;
-          display: inline-flex; align-items: center;
-        }
-        .hp-pill--orange { background: #FAECE7; color: #993C1D; }
-        .hp-pill--teal   { background: #E1F5EE; color: #0F6E56; }
-        .hp-pill--blue   { background: #E6F1FB; color: #185FA5; }
-        .hp-pill--purple { background: #EDE9FE; color: #5B21B6; }
-
-        .hp-card-cta {
-          font-size: 11px; font-weight: 700;
-          display: inline-flex; align-items: center; gap: 2px;
-          opacity: 0;
-          transform: translateX(-4px);
-          transition: opacity 0.18s ease, transform 0.18s ease;
-          background: none;
-          padding: 0;
-        }
-        .hp-card:hover .hp-card-cta {
-          opacity: 1;
-          transform: translateX(0);
-        }
-
-        /* ══ FEED ══ */
-        .hp-feed {
-          overflow-y: auto;
-          padding: 8px;
-          display: flex; flex-direction: column; align-items: stretch;
-          gap: 4px;
-          max-height: 560px;
-        }
-
-        /* ══ GROUP LABEL ══ */
-        .hp-feed-group {
-          font-size: 10px; font-weight: 700;
-          text-transform: uppercase; letter-spacing: 0.08em;
-          color: #9ca3af;
-          padding: 8px 4px 4px;
-          flex-shrink: 0;
-        }
-        .hp-feed-group:first-child { padding-top: 2px; }
-
-        /* ══ INSIGHT ROW — fixed height ══ */
-        .hp-insight-card {
-          flex: 0 0 auto;
-          display: flex; align-items: center; gap: 12px;
-          padding: 0 12px; height: 52px;
-          background: #fafafa;
-          border: 1px solid #ebebeb;
-          border-left: 3px solid #e5e7eb;
-          border-radius: 8px;
-          cursor: pointer; transition: all 0.15s ease;
-          text-align: left; box-sizing: border-box;
-        }
-        .hp-insight-card:hover {
-          background: #fff; border-color: #d1d5db;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-          transform: translateX(2px);
-        }
-        .hp-insight-card--high   { border-left-color: #ef4444; }
-        .hp-insight-card--medium { border-left-color: #f59e0b; }
-        .hp-insight-card--low    { border-left-color: #10b981; }
-        .hp-insight-card:hover .hp-ic-chevron { color: #9ca3af; }
-
-        .hp-ic-body { flex: 1; min-width: 0; }
-        .hp-ic-name {
-          font-size: 13px; font-weight: 600; color: #111827;
-          white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;
-        }
-        .hp-ic-meta {
-          font-size: 11px; color: #9ca3af; margin-top: 2px;
-          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-
-        .hp-ic-badges { display: flex; flex-direction: row; align-items: center; gap: 5px; flex-shrink: 0; }
-        .hp-ic-mode { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 999px; white-space: nowrap; min-width: 72px; text-align: center; display: inline-block; box-sizing: border-box; }
-        .hp-ic-mode--sum { background: #E6F1FB; color: #185FA5; }
-        .hp-ic-mode--cmp { background: #FAECE7; color: #993C1D; }
-        .hp-ic-mode--scr { background: #EDE9FE; color: #5B21B6; }
-        .hp-ic-risk { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
-        .hp-ic-risk--high   { background: #fef2f2; color: #dc2626; }
-        .hp-ic-risk--medium { background: #fffbeb; color: #d97706; }
-        .hp-ic-risk--low    { background: #f0fdf4; color: #16a34a; }
-        .hp-ic-chevron { color: #d1d5db; flex-shrink: 0; transition: color 0.15s; }
-
-        /* ══ SKELETONS ══ */
-        .hp-ic-skel {
-          flex: 0 0 auto; height: 52px;
-          display: flex; align-items: center; gap: 12px; padding: 0 12px;
-          background: #fafafa; border: 1px solid #ebebeb;
-          border-left: 3px solid #e5e7eb; border-radius: 8px; box-sizing: border-box;
-        }
-        .hp-ic-skel-right { display: flex; flex-direction: row; gap: 5px; align-items: center; flex-shrink: 0; }
-        .hp-skel { background: #f3f4f6; border-radius: 4px; animation: hp-pulse 1.5s ease-in-out infinite; }
-        .hp-skel-body  { flex: 1; display: flex; flex-direction: column; gap: 5px; }
-        .hp-skel--line1 { height: 13px; width: 55%; }
-        .hp-skel--line2 { height: 11px; width: 35%; }
-        .hp-skel--pill  { width: 52px; height: 18px; border-radius: 999px; }
-        .hp-skel--pill2 { width: 58px; height: 18px; border-radius: 999px; }
+        .hp-empty { padding: 32px 18px; text-align: center; }
+        .hp-empty-title { font-size: 13px; font-weight: 600; color: #374151; margin: 0 0 4px; }
+        .hp-empty-sub { font-size: 12px; color: #9ca3af; margin: 0; }
+        .hp-skel { background: #f3f4f6; animation: hp-pulse 1.5s ease-in-out infinite; }
         @keyframes hp-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-        /* ══ EMPTY STATE ══ */
-        .hp-empty { padding: 40px 20px 20px; text-align: center; }
-        .hp-empty-icon  { margin-bottom: 10px; color: #d1d5db; display: flex; justify-content: center; }
-        .hp-empty-title { font-size: 13px; font-weight: 600; color: #374151; margin: 0 0 4px; }
-        .hp-empty-sub   { font-size: 12px; color: #9ca3af; margin: 0; }
-
-        /* ══ RESPONSIVE ══ */
-        @media (max-width: 1100px) { .hp-kpi-row { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 860px) {
-          .hp-kpi-row { grid-template-columns: 1fr; }
-          .hp-split   { flex-direction: column; }
-          .hp-grid    { grid-template-columns: repeat(2, 1fr); }
-          .hp-card    { width: 100%; }
+        .hp-attention-body { display: flex; flex-direction: column; padding: 6px 0; }
+        .hp-attention-ok { display: flex; align-items: center; gap: 8px; padding: 16px 18px; color: #16a34a; font-size: 13px; font-weight: 600; }
+        .hp-attention-item {
+          display: flex; align-items: flex-start; gap: 10px; text-align: left;
+          background: none; border: none; padding: 10px 18px; cursor: pointer; width: 100%; box-sizing: border-box;
+          border-bottom: 1px solid #f8fafc;
         }
-        @media (max-width: 480px) { .hp-grid { grid-template-columns: 1fr; } }
+        .hp-attention-item:hover { background: #fafafa; }
+        .hp-attention-item:last-child { border-bottom: none; }
+        .hp-attention-icon { width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .hp-attention-icon--red { background: #fef2f2; color: #dc2626; }
+        .hp-attention-icon--blue { background: #eff6ff; color: #3b82f6; }
+        .hp-attention-title { display: block; font-size: 12.5px; font-weight: 600; color: #111827; }
+        .hp-attention-sub { display: block; font-size: 11px; color: #9ca3af; margin-top: 1px; }
+        .hp-attention-more { background: none; border: none; padding: 8px 18px; font-size: 11.5px; color: #6b7280; text-align: left; cursor: pointer; }
+        .hp-attention-more:hover { color: #111827; }
+
+        .hp-workflow-bars { display: flex; flex-direction: column; gap: 12px; padding: 16px 18px; }
+        .hp-wf-row { display: flex; align-items: center; gap: 10px; }
+        .hp-wf-label { font-size: 12px; font-weight: 600; color: #374151; width: 70px; flex-shrink: 0; }
+        .hp-wf-track { flex: 1; height: 8px; background: #f1f5f9; border-radius: 999px; overflow: hidden; }
+        .hp-wf-fill { height: 100%; background: var(--brand-orange); border-radius: 999px; }
+        .hp-wf-value { font-size: 11.5px; color: #6b7280; white-space: nowrap; flex-shrink: 0; font-variant-numeric: tabular-nums; }
       `}</style>
     </div>
   );

@@ -419,6 +419,17 @@ export const configApi = {
     return res.data;
   },
 
+  // -----------------------------
+  // USER PROFILE
+  // -----------------------------
+
+  // Idempotent upsert (keyed on the token's oid) — safe to call again later
+  // to fill in fields collected after auth, e.g. from CompleteTrialProfile.
+  async updateTrialProfile(data: { companyName?: string; jobTitle?: string; firstName?: string; lastName?: string; country?: string }) {
+    const res = await apiClient.post(`/api/UpdateTrialProfile`, data);
+    return res.data;
+  },
+
   // ─────────────────────────────────────────────
   // PROMOTE DISCOVERED ATTRIBUTE TO TEMPLATE
   // One-click action from the "Also Discovered" UI

@@ -12,7 +12,7 @@ const MyReminders: React.FC = () => {
   const navigate = useNavigate();
   const { loading, visible, overdue, thisWeek, upcoming, snooze, markDone, unpin } = useMyReminders();
   const [search, setSearch] = useState("");
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [viewMode, setViewMode] = useState<ViewMode>("calendar");
 
   const matches = (r: ReminderRow) => {
     if (!search.trim()) return true;
@@ -48,7 +48,6 @@ const MyReminders: React.FC = () => {
       <div className="page-section-header">
         <div>
           <h2 className="page-section-title">My Reminders</h2>
-          <p className="page-subtitle">Dates you've pinned across your documents</p>
         </div>
         <div className="mr-view-toggle">
           <button
@@ -123,14 +122,17 @@ const MyReminders: React.FC = () => {
 
       <style>{`
         .mr-view-toggle {
-          display: flex; gap: 2px; background: #f1f5f9; border-radius: 8px; padding: 3px; flex-shrink: 0;
+          display: flex; gap: 3px; background: #f1f5f9; border: 1px solid #e2e8f0;
+          border-radius: 10px; padding: 4px; flex-shrink: 0;
         }
         .mr-view-toggle button {
-          display: flex; align-items: center; gap: 5px;
-          border: none; background: none; border-radius: 6px; padding: 6px 12px;
-          font-size: 12px; font-weight: 600; color: #6b7280; cursor: pointer;
+          display: flex; align-items: center; gap: 6px;
+          border: none; background: none; border-radius: 8px; padding: 8px 16px;
+          font-size: 13px; font-weight: 700; color: #64748b; cursor: pointer;
+          transition: all 0.15s ease;
         }
-        .mr-view-toggle button.active { background: #fff; color: #111827; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        .mr-view-toggle button:hover:not(.active) { background: rgba(255,255,255,0.7); color: #1e293b; }
+        .mr-view-toggle button.active { background: var(--brand-orange-button); color: #fff; box-shadow: 0 3px 8px rgba(201, 68, 27,0.3); }
 
         .mr-group-lbl {
           font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
@@ -160,7 +162,7 @@ const MyReminders: React.FC = () => {
           color: #94a3b8; display: flex; align-items: center; justify-content: center; cursor: pointer;
         }
         .mr-row-actions button:hover { background: #f1f5f9; color: #475569; }
-        .mr-row-actions .mr-row-pinned { color: #ea580c; }
+        .mr-row-actions .mr-row-pinned { color: #a8350f; }
         .mr-row-actions .mr-row-pinned:hover { background: #FAECE7; color: #c2410c; }
         .mr-empty { padding: 60px 20px; text-align: center; }
         .mr-empty-icon { margin-bottom: 10px; }
