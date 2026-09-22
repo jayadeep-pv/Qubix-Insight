@@ -24,6 +24,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  row-gap: 8px;
   padding: 22px 40px;
   position: relative;
   z-index: 1;
@@ -52,7 +54,7 @@
   letter-spacing: -0.01em;
 }
 
-.login-nav-actions { display: flex; align-items: center; gap: 18px; }
+.login-nav-actions { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; justify-content: flex-end; }
 
 .login-nav-signin {
   background: none;
@@ -287,8 +289,18 @@
 }
 
 @media (max-width: 640px) {
-  .login-nav { padding: 18px 20px; }
+  .login-nav { padding: 16px 20px; }
   .login-nav-actions { gap: 10px; }
+  /* Low-priority on a phone nav — disabled SSO stays reachable via the
+     footer, and "Talk to sales" still has its own CTA in the hero below. */
+  .login-nav-tooltip-wrap,
+  .login-nav-sales { display: none; }
+  .login-nav-trial { padding: 8px 12px; font-size: 12.5px; }
+  .login-hero-content { padding: 20px 20px 32px; }
   .login-hero-heading { font-size: 26px; }
   .login-hero-ctas { flex-direction: column; align-items: stretch; width: 100%; }
+  .login-hero-perk { margin-bottom: 28px; }
+  .login-hero-footer { letter-spacing: 0.04em; }
+  .login-page-footer { padding: 14px 20px 20px; }
+  .login-page-footer-links { display: flex; justify-content: center; margin: 8px 0 0; }
 }

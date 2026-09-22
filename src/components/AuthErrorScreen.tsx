@@ -10,11 +10,10 @@ const COPY: Record<string, { title: string }> = {
 
 interface AuthErrorScreenProps {
   error: AuthError;
-  onRetry: () => void;
   onLogout: () => void;
 }
 
-export default function AuthErrorScreen({ error, onRetry, onLogout }: AuthErrorScreenProps) {
+export default function AuthErrorScreen({ error, onLogout }: AuthErrorScreenProps) {
   const { title } = COPY[error.code] ?? COPY.SERVER_ERROR;
 
   return (
@@ -59,19 +58,11 @@ export default function AuthErrorScreen({ error, onRetry, onLogout }: AuthErrorS
         <div style={{ display: "flex", gap: 10, justifyContent: "center", marginBottom: 16 }}>
           <button
             type="button"
-            onClick={onRetry}
+            onClick={onLogout}
             className="primary-btn"
             style={{ padding: "9px 20px", fontSize: 13.5 }}
           >
             Try Again
-          </button>
-          <button
-            type="button"
-            onClick={onLogout}
-            className="primary-btn tbs-back-btn"
-            style={{ padding: "9px 20px", fontSize: 13.5 }}
-          >
-            Sign Out
           </button>
         </div>
 

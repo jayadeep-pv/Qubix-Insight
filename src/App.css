@@ -2255,9 +2255,21 @@ label {
 
 /* ── RESPONSIVE ── */
 @media (max-width: 900px) {
-  .db-charts-grid { grid-template-columns: 1fr; grid-template-rows: none; height: auto; }
+  .db-charts-grid { grid-template-columns: 1fr; grid-template-rows: none; height: auto; gap: 16px; }
+  /* Recharts' ResponsiveContainer needs an ancestor with a definite height —
+     once the grid switches to height:auto above, flex:1 on an auto-height
+     flex container resolves to zero, collapsing the charts invisibly. */
+  .db-panel        { min-height: 280px; }
+  .db-chart-wrap   { flex: none; height: 220px; }
+  .db-mode-body    { flex: none; }
+  .db-doctype-list { flex: none; max-height: 240px; }
   .db-kpi-row      { grid-template-columns: 1fr 1fr; }
   .db-shell        { overflow-y: auto; height: auto; }
+  .db-topbar       { flex-wrap: wrap; }
+}
+
+@media (max-width: 480px) {
+  .db-kpi-row { grid-template-columns: 1fr; }
 }
 
 /* ================================================= */

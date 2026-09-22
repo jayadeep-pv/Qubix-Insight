@@ -801,8 +801,8 @@ const MyInsights: React.FC = () => {
         .mi-search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #9ca3af; pointer-events: none; }
         .mi-search .search-input {
           width: 100%; box-sizing: border-box;
-          padding: 8px 10px 8px 30px;
-          font-size: 13px; height: 34px;
+          padding: 6px 10px 6px 30px;
+          font-size: 12.5px; height: 30px;
           border: 1px solid #e5e7eb; border-radius: 8px;
         }
         .mi-search .search-input:focus { outline: none; border-color: #C9441B; box-shadow: 0 0 0 3px rgba(201,68,27,0.12); }
@@ -837,7 +837,13 @@ const MyInsights: React.FC = () => {
         .mi-content-page { flex: none; min-height: auto; }
 
         .mi-board { display: grid; grid-template-columns: 220px 340px 1fr; gap: 16px; align-items: start; }
-        @media (max-width: 1100px) { .mi-board { grid-template-columns: 1fr; } }
+        @media (max-width: 1100px) {
+          .mi-board { grid-template-columns: 1fr; }
+          /* Sticky columns only make sense side-by-side — stacked on top of
+             each other they'd fight over the same top:0 spot as the page scrolls. */
+          .mi-board-filters { position: static; }
+          .mi-board-list { position: static; max-height: none; }
+        }
 
         .mi-board-filters {
           background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px 16px;
@@ -881,17 +887,21 @@ const MyInsights: React.FC = () => {
 
         .mi-board-detail { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; min-width: 0; }
         .mi-board-detail-empty { padding: 60px 20px; text-align: center; color: #9ca3af; font-size: 13px; }
-        .mi-board-detail-hd { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+        .mi-board-detail-hd { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
         .mi-board-detail-hd h3 { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: #0f172a; margin: 0 0 4px; }
         .mi-board-detail-meta { font-size: 12px; color: #9ca3af; margin: 0; }
-        .mi-board-detail-actions { display: flex; gap: 8px; margin-bottom: 20px; }
+        .mi-board-detail-actions { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
         .mi-board-detail-loading { color: #9ca3af; font-size: 13px; padding: 20px 0; }
 
         .mi-board-section { margin-top: 0; }
-        .mi-board-detail-tabs { display: flex; gap: 4px; border-bottom: 1px solid #f1f5f9; margin-bottom: 16px; }
+        .mi-board-detail-tabs {
+          display: flex; gap: 4px; border-bottom: 1px solid #f1f5f9; margin-bottom: 16px;
+          overflow-x: auto; -webkit-overflow-scrolling: touch;
+        }
         .mi-board-detail-tabs button {
           background: none; border: none; border-bottom: 2px solid transparent;
           padding: 8px 4px; margin-right: 16px; font-size: 12.5px; font-weight: 600; color: #9ca3af; cursor: pointer;
+          white-space: nowrap; flex-shrink: 0;
         }
         .mi-board-detail-tabs button.active { color: #a8350f; border-bottom-color: #a8350f; }
         .mi-board-tab-empty { font-size: 12.5px; color: #9ca3af; padding: 16px 0; }

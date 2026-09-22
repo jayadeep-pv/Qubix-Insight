@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using QubixInsight.Services;
 using Microsoft.Azure.Functions.Worker;
@@ -1387,79 +1388,111 @@ private static bool TryParseDecimalSafe(object input, out decimal value)
             _logger.LogWarning("Failed to retrieve run name, using fallback.");
         }
 
-        foreach (var attr in attributes)        
+        // Each attribute's AI insight is an independent call — running them one at a
+        // time was the single biggest contributor to run time on templates with many
+        // attributes (N attributes × ~3-5s per call, all inside one Function invocation
+        // with no functionTimeout override, i.e. the ~5 min platform default). Bounded
+        // concurrency cuts wall-clock time roughly by the concurrency factor without
+        // removing the per-attribute isolation (one failing attribute still can't take
+        // down the others — same try/catch as before, just inside the parallel body).
+        //
+        // service.Clone() is required here rather than sharing `service` directly:
+        // ServiceClient is not documented as safe for concurrent calls from one instance,
+        // but Clone() gives each concurrent task its own lightweight connection that reuses
+        // the same authenticated session — the SDK's documented pattern for parallel work.
+        const int ATTRIBUTE_AI_CONCURRENCY = 4;
+        using var attrAiThrottle = new SemaphoreSlim(ATTRIBUTE_AI_CONCURRENCY);
+        var promptTokensAccum = 0;
+        var completionTokensAccum = 0;
+
+        var attributeTasks = attributes.Select(async attr =>
         {
-            var attrAiSw = Stopwatch.StartNew();
-
-            var attributeName = attr.GetAttributeValue<string>("ilx_name");
-            var expectation = attr.GetAttributeValue<string>("ilx_aiextractionhint")
-                          ?? attr.GetAttributeValue<string>("ilx_attributenarrative");
-            var enableAiInsight = attr.GetAttributeValue<bool?>("ilx_enableaiinsight") ?? true;
-
-            _logger.LogWarning($"➡️ Processing attribute: {attributeName}");
-
-            if (!enableAiInsight)
-            {
-                _logger.LogInformation($"AI Insight disabled for attribute: {attributeName}");
-                continue;
-            }
-
-            if (string.IsNullOrWhiteSpace(expectation))
-                continue;
-            var normalizedKey = Normalize(attr.GetAttributeValue<string>("ilx_attributekey"));
-
-            var candidateValues = new Dictionary<string, string>();
-
-            foreach (var doc in docs)            
-            {            
-                if (!extracted.ContainsKey(doc.Id))
-                    continue;
-
-                var docValues = extracted[doc.Id];
-
-                if (docValues.TryGetValue(normalizedKey, out var val))
-                {
-                    var docName = doc.GetAttributeValue<string>("ilx_name");
-                    candidateValues[docName] = val?.ToString() ?? "—";
-                }
-            }
-
-            if (!candidateValues.Any())
-                continue;
-
+            await attrAiThrottle.WaitAsync();
             try
             {
-                var serviceAi = new AttributeAiInsightsService(_aiSummaryService, _logger);
+                var attrAiSw = Stopwatch.StartNew();
 
-                var aiResult = await serviceAi.GenerateInsight(
-                    attributeName,
-                    expectation,
-                    candidateValues,
-                    mode == MODE_COMPARE
-                );
+                var attributeName = attr.GetAttributeValue<string>("ilx_name");
+                var expectation = attr.GetAttributeValue<string>("ilx_aiextractionhint")
+                              ?? attr.GetAttributeValue<string>("ilx_attributenarrative");
+                var enableAiInsight = attr.GetAttributeValue<bool?>("ilx_enableaiinsight") ?? true;
 
-                totalPromptTokens     += aiResult.PromptTokens;
-                totalCompletionTokens += aiResult.CompletionTokens;
+                _logger.LogWarning($"➡️ Processing attribute: {attributeName}");
 
-                var resultQuery = new QueryExpression("ilx_analysisresult")
+                if (!enableAiInsight)
                 {
-                    ColumnSet = new ColumnSet("ilx_analysisresultid")
-                };
-                resultQuery.Criteria.AddCondition("ilx_analysisrun", ConditionOperator.Equal, runId);
-                resultQuery.Criteria.AddCondition("ilx_templateattribute", ConditionOperator.Equal, attr.Id);
+                    _logger.LogInformation($"AI Insight disabled for attribute: {attributeName}");
+                    return;
+                }
 
-                foreach (var resultRow in service.RetrieveMultiple(resultQuery).Entities)
+                if (string.IsNullOrWhiteSpace(expectation))
+                    return;
+                var normalizedKey = Normalize(attr.GetAttributeValue<string>("ilx_attributekey"));
+
+                var candidateValues = new Dictionary<string, string>();
+
+                foreach (var doc in docs)
                 {
-                    var update = new Entity("ilx_analysisresult") { Id = resultRow.Id };
-                    update["ilx_attributeaiinsight"] = aiResult.Content;
-                    service.Update(update);
-                }               
+                    if (!extracted.ContainsKey(doc.Id))
+                        continue;
+
+                    var docValues = extracted[doc.Id];
+
+                    if (docValues.TryGetValue(normalizedKey, out var val))
+                    {
+                        var docName = doc.GetAttributeValue<string>("ilx_name");
+                        candidateValues[docName] = val?.ToString() ?? "—";
+                    }
+                }
+
+                if (!candidateValues.Any())
+                    return;
+
+                try
+                {
+                    var serviceAi = new AttributeAiInsightsService(_aiSummaryService, _logger);
+
+                    var aiResult = await serviceAi.GenerateInsight(
+                        attributeName,
+                        expectation,
+                        candidateValues,
+                        mode == MODE_COMPARE
+                    );
+
+                    Interlocked.Add(ref promptTokensAccum, aiResult.PromptTokens);
+                    Interlocked.Add(ref completionTokensAccum, aiResult.CompletionTokens);
+
+                    using var attrService = service.Clone();
+
+                    var resultQuery = new QueryExpression("ilx_analysisresult")
+                    {
+                        ColumnSet = new ColumnSet("ilx_analysisresultid")
+                    };
+                    resultQuery.Criteria.AddCondition("ilx_analysisrun", ConditionOperator.Equal, runId);
+                    resultQuery.Criteria.AddCondition("ilx_templateattribute", ConditionOperator.Equal, attr.Id);
+
+                    foreach (var resultRow in attrService.RetrieveMultiple(resultQuery).Entities)
+                    {
+                        var update = new Entity("ilx_analysisresult") { Id = resultRow.Id };
+                        update["ilx_attributeaiinsight"] = aiResult.Content;
+                        attrService.Update(update);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"Attribute AI failed for {attributeName}: {ex.Message}");
+                }
             }
-            catch (Exception ex)
+            finally
             {
-                _logger.LogWarning($"Attribute AI failed for {attributeName}: {ex.Message}");
+                attrAiThrottle.Release();
             }
-        }
+        });
+
+        await Task.WhenAll(attributeTasks);
+
+        totalPromptTokens     += promptTokensAccum;
+        totalCompletionTokens += completionTokensAccum;
 
         _logger.LogWarning($"⏱️ TIMER | TOTAL ExecuteAttributeAiInsights | {overallAiSw.ElapsedMilliseconds} ms | {overallAiSw.Elapsed.TotalSeconds:F2} s");
 

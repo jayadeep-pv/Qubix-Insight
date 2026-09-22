@@ -71,7 +71,7 @@ function PostLoginGuard({ children }: { children: ReactNode }) {
 function App() {
   const { instance, accounts, inProgress } = useMsal();
   const isAuthenticated = useIsAuthenticated();
-  const { authError, refreshUser, isTrial, profileComplete, loading: userLoading } = useUser();
+  const { authError, isTrial, profileComplete, loading: userLoading } = useUser();
   const location = useLocation();
 
   // External ID auth: initialised synchronously from accounts already in localStorage
@@ -229,7 +229,7 @@ function App() {
      show a real reason instead of silently signing the user back out.
   ======================================================= */
   if (authError) {
-    return <AuthErrorScreen error={authError} onRetry={refreshUser} onLogout={handleLogout} />;
+    return <AuthErrorScreen error={authError} onLogout={handleLogout} />;
   }
 
   /* =======================================================
